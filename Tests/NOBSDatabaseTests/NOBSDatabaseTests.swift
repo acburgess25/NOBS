@@ -8,14 +8,81 @@ final class NOBSDatabaseTests: XCTestCase {
 
     override func setUpWithError() throws {
         database = NOBSDatabase.shared
-        try database.setup(inMemory: true)
+        try database.setup(storageMode: .localOnly, inMemory: true)
     }
 
     // MARK: - Setup
 
     func testSetupDoesNotThrow() throws {
-        // If we get here without throwing, setup succeeded.
         XCTAssertNotNil(database)
+    }
+
+    func testDefaultStorageModeIsLocalOnly() throws {
+        XCTAssertFalse(database.storageMode.syncsToCloud)
+        XCTAssertEqual(database.storageMode.displayName, "On-Device Only")
+    }
+
+    // MARK: - StorageMode
+
+    func testLocalOnlyDoesNotSyncToCloud() {
+        let mode = StorageMode.localOnly
+        XCTAssertFalse(mode.syncsToCloud)
+    }
+
+    func testICloudSyncsToCloud() {
+        let mode = StorageMode.iCloud(containerID: "iCloud.com.example.nobs")
+        XCTAssertTrue(mode.syncsToCloud)
+    }
+
+    func testLocalOnlyDisplayName() {
+        XCTAssertEqual(StorageMode.localOnly.displayName, "On-Device Only")
+    }
+
+    func testICloudDisplayName() {
+        let mode = StorageMode.iCloud(containerID: "iCloud.com.example.nobs")
+        XCTAssertEqual(mode.displayName, "iCloud Sync")
+    }
+
+    func testStorageModeAfterSetupIsRecorded() throws {
+        let db = NOBSDatabase.shared
+        try db.setup(storageMode: .localOnly, inMemory: true)
+        XCTAssertFalse(db.storageMode.syncsToCloud)
+    }
+
+    // MARK: - iCloudDisclosure
+
+    func testUserFacingWarningMentionsICloud() {
+        XCTAssertTrue(iCloudDisclosure.userFacingWarning.contains("iCloud"))
+    }
+
+    func testUserFacingWarningMentionsPrivacy() {
+        let warning = iCloudDisclosure.userFacingWarning.lowercased()
+        XCTAssertTrue(warning.contains("privacy") || warning.contains("server"))
+    }
+
+    func testUserFacingWarningIsOffByDefault() {
+        XCTAssertTrue(iCloudDisclosure.userFacingWarning.contains("OFF by default"))
+    }
+
+    func testFullExplanationContainsApplePrivacyURL() {
+        XCTAssertTrue(iCloudDisclosure.fullExplanation.contains("apple.com"))
+    }
+
+    func testFullExplanationMentionsBothContexts() {
+        let text = iCloudDisclosure.fullExplanation
+        XCTAssertTrue(text.contains("Work") || text.contains("Personal"))
+    }
+
+    func testStatusLineLocalOnly() {
+        let line = iCloudDisclosure.statusLine(for: .localOnly)
+        XCTAssertTrue(line.contains("never leaves"))
+    }
+
+    func testStatusLineICloud() {
+        let id   = "iCloud.com.example.nobs"
+        let line = iCloudDisclosure.statusLine(for: .iCloud(containerID: id))
+        XCTAssertTrue(line.contains("iCloud"))
+        XCTAssertTrue(line.contains(id))
     }
 
     // MARK: - MemoryRepository
@@ -43,7 +110,6 @@ final class NOBSDatabaseTests: XCTestCase {
     func testSearchIsCaseInsensitive() throws {
         let repo = MemoryRepository(context: .personal, database: database)
         try repo.save(content: "NOBS is a great assistant")
-
         let results = try repo.search(query: "nobs")
         XCTAssertEqual(results.count, 1)
     }
@@ -51,18 +117,12 @@ final class NOBSDatabaseTests: XCTestCase {
     func testSeparateReposAreSeparate() throws {
         let personal = MemoryRepository(context: .personal, database: database)
         let work     = MemoryRepository(context: .work,     database: database)
-
         try personal.save(content: "Personal note")
         try work.save(content: "Work note")
-
-        let personalAll = try personal.fetchAll()
-        let workAll     = try work.fetchAll()
-
-        // Each repo maintains its own store — counts should be 1 each.
-        XCTAssertEqual(personalAll.count, 1)
-        XCTAssertEqual(workAll.count,     1)
-        XCTAssertEqual(personalAll.first?.content, "Personal note")
-        XCTAssertEqual(workAll.first?.content,     "Work note")
+        XCTAssertEqual(try personal.fetchAll().count, 1)
+        XCTAssertEqual(try work.fetchAll().count,     1)
+        XCTAssertEqual(try personal.fetchAll().first?.content, "Personal note")
+        XCTAssertEqual(try work.fetchAll().first?.content,     "Work note")
     }
 
     // MARK: - TaskRepository
@@ -72,18 +132,14 @@ final class NOBSDatabaseTests: XCTestCase {
         let task = try repo.create(title: "Send quarterly report")
         XCTAssertEqual(task.title, "Send quarterly report")
         XCTAssertFalse(task.isCompleted)
-
-        let pending = try repo.fetchPending()
-        XCTAssertEqual(pending.count, 1)
+        XCTAssertEqual(try repo.fetchPending().count, 1)
     }
 
     func testCompleteTask() throws {
         let repo = TaskRepository(context: .work, database: database)
         let task = try repo.create(title: "Review PR")
         try repo.complete(id: task.id)
-
-        let pending = try repo.fetchPending()
-        XCTAssertEqual(pending.count, 0)
+        XCTAssertEqual(try repo.fetchPending().count, 0)
     }
 
     func testCompletingNonExistentTaskIsNoop() throws {

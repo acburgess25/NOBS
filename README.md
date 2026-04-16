@@ -70,7 +70,8 @@ Receives `AssistantIntent` values and dispatches them to the right module handle
 
 ### `NOBSDatabase` — Work / Personal Data Stores
 - Two separate `NSPersistentContainer` stacks (never shared)
-- Encrypted with `NSPersistentStoreFileProtectionKey`
+- **Default: On-Device Only** — encrypted with `NSPersistentStoreFileProtectionKey`
+- **Optional: iCloud Sync** — `NSPersistentCloudKitContainer` syncs via CloudKit (see [iCloud Sync](#icloud-sync) below)
 - `MemoryRepository` — store and search on-device learned facts
 - `TaskRepository` — create and complete user tasks
 
@@ -140,7 +141,52 @@ Add `NSRemindersUsageDescription` to `Info.plist`.
 
 ---
 
-## Privacy
+## iCloud Sync
+
+> ⚠️ **iCloud Sync is OFF by default and must be explicitly enabled by the user.**
+
+By default, NOBS stores everything on-device only. iCloud sync is an **opt-in** feature that must be presented to the user with a clear disclosure before activation.
+
+### What iCloud Sync means
+
+| | On-Device Only (default) | iCloud Sync |
+|---|---|---|
+| Data stored on your device | ✅ | ✅ |
+| Data uploaded to Apple's servers | ❌ | ✅ |
+| Syncs across your Apple devices | ❌ | ✅ |
+| Apple's iCloud Privacy Policy applies | ❌ | ✅ |
+| Work & Personal kept separate | ✅ | ✅ (separate CloudKit zones) |
+
+### How to enable (developer)
+
+```swift
+// 1. Show the disclosure FIRST — required before enabling iCloud.
+print(iCloudDisclosure.userFacingWarning)
+// or use iCloudDisclosure.fullExplanation for a dedicated settings screen
+
+// 2. Only after the user explicitly confirms:
+try NOBSDatabase.shared.setup(
+    storageMode: .iCloud(containerID: "iCloud.com.yourcompany.nobs")
+)
+```
+
+### Disclosure strings
+
+`iCloudDisclosure` provides three ready-made strings you must present before enabling iCloud:
+
+- **`iCloudDisclosure.userFacingWarning`** — short alert body (use in a confirmation dialog).
+- **`iCloudDisclosure.fullExplanation`** — long explanation for a dedicated "About iCloud Sync" screen.
+- **`iCloudDisclosure.statusLine(for:)`** — one-line status for settings footers and banners.
+
+### Required entitlements for iCloud Sync
+
+Add to your app target in Xcode:
+- `iCloud` capability with your CloudKit container
+- `com.apple.developer.icloud-container-identifiers` entitlement
+- `NSUbiquitousContainers` key in `Info.plist`
+
+---
+
 
 - **No cloud sync of personal data.** Core Data stores live in the app's sandboxed container.
 - **Work and Personal databases never mix** at the storage layer.
