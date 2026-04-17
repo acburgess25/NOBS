@@ -55,6 +55,7 @@ public enum VoiceError: Error, LocalizedError, Sendable {
     case invalidResponse(Int)
     case decodingError(String)
     case callFailed(String)
+    case invalidPhoneNumber(String)
 
     public var errorDescription: String? {
         switch self {
@@ -64,6 +65,7 @@ public enum VoiceError: Error, LocalizedError, Sendable {
         case .invalidResponse(let code):   return "Google API returned HTTP \(code)"
         case .decodingError(let msg):      return "Failed to decode Google Voice response: \(msg)"
         case .callFailed(let reason):      return "Google Voice call failed: \(reason)"
+        case .invalidPhoneNumber(let n):   return "Invalid E.164 phone number: \(n)"
         }
     }
 }
@@ -102,7 +104,13 @@ public actor VoiceClient {
     // MARK: - Authorization
 
     /// Returns the OAuth2 authorization URL the user must open to grant access.
-    public func authorizationURL(redirectURI: String) -> URL? {
+    ///
+    /// - Parameters:
+    ///   - redirectURI: The URI Google will redirect to after authorization.
+    ///   - state: A random, unguessable string you generate and store before
+    ///     calling this method. Verify that the same value is returned in the
+    ///     redirect query parameter to protect against CSRF attacks.
+    public func authorizationURL(redirectURI: String, state: String) -> URL? {
         var components = URLComponents(string: "https://accounts.google.com/o/oauth2/v2/auth")
         components?.queryItems = [
             URLQueryItem(name: "client_id",     value: credentials.clientID),
@@ -110,6 +118,7 @@ public actor VoiceClient {
             URLQueryItem(name: "response_type", value: "code"),
             URLQueryItem(name: "scope",         value: Self.requiredScope),
             URLQueryItem(name: "access_type",   value: "offline"),
+            URLQueryItem(name: "state",         value: state),
         ]
         return components?.url
     }
@@ -147,11 +156,13 @@ public actor VoiceClient {
     ///   - callerID:    Your Google Voice number (E.164 format, e.g. `+14155552671`).
     ///   - destination: The number to call (E.164 format).
     public func placeCall(from callerID: String, to destination: String) async throws {
+        guard Self.isValidE164(callerID) else { throw VoiceError.invalidPhoneNumber(callerID) }
+        guard Self.isValidE164(destination) else { throw VoiceError.invalidPhoneNumber(destination) }
         try await ensureValidToken()
         let url = Self.voiceAPIBase.appendingPathComponent("calls")
         var request = authorisedRequest(url: url, method: "POST")
         let body = ["callerIdNumber": callerID, "number": destination]
-        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
         let (_, response) = try await perform(request)
         guard (200...299).contains(response.statusCode) else {
             throw VoiceError.invalidResponse(response.statusCode)
@@ -160,6 +171,8 @@ public actor VoiceClient {
 
     /// Send an SMS via Google Voice.
     public func sendSMS(from callerID: String, to destination: String, message: String) async throws {
+        guard Self.isValidE164(callerID) else { throw VoiceError.invalidPhoneNumber(callerID) }
+        guard Self.isValidE164(destination) else { throw VoiceError.invalidPhoneNumber(destination) }
         try await ensureValidToken()
         let url = Self.voiceAPIBase.appendingPathComponent("sms/send")
         var request = authorisedRequest(url: url, method: "POST")
@@ -168,7 +181,7 @@ public actor VoiceClient {
             "number":         destination,
             "message":        message,
         ]
-        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        request.httpBody = try JSONSerialization.data(withJSONObject: body)
         let (_, response) = try await perform(request)
         guard (200...299).contains(response.statusCode) else {
             throw VoiceError.invalidResponse(response.statusCode)
@@ -176,6 +189,14 @@ public actor VoiceClient {
     }
 
     // MARK: - Private helpers
+
+    /// Returns `true` when `number` is a valid E.164 phone number (`+` followed
+    /// by 7–15 digits, no spaces or dashes).
+    public static func isValidE164(_ number: String) -> Bool {
+        guard number.hasPrefix("+") else { return false }
+        let digits = number.dropFirst()
+        return digits.count >= 7 && digits.count <= 15 && digits.allSatisfy(\.isNumber)
+    }
 
     private func ensureValidToken() async throws {
         if !credentials.isTokenValid {

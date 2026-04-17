@@ -113,7 +113,22 @@ public enum iCloudDisclosure {
     }
 }
 
-// MARK: - DataContext → store name mapping
+// MARK: - DatabaseError
+
+/// Errors thrown by `NOBSDatabase` when it is used before being configured.
+public enum DatabaseError: Error, LocalizedError, Sendable {
+    /// `setup()` was not called before accessing the database.
+    case notSetUp
+
+    public var errorDescription: String? {
+        switch self {
+        case .notSetUp:
+            return "NOBSDatabase has not been set up. Call setup() before accessing data."
+        }
+    }
+}
+
+
 
 extension DataContext {
     var storeName: String {
@@ -158,17 +173,19 @@ public final class NOBSDatabase: @unchecked Sendable {
     // MARK: Managed Object Context
 
     /// Returns the main-thread managed object context for the given data context.
-    public func viewContext(for dataContext: DataContext) -> NSManagedObjectContext {
+    /// - Throws: `DatabaseError.notSetUp` if `setup()` has not been called yet.
+    public func viewContext(for dataContext: DataContext) throws -> NSManagedObjectContext {
         guard let container = containers[dataContext] else {
-            fatalError("NOBSDatabase has not been set up. Call setup() first.")
+            throw DatabaseError.notSetUp
         }
         return container.viewContext
     }
 
     /// Creates a new background context for the given data context.
-    public func newBackgroundContext(for dataContext: DataContext) -> NSManagedObjectContext {
+    /// - Throws: `DatabaseError.notSetUp` if `setup()` has not been called yet.
+    public func newBackgroundContext(for dataContext: DataContext) throws -> NSManagedObjectContext {
         guard let container = containers[dataContext] else {
-            fatalError("NOBSDatabase has not been set up. Call setup() first.")
+            throw DatabaseError.notSetUp
         }
         return container.newBackgroundContext()
     }
@@ -339,7 +356,7 @@ public final class MemoryRepository {
 
     @discardableResult
     public func save(content: String, tags: [String] = []) throws -> MemoryMO {
-        let moc = database.viewContext(for: dataContext)
+        let moc = try database.viewContext(for: dataContext)
         let memory = MemoryMO(context: moc)
         memory.id = UUID()
         memory.content = content
@@ -350,14 +367,14 @@ public final class MemoryRepository {
     }
 
     public func fetchAll() throws -> [MemoryMO] {
-        let moc = database.viewContext(for: dataContext)
+        let moc = try database.viewContext(for: dataContext)
         let req = NSFetchRequest<MemoryMO>(entityName: "Memory")
         req.sortDescriptors = [NSSortDescriptor(key: "createdAt", ascending: false)]
         return try moc.fetch(req)
     }
 
     public func search(query: String) throws -> [MemoryMO] {
-        let moc = database.viewContext(for: dataContext)
+        let moc = try database.viewContext(for: dataContext)
         let req = NSFetchRequest<MemoryMO>(entityName: "Memory")
         req.predicate = NSPredicate(format: "content CONTAINS[cd] %@", query)
         req.sortDescriptors = [NSSortDescriptor(key: "createdAt", ascending: false)]
@@ -378,7 +395,7 @@ public final class TaskRepository {
 
     @discardableResult
     public func create(title: String, dueDate: Date? = nil, notes: String? = nil) throws -> UserTaskMO {
-        let moc = database.viewContext(for: dataContext)
+        let moc = try database.viewContext(for: dataContext)
         let task = UserTaskMO(context: moc)
         task.id = UUID()
         task.title = title
@@ -391,7 +408,7 @@ public final class TaskRepository {
     }
 
     public func fetchPending() throws -> [UserTaskMO] {
-        let moc = database.viewContext(for: dataContext)
+        let moc = try database.viewContext(for: dataContext)
         let req = NSFetchRequest<UserTaskMO>(entityName: "UserTask")
         req.predicate = NSPredicate(format: "isCompleted == NO")
         req.sortDescriptors = [NSSortDescriptor(key: "dueDate", ascending: true)]
@@ -399,7 +416,7 @@ public final class TaskRepository {
     }
 
     public func complete(id: UUID) throws {
-        let moc = database.viewContext(for: dataContext)
+        let moc = try database.viewContext(for: dataContext)
         let req = NSFetchRequest<UserTaskMO>(entityName: "UserTask")
         req.predicate = NSPredicate(format: "id == %@", id as CVarArg)
         if let task = try moc.fetch(req).first {

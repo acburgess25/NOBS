@@ -39,8 +39,8 @@ public struct ModelConfiguration: Sendable {
     ) {
         self.localEndpoint = localEndpoint
         self.modelName = modelName
-        self.maxTokens = maxTokens
-        self.temperature = temperature
+        self.maxTokens = max(1, maxTokens)
+        self.temperature = min(1.0, max(0.0, temperature))
         self.timeoutSeconds = timeoutSeconds
     }
 
