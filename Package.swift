@@ -102,5 +102,10 @@ let package = Package(
             dependencies: ["NOBSReminders"],
             path: "Tests/NOBSRemindersTests"
         ),
+        .testTarget(
+            name: "NOBSiMessageTests",
+            dependencies: ["NOBSiMessage", "NOBSCore", "NOBSDatabase"],
+            path: "Tests/NOBSiMessageTests"
+        ),
     ]
 )

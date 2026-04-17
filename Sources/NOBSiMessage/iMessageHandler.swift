@@ -106,18 +106,29 @@ public actor iMessageHandler: IntentHandler {
 
     /// Compose and queue an iMessage.
     ///
-    /// Records the outbound message locally, then opens the Messages URL scheme.
-    /// The app layer is responsible for calling `UIApplication.shared.open(url)`
-    /// or `NSWorkspace.shared.open(url)` with the returned URL.
+    /// Records the outbound message locally, then returns the `sms:` URL the
+    /// app layer should open with `UIApplication.shared.open(url)` on iOS or
+    /// `NSWorkspace.shared.open(url)` on macOS.
+    ///
+    /// - Returns: A human-readable confirmation that also embeds the `sms:` URL.
     public func send(to recipient: String, body: String) async throws -> String {
         let record = MessageRecord(sender: recipient, body: body, isOutbound: true)
         try await history.append(record)
 
-        // Compose the sms: URL for hand-off to the Messages app.
-        let encoded = body.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? body
-        _ = "sms:\(recipient)&body=\(encoded)"  // app layer opens this URL
-
+        if let url = iMessageHandler.composeURL(to: recipient, body: body) {
+            return "Message queued for \(recipient). Open URL to send: \(url.absoluteString)"
+        }
         return "Message queued for \(recipient)."
+    }
+
+    /// Build the `sms:` URL the app layer must open to deliver the message.
+    ///
+    /// Returns `nil` if either the recipient or the percent-encoded body cannot
+    /// form a valid URL.
+    public static func composeURL(to recipient: String, body: String) -> URL? {
+        guard let encoded = body.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed),
+              !recipient.isEmpty else { return nil }
+        return URL(string: "sms:\(recipient)?body=\(encoded)")
     }
 
     // MARK: - Reading

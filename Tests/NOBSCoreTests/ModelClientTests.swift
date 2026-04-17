@@ -80,6 +80,27 @@ final class ModelClientTests: XCTestCase {
         XCTAssertEqual(config.localEndpoint.host, "192.168.1.10")
     }
 
+    func testTemperatureIsClamped() {
+        let url = URL(string: "http://localhost:11434")!
+        let tooHigh = ModelConfiguration(localEndpoint: url, temperature: 2.5)
+        XCTAssertEqual(tooHigh.temperature, 1.0, accuracy: 0.001, "Temperature > 1.0 should be clamped to 1.0")
+
+        let tooLow = ModelConfiguration(localEndpoint: url, temperature: -0.5)
+        XCTAssertEqual(tooLow.temperature, 0.0, accuracy: 0.001, "Temperature < 0.0 should be clamped to 0.0")
+
+        let valid = ModelConfiguration(localEndpoint: url, temperature: 0.5)
+        XCTAssertEqual(valid.temperature, 0.5, accuracy: 0.001, "Valid temperature should be unchanged")
+    }
+
+    func testMaxTokensIsAtLeastOne() {
+        let url = URL(string: "http://localhost:11434")!
+        let config = ModelConfiguration(localEndpoint: url, maxTokens: 0)
+        XCTAssertEqual(config.maxTokens, 1, "maxTokens <= 0 should be clamped to 1")
+
+        let negative = ModelConfiguration(localEndpoint: url, maxTokens: -100)
+        XCTAssertEqual(negative.maxTokens, 1)
+    }
+
     // MARK: - AssistantIntent
 
     func testDataContextAllCases() {
