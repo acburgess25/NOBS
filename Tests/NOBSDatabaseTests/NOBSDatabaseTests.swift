@@ -154,4 +154,12 @@ final class NOBSDatabaseTests: XCTestCase {
         XCTAssertNotNil(task.dueDate)
         XCTAssertEqual(task.dueDate!.timeIntervalSince1970, due.timeIntervalSince1970, accuracy: 1)
     }
+
+    // MARK: - DatabaseError
+
+    func testDatabaseErrorDescription() {
+        let error = DatabaseError.notSetUp
+        XCTAssertNotNil(error.errorDescription)
+        XCTAssertTrue(error.errorDescription!.contains("setup()"))
+    }
 }

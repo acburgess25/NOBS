@@ -46,21 +46,33 @@ public actor NOBSAssistant {
     private let userName: String
     private let dataContext: DataContext
 
+    /// Maximum number of non-system messages kept in the conversation window.
+    ///
+    /// When the history grows beyond this limit the oldest user/assistant pairs
+    /// are dropped while the system prompt is always preserved.  This prevents
+    /// unbounded memory growth and keeps requests within the model's token limit.
+    public let maxHistoryMessages: Int
+
     /// - Parameters:
     ///   - config: Configuration for the local LLM.
     ///   - handlers: Module handlers that service intents.
     ///   - userName: Name used to personalise the system prompt.
     ///   - dataContext: Whether the session is personal or work.
+    ///   - maxHistoryMessages: Maximum number of non-system messages to keep in
+    ///     the conversation window. Defaults to 40 (20 turns). Older messages are
+    ///     dropped automatically to prevent token-limit and memory issues.
     public init(
         config: ModelConfiguration,
         handlers: [IntentHandler] = [],
         userName: String = "User",
-        dataContext: DataContext = .personal
+        dataContext: DataContext = .personal,
+        maxHistoryMessages: Int = 40
     ) {
         self.modelClient = ModelClient(config: config)
         self.intentRouter = IntentRouter(handlers: handlers)
         self.userName = userName
         self.dataContext = dataContext
+        self.maxHistoryMessages = max(2, maxHistoryMessages)
     }
 
     // MARK: - Public API
@@ -98,6 +110,7 @@ public actor NOBSAssistant {
         }
 
         conversationHistory.append(ChatMessage(role: .assistant, content: rawResponse))
+        trimHistoryIfNeeded()
 
         let intent = parseIntent(from: rawResponse)
         let replyText = extractReply(from: rawResponse) ?? rawResponse
@@ -121,6 +134,16 @@ public actor NOBSAssistant {
     }
 
     // MARK: - Private parsing helpers
+
+    /// Drop the oldest user/assistant pairs when history exceeds the cap,
+    /// always keeping the system prompt at index 0.
+    private func trimHistoryIfNeeded() {
+        // conversationHistory[0] is the system message; everything after is turns.
+        guard conversationHistory.count > maxHistoryMessages + 1 else { return }
+        let systemMessage = conversationHistory[0]
+        let recentMessages = conversationHistory.suffix(maxHistoryMessages)
+        conversationHistory = [systemMessage] + Array(recentMessages)
+    }
 
     private func parseIntent(from text: String) -> AssistantIntent {
         guard let json = try? IntentParser.extractJSON(from: text),
