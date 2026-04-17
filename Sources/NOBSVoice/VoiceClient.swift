@@ -20,6 +20,7 @@ import FoundationNetworking
 
 import NOBSCore
 import NOBSCallKit
+import NOBSSecurity
 
 // MARK: - VoiceCredentials
 
@@ -77,9 +78,24 @@ public actor VoiceClient {
 
     private var credentials: VoiceCredentials
     private let session: URLSession
+    private let tokenStore: VoiceTokenStore?
 
-    public init(credentials: VoiceCredentials) {
-        self.credentials = credentials
+    /// - Parameters:
+    ///   - credentials: OAuth2 credentials.  `clientID` and `clientSecret` are
+    ///     required; token fields are optional — they will be loaded from the
+    ///     Keychain via `tokenStore` if one is provided.
+    ///   - tokenStore:  A `VoiceTokenStore` backed by the device Keychain.
+    ///     Pass `nil` only in unit tests where Keychain access is not available.
+    ///     In production, always supply a store so tokens are persisted securely.
+    public init(credentials: VoiceCredentials, tokenStore: VoiceTokenStore? = VoiceTokenStore()) {
+        var mutableCredentials = credentials
+        self.tokenStore = tokenStore
+        // Restore any previously saved tokens from the Keychain so the user
+        // does not have to re-authorise on every app launch.
+        if let store = tokenStore {
+            try? store.load(into: &mutableCredentials)
+        }
+        self.credentials = mutableCredentials
         self.session = URLSession(configuration: .default)
     }
 
@@ -199,6 +215,21 @@ public actor VoiceClient {
         if let expiresIn = json["expires_in"] as? TimeInterval {
             credentials.tokenExpiry = Date().addingTimeInterval(expiresIn)
         }
+        // Persist the updated tokens to the Keychain so they survive app restarts.
+        if let store = tokenStore {
+            try? store.save(from: credentials)
+        }
+    }
+
+    // MARK: - Sign-out
+
+    /// Revoke stored tokens and remove them from the Keychain.
+    /// Call this when the user signs out of Google Voice.
+    public func clearTokens() throws {
+        credentials.accessToken  = nil
+        credentials.refreshToken = nil
+        credentials.tokenExpiry  = nil
+        try tokenStore?.clear()
     }
 
     private func perform(_ request: URLRequest) async throws -> (Data, HTTPURLResponse) {

@@ -24,6 +24,9 @@ Client    │   Google Voice│               │
      NOBSiMessage   NOBSDatabase   NOBSReminders
      (Messages.app  (Work / Personal  (EventKit)
       integration)   CoreData stores)
+                            │
+                      NOBSSecurity
+                   (Keychain + LocalAuth)
 ```
 
 ### Key Design Principles
@@ -34,6 +37,8 @@ Client    │   Google Voice│               │
 | **Local model** | The AI runs on a user-owned server. Apps communicate via a local network REST/WebSocket API (`NOBSCore`). |
 | **Work / Personal separation** | Two isolated Core Data persistent stores — every piece of information is tagged to a context at write time. |
 | **Modular** | Each capability lives in its own Swift target so individual features can be shipped, tested, and updated independently. |
+| **Keychain for all secrets** | OAuth tokens and API keys are stored in the iOS/macOS Keychain via `NOBSSecurity.KeychainStore` with `.afterFirstUnlockThisDeviceOnly` protection so secrets never migrate off device. |
+| **Biometric gate** | `NOBSSecurity.LocalAuthGate` wraps `LAContext` to enforce Face ID, Touch ID, or passcode authentication before sensitive operations (calls, messages, HomeKit) are executed. |
 
 ---
 
@@ -74,6 +79,12 @@ Receives `AssistantIntent` values and dispatches them to the right module handle
 - **Optional: iCloud Sync** — `NSPersistentCloudKitContainer` syncs via CloudKit (see [iCloud Sync](#icloud-sync) below)
 - `MemoryRepository` — store and search on-device learned facts
 - `TaskRepository` — create and complete user tasks
+
+### `NOBSSecurity` — Keychain & Biometric Authentication
+Provides the security primitives used throughout the NOBS suite.
+- `KeychainStore` — type-safe wrapper around Apple's `SecItem` APIs; items stored with `.afterFirstUnlockThisDeviceOnly` so secrets never migrate off the device
+- `LocalAuthGate` — `LAContext`-based gate requiring Face ID, Touch ID, or device passcode before sensitive operations proceed; successful authentications are cached for a configurable session duration
+- `VoiceTokenStore` (in `NOBSVoice`) — Keychain-backed persistence for Google Voice OAuth tokens so tokens survive app restarts without re-authorization
 
 ### `NOBSReminders` — Reminders & EventKit
 - Creates, updates, and queries reminders via `EventKit`
@@ -187,9 +198,54 @@ Add to your app target in Xcode:
 
 ---
 
+## Security
+
+### Keychain (`NOBSSecurity.KeychainStore`)
+
+All sensitive string values — OAuth access tokens, refresh tokens, and token expiry dates — are stored in the system Keychain using Apple's `SecItem` APIs.
+
+```swift
+// In production always use the default VoiceTokenStore (backed by the Keychain):
+let client = VoiceClient(credentials: creds)          // tokenStore defaults to VoiceTokenStore()
+
+// In unit tests, pass nil to skip Keychain access:
+let client = VoiceClient(credentials: creds, tokenStore: nil)
+```
+
+Protection class used: **`kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly`**
+
+| Property | Value |
+|---|---|
+| Accessible after first unlock | ✅ (background app access OK) |
+| Migrates to new device via backup | ❌ |
+| Syncs via iCloud Keychain | ❌ |
+| Available on iOS Simulator | ✅ |
+
+### Biometric / Passcode Gate (`NOBSSecurity.LocalAuthGate`)
+
+Wrap any sensitive operation with `LocalAuthGate` to require Face ID, Touch ID, or the device passcode.
+
+```swift
+let gate = LocalAuthGate(
+    policy: .biometricOrPasscode,      // or .biometricOnly
+    reason: "Authenticate to place a call",
+    sessionDuration: 300               // re-authenticate after 5 minutes
+)
+
+// In your app / view model:
+try await gate.requireAuthentication()
+// … perform sensitive operation …
+
+// When app goes to background — force re-authentication next time:
+await gate.invalidate()
+```
+
+### Security principles
 
 - **No cloud sync of personal data.** Core Data stores live in the app's sandboxed container.
 - **Work and Personal databases never mix** at the storage layer.
-- **Google Voice credentials** are stored in the iOS Keychain, never in plain text.
+- **Google Voice credentials** are stored in the iOS Keychain via `VoiceTokenStore`, never in source files or `UserDefaults`.
 - **Call screening decisions** are made on-device; audio is never uploaded.
 - **Conversation history** is stored locally and never leaves the device.
+- **iCloud Sync is opt-in** and gated behind an explicit disclosure and user confirmation.
+

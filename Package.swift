@@ -18,6 +18,7 @@ let package = Package(
             "NOBSDatabase",
             "NOBSReminders",
             "NOBSVoice",
+            "NOBSSecurity",
         ]),
         // Individual modules can be consumed independently
         .library(name: "NOBSCore",      targets: ["NOBSCore"]),
@@ -28,9 +29,14 @@ let package = Package(
         .library(name: "NOBSDatabase",  targets: ["NOBSDatabase"]),
         .library(name: "NOBSReminders", targets: ["NOBSReminders"]),
         .library(name: "NOBSVoice",     targets: ["NOBSVoice"]),
+        .library(name: "NOBSSecurity",  targets: ["NOBSSecurity"]),
     ],
     targets: [
         // MARK: - Library targets
+        .target(
+            name: "NOBSSecurity",
+            path: "Sources/NOBSSecurity"
+        ),
         .target(
             name: "NOBSCore",
             path: "Sources/NOBSCore"
@@ -67,11 +73,16 @@ let package = Package(
         ),
         .target(
             name: "NOBSVoice",
-            dependencies: ["NOBSCore", "NOBSCallKit"],
+            dependencies: ["NOBSCore", "NOBSCallKit", "NOBSSecurity"],
             path: "Sources/NOBSVoice"
         ),
 
         // MARK: - Test targets
+        .testTarget(
+            name: "NOBSSecurityTests",
+            dependencies: ["NOBSSecurity"],
+            path: "Tests/NOBSSecurityTests"
+        ),
         .testTarget(
             name: "NOBSCoreTests",
             dependencies: ["NOBSCore"],
@@ -94,7 +105,7 @@ let package = Package(
         ),
         .testTarget(
             name: "NOBSVoiceTests",
-            dependencies: ["NOBSVoice"],
+            dependencies: ["NOBSVoice", "NOBSSecurity"],
             path: "Tests/NOBSVoiceTests"
         ),
         .testTarget(
