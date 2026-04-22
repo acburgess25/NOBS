@@ -90,7 +90,8 @@ public actor NOBSAssistant {
               "reply": "<friendly reply to speak aloud>"
             }
             Available intents: makeCall, sendMessage, controlDevice, runScene,
-            createReminder, listReminders, browseWeb, storeMemory, recallMemory, unknown.
+            queryDevice, createReminder, listReminders, completeReminder,
+            readMessages, browseWeb, storeMemory, recallMemory, unknown.
             """
         )
 
@@ -160,17 +161,37 @@ public actor NOBSAssistant {
     }
 
     private func mapIntent(name: String, params: [String: Any]) -> AssistantIntent {
+        IntentMapper(defaultContext: dataContext).map(name: name, params: params)
+    }
+}
+
+// MARK: - IntentMapper
+
+/// Maps raw model intent names and parameter dictionaries to typed `AssistantIntent` values.
+///
+/// Extracted from `NOBSAssistant` as an `internal` struct so it can be unit-tested
+/// independently with `@testable import NOBSAssistant`.
+struct IntentMapper {
+    let defaultContext: DataContext
+
+    func map(name: String, params: [String: Any]) -> AssistantIntent {
         switch name {
         case "makeCall":
             return .makeCall(
                 phoneNumber: params["phoneNumber"] as? String ?? "",
                 contactName: params["contactName"] as? String
             )
+        case "screenCall":
+            return .screenCall(phoneNumber: params["phoneNumber"] as? String ?? "")
+        case "endCall":
+            return .endCall
         case "sendMessage":
             return .sendMessage(
                 to:   params["to"]   as? String ?? "",
                 body: params["body"] as? String ?? ""
             )
+        case "readMessages":
+            return .readMessages(from: params["sender"] as? String)
         case "controlDevice":
             let action = HomeAction(rawValue: params["action"] as? String ?? "") ?? .turnOn
             return .controlDevice(
@@ -179,8 +200,10 @@ public actor NOBSAssistant {
             )
         case "runScene":
             return .runScene(sceneName: params["sceneName"] as? String ?? "")
+        case "queryDevice":
+            return .queryDevice(deviceName: params["deviceName"] as? String ?? "")
         case "createReminder":
-            let ctx = DataContext(rawValue: params["context"] as? String ?? "") ?? dataContext
+            let ctx = DataContext(rawValue: params["context"] as? String ?? "") ?? defaultContext
             var dueDate: Date? = nil
             if let iso = params["dueDate"] as? String {
                 dueDate = ISO8601DateFormatter().date(from: iso)
@@ -192,15 +215,17 @@ public actor NOBSAssistant {
                 context: ctx
             )
         case "listReminders":
-            let ctx = DataContext(rawValue: params["context"] as? String ?? "") ?? dataContext
+            let ctx = DataContext(rawValue: params["context"] as? String ?? "") ?? defaultContext
             return .listReminders(context: ctx)
+        case "completeReminder":
+            return .completeReminder(id: params["id"] as? String ?? "")
         case "browseWeb":
             return .browseWeb(query: params["query"] as? String ?? "")
         case "storeMemory":
-            let ctx = DataContext(rawValue: params["context"] as? String ?? "") ?? dataContext
+            let ctx = DataContext(rawValue: params["context"] as? String ?? "") ?? defaultContext
             return .storeMemory(content: params["content"] as? String ?? "", context: ctx)
         case "recallMemory":
-            let ctx = DataContext(rawValue: params["context"] as? String ?? "") ?? dataContext
+            let ctx = DataContext(rawValue: params["context"] as? String ?? "") ?? defaultContext
             return .recallMemory(query: params["query"] as? String ?? "", context: ctx)
         default:
             return .unknown(rawText: name)

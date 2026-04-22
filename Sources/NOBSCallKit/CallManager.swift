@@ -119,10 +119,16 @@ public actor CallManager: IntentHandler {
 #if canImport(CallKit)
     private let callController = CXCallController()
 #endif
+    private let screener: CallScreener
     private var activeCallID: UUID?
     public private(set) var callHistory: [CallRecord] = []
 
-    public init() {}
+    /// - Parameter screener: The call screener used to evaluate unknown inbound calls.
+    ///   Provide a screener pre-populated with the user's contacts and blocked numbers.
+    ///   Defaults to an empty screener (no known contacts, no blocked numbers).
+    public init(screener: CallScreener = CallScreener()) {
+        self.screener = screener
+    }
 
     // MARK: IntentHandler
 
@@ -139,7 +145,7 @@ public actor CallManager: IntentHandler {
             try await place(call: number, displayName: name)
             return "Calling \(name ?? number)…"
         case .screenCall(let number):
-            let decision = CallScreener().evaluate(phoneNumber: number, callerName: nil)
+            let decision = screener.evaluate(phoneNumber: number, callerName: nil)
             return "Screen decision for \(number): \(decision.rawValue)"
         case .endCall:
             try await end()
