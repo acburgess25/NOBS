@@ -504,7 +504,7 @@ public actor MemoryIntentHandler: IntentHandler {
     public func handle(_ intent: AssistantIntent) async throws -> String {
         switch intent {
         case .storeMemory(let content, let context):
-            _ = try repo(for: context).save(content: content, tags: [context.rawValue])
+            try repo(for: context).save(content: content, tags: [context.rawValue])
             return "Memory saved."
         case .recallMemory(let query, let context):
             let results = try repo(for: context).search(query: query)
@@ -628,7 +628,7 @@ public actor MemoryIntentHandler: IntentHandler {
     public func handle(_ intent: AssistantIntent) async throws -> String {
         switch intent {
         case .storeMemory(let content, let context):
-            _ = try repo(for: context).save(content: content, tags: [context.rawValue])
+            try repo(for: context).save(content: content, tags: [context.rawValue])
             return "Memory saved."
         case .recallMemory(let query, let context):
             let results = try repo(for: context).search(query: query)
