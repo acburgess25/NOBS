@@ -12,7 +12,7 @@
 
 import Foundation
 
-#if canImport(CallKit)
+#if os(iOS)
 import CallKit
 #endif
 
@@ -116,7 +116,7 @@ public struct CallScreener: Sendable {
 /// On iOS / macOS this wraps `CXCallController`.
 /// On other platforms (Linux tests) it falls back to stubs.
 public actor CallManager: IntentHandler {
-#if canImport(CallKit)
+#if os(iOS)
     private let callController = CXCallController()
 #endif
     private var activeCallID: UUID?
@@ -157,7 +157,7 @@ public actor CallManager: IntentHandler {
             throw CallError.invalidPhoneNumber(phoneNumber)
         }
 
-#if canImport(CallKit)
+#if os(iOS)
         let handle = CXHandle(type: .phoneNumber, value: phoneNumber)
         let uuid   = UUID()
         activeCallID = uuid
@@ -174,7 +174,7 @@ public actor CallManager: IntentHandler {
     /// End the currently active call.
     public func end() async throws {
         guard let uuid = activeCallID else { return }
-#if canImport(CallKit)
+#if os(iOS)
         let action = CXEndCallAction(call: uuid)
         let transaction = CXTransaction(action: action)
         try await callController.request(transaction)

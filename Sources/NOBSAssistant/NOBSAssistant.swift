@@ -89,8 +89,7 @@ public actor NOBSAssistant {
               "params": { ... },
               "reply": "<friendly reply to speak aloud>"
             }
-            Available intents: makeCall, sendMessage, controlDevice, runScene,
-            createReminder, listReminders, browseWeb, storeMemory, recallMemory, unknown.
+            Available intents: \(AssistantIntent.availableIntents)
             """
         )
 
@@ -112,20 +111,31 @@ public actor NOBSAssistant {
         conversationHistory.append(ChatMessage(role: .assistant, content: rawResponse))
         trimHistoryIfNeeded()
 
-        let intent = parseIntent(from: rawResponse)
-        let replyText = extractReply(from: rawResponse) ?? rawResponse
+        var parsedIntent: AssistantIntent? = .unknown(rawText: rawResponse)
+        var replyText = rawResponse
+
+        if let jsonDict = try? IntentParser.extractJSON(from: rawResponse),
+           let data = try? JSONSerialization.data(withJSONObject: jsonDict),
+           let response = try? JSONDecoder().decode(LLMResponse.self, from: data) {
+            parsedIntent = response.intent
+            if let reply = response.reply {
+                replyText = reply
+            }
+        }
 
         var actionSucceeded = true
         var executionFeedback: String? = nil
         do {
-            executionFeedback = try await intentRouter.route(intent)
+            if let intent = parsedIntent {
+                executionFeedback = try await intentRouter.route(intent)
+            }
         } catch {
             actionSucceeded = false
             executionFeedback = "Action failed: \(error.localizedDescription)"
         }
 
         let finalText = [replyText, executionFeedback].compactMap { $0 }.joined(separator: "\n")
-        return AssistantResponse(text: finalText, intent: intent, actionSucceeded: actionSucceeded)
+        return AssistantResponse(text: finalText, intent: parsedIntent, actionSucceeded: actionSucceeded)
     }
 
     /// Clear conversation history (starts a new session).
@@ -144,68 +154,13 @@ public actor NOBSAssistant {
         let recentMessages = conversationHistory.suffix(maxHistoryMessages)
         conversationHistory = [systemMessage] + Array(recentMessages)
     }
+}
 
-    private func parseIntent(from text: String) -> AssistantIntent {
-        guard let json = try? IntentParser.extractJSON(from: text),
-              let intentName = json["intent"] as? String else {
-            return .unknown(rawText: text)
-        }
-        let params = json["params"] as? [String: Any] ?? [:]
-        return mapIntent(name: intentName, params: params)
-    }
+// MARK: - LLMResponse
 
-    private func extractReply(from text: String) -> String? {
-        guard let json = try? IntentParser.extractJSON(from: text) else { return nil }
-        return json["reply"] as? String
-    }
-
-    private func mapIntent(name: String, params: [String: Any]) -> AssistantIntent {
-        switch name {
-        case "makeCall":
-            return .makeCall(
-                phoneNumber: params["phoneNumber"] as? String ?? "",
-                contactName: params["contactName"] as? String
-            )
-        case "sendMessage":
-            return .sendMessage(
-                to:   params["to"]   as? String ?? "",
-                body: params["body"] as? String ?? ""
-            )
-        case "controlDevice":
-            let action = HomeAction(rawValue: params["action"] as? String ?? "") ?? .turnOn
-            return .controlDevice(
-                deviceName: params["deviceName"] as? String ?? "",
-                action: action
-            )
-        case "runScene":
-            return .runScene(sceneName: params["sceneName"] as? String ?? "")
-        case "createReminder":
-            let ctx = DataContext(rawValue: params["context"] as? String ?? "") ?? dataContext
-            var dueDate: Date? = nil
-            if let iso = params["dueDate"] as? String {
-                dueDate = ISO8601DateFormatter().date(from: iso)
-            }
-            return .createReminder(
-                title:   params["title"]   as? String ?? "",
-                dueDate: dueDate,
-                notes:   params["notes"]   as? String,
-                context: ctx
-            )
-        case "listReminders":
-            let ctx = DataContext(rawValue: params["context"] as? String ?? "") ?? dataContext
-            return .listReminders(context: ctx)
-        case "browseWeb":
-            return .browseWeb(query: params["query"] as? String ?? "")
-        case "storeMemory":
-            let ctx = DataContext(rawValue: params["context"] as? String ?? "") ?? dataContext
-            return .storeMemory(content: params["content"] as? String ?? "", context: ctx)
-        case "recallMemory":
-            let ctx = DataContext(rawValue: params["context"] as? String ?? "") ?? dataContext
-            return .recallMemory(query: params["query"] as? String ?? "", context: ctx)
-        default:
-            return .unknown(rawText: name)
-        }
-    }
+private struct LLMResponse: Decodable {
+    let intent: AssistantIntent?
+    let reply: String?
 }
 
 // MARK: - IntentRouter

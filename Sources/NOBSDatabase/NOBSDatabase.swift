@@ -21,6 +21,10 @@ import Foundation
 import CoreData
 #endif
 
+#if canImport(CloudKit)
+import CloudKit
+#endif
+
 import NOBSCore
 
 // MARK: - StorageMode
@@ -233,8 +237,10 @@ public final class NOBSDatabase: @unchecked Sendable {
                 description.type = NSInMemoryStoreType
             } else {
                 description = NSPersistentStoreDescription(url: Self.storeURL(for: dataContext))
+#if os(iOS) || os(watchOS) || os(tvOS)
                 description.setOption(FileProtectionType.complete as NSObject,
                                       forKey: NSPersistentStoreFileProtectionKey)
+#endif
             }
             container.persistentStoreDescriptions = [description]
         }
