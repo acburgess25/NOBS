@@ -7,7 +7,7 @@ import Foundation
 
 // MARK: - AssistantIntent
 
-public enum AssistantIntent: Sendable {
+public enum AssistantIntent: Sendable, Decodable {
     // Phone
     case makeCall(phoneNumber: String, contactName: String?)
     case screenCall(phoneNumber: String)
@@ -56,4 +56,96 @@ public enum HomeAction: String, Sendable, Codable {
 public enum DataContext: String, Sendable, Codable, CaseIterable {
     case personal
     case work
+}
+
+// MARK: - Decodable Conformance
+
+extension AssistantIntent {
+    private enum CodingKeys: String, CodingKey {
+        case intent, params
+    }
+    
+    private struct DynamicKey: CodingKey {
+        var stringValue: String
+        init?(stringValue: String) { self.stringValue = stringValue }
+        var intValue: Int?
+        init?(intValue: Int) { return nil }
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let intentName = try container.decode(String.self, forKey: .intent)
+        
+        let params = try? container.nestedContainer(keyedBy: DynamicKey.self, forKey: .params)
+        
+        func decodeString(_ key: String) -> String? {
+            guard let dynamicKey = DynamicKey(stringValue: key) else { return nil }
+            return try? params?.decode(String.self, forKey: dynamicKey)
+        }
+        
+        switch intentName {
+        case "makeCall":
+            self = .makeCall(
+                phoneNumber: decodeString("phoneNumber") ?? "",
+                contactName: decodeString("contactName")
+            )
+        case "screenCall":
+            self = .screenCall(phoneNumber: decodeString("phoneNumber") ?? "")
+        case "endCall":
+            self = .endCall
+        case "sendMessage":
+            self = .sendMessage(
+                to: decodeString("to") ?? "",
+                body: decodeString("body") ?? ""
+            )
+        case "readMessages":
+            self = .readMessages(from: decodeString("from"))
+        case "controlDevice":
+            let actionStr = decodeString("action") ?? ""
+            let action = HomeAction(rawValue: actionStr) ?? .turnOn
+            self = .controlDevice(
+                deviceName: decodeString("deviceName") ?? "",
+                action: action
+            )
+        case "runScene":
+            self = .runScene(sceneName: decodeString("sceneName") ?? "")
+        case "queryDevice":
+            self = .queryDevice(deviceName: decodeString("deviceName") ?? "")
+        case "createReminder":
+            let ctxStr = decodeString("context") ?? ""
+            let ctx = DataContext(rawValue: ctxStr) ?? .personal
+            var dueDate: Date? = nil
+            if let iso = decodeString("dueDate") {
+                dueDate = ISO8601DateFormatter().date(from: iso)
+            }
+            self = .createReminder(
+                title: decodeString("title") ?? "",
+                dueDate: dueDate,
+                notes: decodeString("notes"),
+                context: ctx
+            )
+        case "listReminders":
+            let ctxStr = decodeString("context") ?? ""
+            let ctx = DataContext(rawValue: ctxStr) ?? .personal
+            self = .listReminders(context: ctx)
+        case "completeReminder":
+            self = .completeReminder(id: decodeString("id") ?? "")
+        case "browseWeb":
+            self = .browseWeb(query: decodeString("query") ?? "")
+        case "storeMemory":
+            let ctxStr = decodeString("context") ?? ""
+            let ctx = DataContext(rawValue: ctxStr) ?? .personal
+            self = .storeMemory(content: decodeString("content") ?? "", context: ctx)
+        case "recallMemory":
+            let ctxStr = decodeString("context") ?? ""
+            let ctx = DataContext(rawValue: ctxStr) ?? .personal
+            self = .recallMemory(query: decodeString("query") ?? "", context: ctx)
+        default:
+            self = .unknown(rawText: intentName)
+        }
+    }
+    
+    public static var availableIntents: String {
+        return "makeCall, screenCall, endCall, sendMessage, readMessages, controlDevice, runScene, queryDevice, createReminder, listReminders, completeReminder, browseWeb, storeMemory, recallMemory, unknown"
+    }
 }
