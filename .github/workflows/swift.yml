@@ -3,6 +3,9 @@
 
 name: Swift
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true  # Opt-in early for Node.js 24 GitHub Actions compatibility
+
 on:
   push:
     branches: [ "main" ]
