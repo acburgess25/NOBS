@@ -140,6 +140,14 @@ public actor CallManager: IntentHandler {
     }
 
     public func handle(_ intent: AssistantIntent) async throws -> String {
+#if !DEBUG
+        switch intent {
+        case .makeCall, .screenCall, .endCall:
+            return "Calling features are coming soon in this beta build."
+        default:
+            throw CallError.callFailed("Unhandled intent")
+        }
+#else
         switch intent {
         case .makeCall(let number, let name):
             try await place(call: number, displayName: name)
@@ -153,12 +161,17 @@ public actor CallManager: IntentHandler {
         default:
             throw CallError.callFailed("Unhandled intent")
         }
+#endif
     }
 
     // MARK: - Placing calls
 
     /// Request CallKit to place an outbound call.
     public func place(call phoneNumber: String, displayName: String? = nil) async throws {
+#if !DEBUG
+        activeCallID = nil
+        return
+#else
         guard !phoneNumber.filter(\.isNumber).isEmpty else {
             throw CallError.invalidPhoneNumber(phoneNumber)
         }
@@ -175,10 +188,15 @@ public actor CallManager: IntentHandler {
 #else
         activeCallID = UUID()
 #endif
+#endif
     }
 
     /// End the currently active call.
     public func end() async throws {
+#if !DEBUG
+        activeCallID = nil
+        return
+#else
         guard let uuid = activeCallID else { return }
 #if os(iOS)
         let action = CXEndCallAction(call: uuid)
@@ -186,6 +204,7 @@ public actor CallManager: IntentHandler {
         try await callController.request(transaction)
 #endif
         activeCallID = nil
+#endif
     }
 
     /// Record a completed call for auditing.

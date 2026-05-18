@@ -92,6 +92,14 @@ public actor iMessageHandler: IntentHandler {
     }
 
     public func handle(_ intent: AssistantIntent) async throws -> String {
+#if !DEBUG
+        switch intent {
+        case .sendMessage, .readMessages:
+            return "Messaging features are coming soon in this beta build."
+        default:
+            throw iMessageError.unsupportedIntent
+        }
+#else
         switch intent {
         case .sendMessage(let to, let body):
             return try await send(to: to, body: body)
@@ -100,6 +108,7 @@ public actor iMessageHandler: IntentHandler {
         default:
             throw iMessageError.unsupportedIntent
         }
+#endif
     }
 
     // MARK: - Sending
@@ -112,6 +121,9 @@ public actor iMessageHandler: IntentHandler {
     ///
     /// - Returns: A human-readable confirmation that also embeds the `sms:` URL.
     public func send(to recipient: String, body: String) async throws -> String {
+#if !DEBUG
+        return "Messaging features are coming soon in this beta build."
+#else
         let record = MessageRecord(sender: recipient, body: body, isOutbound: true)
         try await history.append(record)
 
@@ -119,6 +131,7 @@ public actor iMessageHandler: IntentHandler {
             return "Message queued for \(recipient). Open URL to send: \(url.absoluteString)"
         }
         return "Message queued for \(recipient)."
+#endif
     }
 
     /// Build the `sms:` URL the app layer must open to deliver the message.
@@ -134,10 +147,14 @@ public actor iMessageHandler: IntentHandler {
     // MARK: - Reading
 
     public func readHistory(from sender: String?) async throws -> String {
+#if !DEBUG
+        return "Messaging features are coming soon in this beta build."
+#else
         guard let sender else { return "Please specify a contact to read messages from." }
         let memories = try await history.messages(from: sender)
         if memories.isEmpty { return "No message history with \(sender)." }
         return memories.map(\.content).joined(separator: "\n")
+#endif
     }
 }
 

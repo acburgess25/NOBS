@@ -128,6 +128,9 @@ public actor NOBSAssistant {
         do {
             if let intent = parsedIntent {
                 executionFeedback = try await intentRouter.route(intent)
+                if executionFeedback == IntentRouter.unavailableMessage(for: intent) {
+                    actionSucceeded = false
+                }
             }
         } catch {
             actionSucceeded = false
@@ -243,6 +246,28 @@ final class IntentRouter: Sendable {
         for handler in handlers where handler.canHandle(intent) {
             return try await handler.handle(intent)
         }
-        return nil
+        if case .unknown = intent {
+            return nil
+        }
+        return Self.unavailableMessage(for: intent)
+    }
+
+    static func unavailableMessage(for intent: AssistantIntent) -> String {
+        switch intent {
+        case .makeCall, .screenCall, .endCall:
+            return "Calling features are coming soon in this beta build."
+        case .sendMessage, .readMessages:
+            return "Messaging features are coming soon in this beta build."
+        case .controlDevice, .runScene, .queryDevice:
+            return "Home control features are coming soon in this beta build."
+        case .createReminder, .listReminders, .completeReminder:
+            return "Reminders are not configured yet on this build."
+        case .browseWeb:
+            return "Web browsing is not available yet on this build."
+        case .storeMemory, .recallMemory:
+            return "Memory features are coming soon in this beta build."
+        case .unknown:
+            return "That feature is not available yet."
+        }
     }
 }

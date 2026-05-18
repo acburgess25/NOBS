@@ -285,10 +285,14 @@ public actor VoiceIntentHandler: IntentHandler {
     }
 
     public func handle(_ intent: AssistantIntent) async throws -> String {
+#if !DEBUG
+        return "Google Voice features are coming soon in this beta build."
+#else
         guard case .makeCall(let number, let name) = intent else {
             throw VoiceError.callFailed("Unsupported intent")
         }
         try await voiceClient.placeCall(from: callerID, to: number)
         return "Calling \(name ?? number) via Google Voice…"
+#endif
     }
 }

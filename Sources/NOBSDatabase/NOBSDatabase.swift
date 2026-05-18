@@ -508,6 +508,9 @@ public actor MemoryIntentHandler: IntentHandler {
     }
 
     public func handle(_ intent: AssistantIntent) async throws -> String {
+#if !DEBUG
+        return "Memory features are coming soon in this beta build."
+#else
         switch intent {
         case .storeMemory(let content, let context):
             try repo(for: context).save(content: content, tags: [context.rawValue])
@@ -521,6 +524,7 @@ public actor MemoryIntentHandler: IntentHandler {
         default:
             throw DatabaseError.notSetUp
         }
+#endif
     }
 
     private func repo(for context: DataContext) -> MemoryRepository {
@@ -608,9 +612,27 @@ public final class PreferenceRepository {
     private var store: [String: String] = [:]
     public init(context: DataContext, database: NOBSDatabase = .shared) {}
 
-    public func set(key: String, value: String) throws { store[key] = value }
-    public func get(key: String) throws -> String? { store[key] }
-    public func delete(key: String) throws { store.removeValue(forKey: key) }
+    public func set(key: String, value: String) throws {
+#if !DEBUG
+        return
+#else
+        store[key] = value
+#endif
+    }
+    public func get(key: String) throws -> String? {
+#if !DEBUG
+        return nil
+#else
+        return store[key]
+#endif
+    }
+    public func delete(key: String) throws {
+#if !DEBUG
+        return
+#else
+        store.removeValue(forKey: key)
+#endif
+    }
 }
 
 // MARK: - MemoryIntentHandler (stub)
@@ -632,6 +654,9 @@ public actor MemoryIntentHandler: IntentHandler {
     }
 
     public func handle(_ intent: AssistantIntent) async throws -> String {
+#if !DEBUG
+        return "Memory features are coming soon in this beta build."
+#else
         switch intent {
         case .storeMemory(let content, let context):
             try repo(for: context).save(content: content, tags: [context.rawValue])
@@ -645,6 +670,7 @@ public actor MemoryIntentHandler: IntentHandler {
         default:
             throw DatabaseError.notSetUp
         }
+#endif
     }
 
     private func repo(for context: DataContext) -> MemoryRepository {
@@ -652,4 +678,3 @@ public actor MemoryIntentHandler: IntentHandler {
     }
 }
 #endif
-

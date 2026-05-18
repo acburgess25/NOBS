@@ -269,4 +269,19 @@ final class NOBSAssistantTests: XCTestCase {
             XCTAssertEqual(raw, "doSomethingRandom")
         } else { XCTFail("Expected .unknown") }
     }
+
+    // MARK: - IntentRouter fallback messaging
+
+    func testIntentRouterReturnsFallbackMessageWhenNoHandlerRegistered() async throws {
+        let router = IntentRouter(handlers: [])
+        let intent = AssistantIntent.sendMessage(to: "Alice", body: "Hi")
+        let result = try await router.route(intent)
+        XCTAssertEqual(result, IntentRouter.unavailableMessage(for: intent))
+    }
+
+    func testIntentRouterReturnsNilForUnknownIntentWithoutHandler() async throws {
+        let router = IntentRouter(handlers: [])
+        let result = try await router.route(.unknown(rawText: "mystery"))
+        XCTAssertNil(result)
+    }
 }

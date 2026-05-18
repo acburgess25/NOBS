@@ -55,6 +55,14 @@ public actor HomeKitHandler: IntentHandler {
     }
 
     public func handle(_ intent: AssistantIntent) async throws -> String {
+#if !DEBUG
+        switch intent {
+        case .controlDevice, .runScene, .queryDevice:
+            return "Home control features are coming soon in this beta build."
+        default:
+            throw HomeKitError.actionFailed("Unsupported intent")
+        }
+#else
         switch intent {
         case .controlDevice(let name, let action):
             return try await control(device: name, action: action)
@@ -65,6 +73,7 @@ public actor HomeKitHandler: IntentHandler {
         default:
             throw HomeKitError.actionFailed("Unsupported intent")
         }
+#endif
     }
 
     // MARK: - Device Control
