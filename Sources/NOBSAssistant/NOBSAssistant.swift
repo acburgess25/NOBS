@@ -163,6 +163,73 @@ private struct LLMResponse: Decodable {
     let reply: String?
 }
 
+// MARK: - IntentMapper
+
+/// Maps raw model intent names and parameter dictionaries to typed `AssistantIntent` values.
+///
+/// Kept internal for unit tests and compatibility with existing parser-focused tests.
+struct IntentMapper {
+    let defaultContext: DataContext
+
+    func map(name: String, params: [String: Any]) -> AssistantIntent {
+        switch name {
+        case "makeCall":
+            return .makeCall(
+                phoneNumber: params["phoneNumber"] as? String ?? "",
+                contactName: params["contactName"] as? String
+            )
+        case "screenCall":
+            return .screenCall(phoneNumber: params["phoneNumber"] as? String ?? "")
+        case "endCall":
+            return .endCall
+        case "sendMessage":
+            return .sendMessage(
+                to: params["to"] as? String ?? "",
+                body: params["body"] as? String ?? ""
+            )
+        case "readMessages":
+            return .readMessages(from: params["sender"] as? String ?? params["from"] as? String)
+        case "controlDevice":
+            let action = HomeAction(rawValue: params["action"] as? String ?? "") ?? .turnOn
+            return .controlDevice(
+                deviceName: params["deviceName"] as? String ?? "",
+                action: action
+            )
+        case "runScene":
+            return .runScene(sceneName: params["sceneName"] as? String ?? "")
+        case "queryDevice":
+            return .queryDevice(deviceName: params["deviceName"] as? String ?? "")
+        case "createReminder":
+            let ctx = DataContext(rawValue: params["context"] as? String ?? "") ?? defaultContext
+            var dueDate: Date? = nil
+            if let iso = params["dueDate"] as? String {
+                dueDate = ISO8601DateFormatter().date(from: iso)
+            }
+            return .createReminder(
+                title: params["title"] as? String ?? "",
+                dueDate: dueDate,
+                notes: params["notes"] as? String,
+                context: ctx
+            )
+        case "listReminders":
+            let ctx = DataContext(rawValue: params["context"] as? String ?? "") ?? defaultContext
+            return .listReminders(context: ctx)
+        case "completeReminder":
+            return .completeReminder(id: params["id"] as? String ?? "")
+        case "browseWeb":
+            return .browseWeb(query: params["query"] as? String ?? "")
+        case "storeMemory":
+            let ctx = DataContext(rawValue: params["context"] as? String ?? "") ?? defaultContext
+            return .storeMemory(content: params["content"] as? String ?? "", context: ctx)
+        case "recallMemory":
+            let ctx = DataContext(rawValue: params["context"] as? String ?? "") ?? defaultContext
+            return .recallMemory(query: params["query"] as? String ?? "", context: ctx)
+        default:
+            return .unknown(rawText: name)
+        }
+    }
+}
+
 // MARK: - IntentRouter
 
 final class IntentRouter: Sendable {

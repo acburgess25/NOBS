@@ -432,6 +432,102 @@ public final class TaskRepository {
     }
 }
 
+// MARK: - PreferenceRepository (CoreData-backed)
+
+/// High-level key-value repository for storing per-context user preferences.
+public final class PreferenceRepository {
+    private let dataContext: DataContext
+    private let database: NOBSDatabase
+
+    public init(context: DataContext, database: NOBSDatabase = .shared) {
+        self.dataContext = context
+        self.database = database
+    }
+
+    /// Persist or update a preference value for `key`.
+    public func set(key: String, value: String) throws {
+        let moc = try database.viewContext(for: dataContext)
+        let req = NSFetchRequest<PreferenceMO>(entityName: "Preference")
+        req.predicate = NSPredicate(format: "key == %@", key)
+        if let existing = try moc.fetch(req).first {
+            existing.value = value
+        } else {
+            let pref = PreferenceMO(context: moc)
+            pref.key   = key
+            pref.value = value
+        }
+        try moc.save()
+    }
+
+    /// Return the stored value for `key`, or `nil` if not set.
+    public func get(key: String) throws -> String? {
+        let moc = try database.viewContext(for: dataContext)
+        let req = NSFetchRequest<PreferenceMO>(entityName: "Preference")
+        req.predicate = NSPredicate(format: "key == %@", key)
+        return try moc.fetch(req).first?.value
+    }
+
+    /// Remove the preference for `key`.  A no-op if the key does not exist.
+    public func delete(key: String) throws {
+        let moc = try database.viewContext(for: dataContext)
+        let req = NSFetchRequest<PreferenceMO>(entityName: "Preference")
+        req.predicate = NSPredicate(format: "key == %@", key)
+        for pref in try moc.fetch(req) {
+            moc.delete(pref)
+        }
+        try moc.save()
+    }
+}
+
+// MARK: - MemoryIntentHandler (CoreData-backed)
+
+/// Handles `storeMemory` and `recallMemory` intents using on-device `MemoryRepository`.
+///
+/// Register an instance of this handler with `NOBSAssistant` to complete the
+/// memory intent pipeline end-to-end:
+/// ```swift
+/// let assistant = NOBSAssistant(
+///     config: .localhost,
+///     handlers: [MemoryIntentHandler()]
+/// )
+/// ```
+public actor MemoryIntentHandler: IntentHandler {
+    private let personalRepo: MemoryRepository
+    private let workRepo:     MemoryRepository
+
+    public init(database: NOBSDatabase = .shared) {
+        self.personalRepo = MemoryRepository(context: .personal, database: database)
+        self.workRepo     = MemoryRepository(context: .work,     database: database)
+    }
+
+    public nonisolated func canHandle(_ intent: AssistantIntent) -> Bool {
+        switch intent {
+        case .storeMemory, .recallMemory: return true
+        default: return false
+        }
+    }
+
+    public func handle(_ intent: AssistantIntent) async throws -> String {
+        switch intent {
+        case .storeMemory(let content, let context):
+            try repo(for: context).save(content: content, tags: [context.rawValue])
+            return "Memory saved."
+        case .recallMemory(let query, let context):
+            let results = try repo(for: context).search(query: query)
+            if results.isEmpty {
+                return "No \(context.rawValue) memories found matching '\(query)'."
+            }
+            return results.prefix(5).map(\.content).joined(separator: "\n")
+        default:
+            throw DatabaseError.notSetUp
+        }
+    }
+
+    private func repo(for context: DataContext) -> MemoryRepository {
+        context == .personal ? personalRepo : workRepo
+    }
+}
+
 #else
 // MARK: - NOBSDatabase (stub for non-Apple platforms)
 
@@ -504,6 +600,56 @@ public final class TaskRepository {
     }
     public func fetchPending() throws -> [UserTaskMO] { store.filter { !$0.isCompleted } }
     public func complete(id: UUID) throws { store.first(where: { $0.id == id })?.isCompleted = true }
+}
+
+// MARK: - PreferenceRepository (stub)
+
+public final class PreferenceRepository {
+    private var store: [String: String] = [:]
+    public init(context: DataContext, database: NOBSDatabase = .shared) {}
+
+    public func set(key: String, value: String) throws { store[key] = value }
+    public func get(key: String) throws -> String? { store[key] }
+    public func delete(key: String) throws { store.removeValue(forKey: key) }
+}
+
+// MARK: - MemoryIntentHandler (stub)
+
+public actor MemoryIntentHandler: IntentHandler {
+    private let personalRepo: MemoryRepository
+    private let workRepo:     MemoryRepository
+
+    public init(database: NOBSDatabase = .shared) {
+        self.personalRepo = MemoryRepository(context: .personal, database: database)
+        self.workRepo     = MemoryRepository(context: .work,     database: database)
+    }
+
+    public nonisolated func canHandle(_ intent: AssistantIntent) -> Bool {
+        switch intent {
+        case .storeMemory, .recallMemory: return true
+        default: return false
+        }
+    }
+
+    public func handle(_ intent: AssistantIntent) async throws -> String {
+        switch intent {
+        case .storeMemory(let content, let context):
+            try repo(for: context).save(content: content, tags: [context.rawValue])
+            return "Memory saved."
+        case .recallMemory(let query, let context):
+            let results = try repo(for: context).search(query: query)
+            if results.isEmpty {
+                return "No \(context.rawValue) memories found matching '\(query)'."
+            }
+            return results.prefix(5).map(\.content).joined(separator: "\n")
+        default:
+            throw DatabaseError.notSetUp
+        }
+    }
+
+    private func repo(for context: DataContext) -> MemoryRepository {
+        context == .personal ? personalRepo : workRepo
+    }
 }
 #endif
 

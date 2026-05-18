@@ -162,4 +162,103 @@ final class NOBSDatabaseTests: XCTestCase {
         XCTAssertNotNil(error.errorDescription)
         XCTAssertTrue(error.errorDescription!.contains("setup()"))
     }
+
+    // MARK: - PreferenceRepository
+
+    func testSetAndGetPreference() throws {
+        let repo = PreferenceRepository(context: .personal, database: database)
+        try repo.set(key: "theme", value: "dark")
+        XCTAssertEqual(try repo.get(key: "theme"), "dark")
+    }
+
+    func testGetMissingPreferenceReturnsNil() throws {
+        let repo = PreferenceRepository(context: .personal, database: database)
+        XCTAssertNil(try repo.get(key: "nonexistent"))
+    }
+
+    func testOverwritePreference() throws {
+        let repo = PreferenceRepository(context: .personal, database: database)
+        try repo.set(key: "fontSize", value: "14")
+        try repo.set(key: "fontSize", value: "18")
+        XCTAssertEqual(try repo.get(key: "fontSize"), "18")
+    }
+
+    func testDeletePreference() throws {
+        let repo = PreferenceRepository(context: .personal, database: database)
+        try repo.set(key: "sound", value: "on")
+        try repo.delete(key: "sound")
+        XCTAssertNil(try repo.get(key: "sound"))
+    }
+
+    func testDeleteNonExistentPreferenceIsNoop() throws {
+        let repo = PreferenceRepository(context: .personal, database: database)
+        XCTAssertNoThrow(try repo.delete(key: "ghost"))
+    }
+
+    func testPreferencesAreContextIsolated() throws {
+        let personal = PreferenceRepository(context: .personal, database: database)
+        let work     = PreferenceRepository(context: .work,     database: database)
+        try personal.set(key: "theme", value: "light")
+        try work.set(key: "theme", value: "dark")
+        XCTAssertEqual(try personal.get(key: "theme"), "light")
+        XCTAssertEqual(try work.get(key: "theme"),     "dark")
+    }
+
+    // MARK: - MemoryIntentHandler
+
+    func testMemoryIntentHandlerCanHandleStoreMemory() {
+        let handler = MemoryIntentHandler(database: database)
+        XCTAssertTrue(handler.canHandle(.storeMemory(content: "test", context: .personal)))
+    }
+
+    func testMemoryIntentHandlerCanHandleRecallMemory() {
+        let handler = MemoryIntentHandler(database: database)
+        XCTAssertTrue(handler.canHandle(.recallMemory(query: "test", context: .personal)))
+    }
+
+    func testMemoryIntentHandlerRejectsUnrelatedIntents() {
+        let handler = MemoryIntentHandler(database: database)
+        XCTAssertFalse(handler.canHandle(.makeCall(phoneNumber: "555", contactName: nil)))
+        XCTAssertFalse(handler.canHandle(.browseWeb(query: "query")))
+    }
+
+    func testMemoryIntentHandlerStoresAndRecalls() async throws {
+        let handler = MemoryIntentHandler(database: database)
+        let storeResult = try await handler.handle(.storeMemory(content: "User loves tacos", context: .personal))
+        XCTAssertEqual(storeResult, "Memory saved.")
+
+        let recallResult = try await handler.handle(.recallMemory(query: "tacos", context: .personal))
+        XCTAssertTrue(recallResult.contains("tacos"))
+    }
+
+    func testMemoryIntentHandlerRecallReturnsNotFoundMessage() async throws {
+        let handler = MemoryIntentHandler(database: database)
+        let result = try await handler.handle(.recallMemory(query: "pizzaaaa", context: .personal))
+        XCTAssertTrue(result.contains("No"))
+        XCTAssertTrue(result.contains("pizzaaaa"))
+    }
+
+    func testMemoryIntentHandlerSeparatesContexts() async throws {
+        let handler = MemoryIntentHandler(database: database)
+        _ = try await handler.handle(.storeMemory(content: "Personal: gym at 7am", context: .personal))
+        _ = try await handler.handle(.storeMemory(content: "Work: team standup", context: .work))
+
+        let personalResult = try await handler.handle(.recallMemory(query: "gym", context: .personal))
+        XCTAssertTrue(personalResult.contains("gym"))
+
+        // Work context should NOT find personal memory
+        let workResult = try await handler.handle(.recallMemory(query: "gym", context: .work))
+        XCTAssertTrue(workResult.contains("No"))
+    }
+
+    func testMemoryIntentHandlerReturnsUpToFiveResults() async throws {
+        let handler = MemoryIntentHandler(database: database)
+        for i in 1...7 {
+            _ = try await handler.handle(.storeMemory(content: "Note \(i): apple", context: .personal))
+        }
+        let result = try await handler.handle(.recallMemory(query: "apple", context: .personal))
+        // Result should contain at most 5 entries joined by newlines
+        let lineCount = result.components(separatedBy: "\n").count
+        XCTAssertLessThanOrEqual(lineCount, 5)
+    }
 }

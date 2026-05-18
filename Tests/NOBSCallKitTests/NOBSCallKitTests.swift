@@ -101,4 +101,27 @@ final class NOBSCallKitTests: XCTestCase {
         }
         wait(for: [expectation], timeout: 1)
     }
+
+    // MARK: - Injected CallScreener
+
+    func testCallManagerUsesInjectedScreenerForKnownContact() async {
+        let screener = CallScreener(knownContactNumbers: ["14155551234"])
+        let manager  = CallManager(screener: screener)
+        let result   = try? await manager.handle(.screenCall(phoneNumber: "+1 (415) 555-1234"))
+        // The injected screener knows this number — decision should be "allow"
+        XCTAssertEqual(result, "Screen decision for +1 (415) 555-1234: allow")
+    }
+
+    func testCallManagerUsesInjectedScreenerForBlockedNumber() async {
+        let screener = CallScreener(knownContactNumbers: [], blockedNumbers: ["18005550000"])
+        let manager  = CallManager(screener: screener)
+        let result   = try? await manager.handle(.screenCall(phoneNumber: "1-800-555-0000"))
+        XCTAssertEqual(result, "Screen decision for 1-800-555-0000: reject")
+    }
+
+    func testCallManagerEmptyScreenerAsksForNameForUnknownCaller() async {
+        let manager = CallManager()  // default: empty screener
+        let result  = try? await manager.handle(.screenCall(phoneNumber: "+19995550099"))
+        XCTAssertEqual(result, "Screen decision for +19995550099: askForName")
+    }
 }
