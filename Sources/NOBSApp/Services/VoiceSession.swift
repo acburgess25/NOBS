@@ -50,7 +50,7 @@ class VoiceSession: ObservableObject {
 
     func startRecording() {
         guard isConnected else {
-            statusMessage = "Kitchen not connected"
+            statusMessage = "Not connected"
             return
         }
 
@@ -85,7 +85,7 @@ class VoiceSession: ObservableObject {
             return
         }
         isProcessing = true
-        statusMessage = "Sealing your order..."
+        statusMessage = "Securing your message..."
 
         guard let wavData = try? Data(contentsOf: recordingURL) else {
             statusMessage = "Nothing recorded"
@@ -96,7 +96,7 @@ class VoiceSession: ObservableObject {
         do {
             let sealed = try AES.GCM.seal(wavData, using: key)
             guard let combined = sealed.combined else {
-                statusMessage = "Couldn't seal container"
+                statusMessage = "Couldn't secure your message"
                 isProcessing = false
                 return
             }
@@ -108,13 +108,13 @@ class VoiceSession: ObservableObject {
             webSocket?.send(.data(msgData)) { [weak self] error in
                 if error != nil {
                     DispatchQueue.main.async {
-                        self?.statusMessage = "Delivery failed"
+                        self?.statusMessage = "Couldn't send — check your connection"
                         self?.isProcessing = false
                     }
                 }
             }
         } catch {
-            statusMessage = "Couldn't seal container"
+            statusMessage = "Couldn't secure your message"
             isProcessing = false
         }
     }
@@ -154,14 +154,14 @@ class VoiceSession: ObservableObject {
 
         switch msg["type"] as? String {
         case "key_ack":
-            statusMessage = "Secure line to kitchen open"
+            statusMessage = "Secure connection established"
 
         case "status":
             let detail = msg["detail"] as? String ?? ""
             switch detail {
-            case "transcribing": statusMessage = "Chef is writing down your order..."
-            case "thinking": statusMessage = "Chef is preparing the meal..."
-            case "synthesizing": statusMessage = "Plating your order..."
+            case "transcribing": statusMessage = "Listening to what you said..."
+            case "thinking": statusMessage = "NOBS is thinking..."
+            case "synthesizing": statusMessage = "Getting your answer ready..."
             default: statusMessage = detail
             }
             if let t = msg["text"] as? String { transcribedText = t }
@@ -172,25 +172,25 @@ class VoiceSession: ObservableObject {
                   let key = sessionKey,
                   let sealed = try? AES.GCM.SealedBox(combined: encrypted)
             else {
-                statusMessage = "Order was garbled"
+                statusMessage = "Couldn't understand the response"
                 isProcessing = false
                 return
             }
             do {
                 let wavData = try AES.GCM.open(sealed, using: key)
                 playAudio(wavData)
-                statusMessage = "Meal is served"
+                statusMessage = "Here's your answer"
             } catch {
-                statusMessage = "Couldn't open the container"
+                statusMessage = "Couldn't read the response"
             }
             isProcessing = false
 
         case "error":
             let detail = msg["detail"] as? String ?? ""
             switch detail {
-            case "no_speech": statusMessage = "Chef didn't hear anything"
-            case "decrypt_failed": statusMessage = "Container seal was tampered"
-            default: statusMessage = "Kitchen error: \(detail)"
+            case "no_speech": statusMessage = "Didn't catch that — try again"
+            case "decrypt_failed": statusMessage = "Secure connection was interrupted"
+            default: statusMessage = "Something went wrong: \(detail)"
             }
             isProcessing = false
 

@@ -15,26 +15,26 @@ struct ProfileView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("What should the chef call you?") {
+                Section("What should NOBS call you?") {
                     TextField("Display name", text: $displayName)
                 }
 
-                Section("Your full name (for the reservation)") {
+                Section("Your full name") {
                     TextField("Full name", text: $fullName)
                 }
 
-                Section("What kind of meals/topics do you like?") {
+                Section("What topics or things matter most to you?") {
                     TextEditor(text: $interests)
                         .frame(minHeight: 80)
                 }
 
-                Section("Any daily cooking routines?") {
+                Section("Any daily habits or routines to keep in mind?") {
                     TextEditor(text: $routines)
                         .frame(minHeight: 80)
                 }
 
                 Section {
-                    Button("Save My Preferences") {
+                    Button("Save My Profile") {
                         saveProfile()
                     }
                     .frame(maxWidth: .infinity)
@@ -43,12 +43,12 @@ struct ProfileView: View {
 
                 if saved {
                     Section {
-                        Text("Preferences saved! The chef will use this to prepare your meals.")
+                        Text("Profile saved! NOBS will use this to personalize your experience.")
                             .foregroundStyle(.green)
                     }
                 }
             }
-            .navigationTitle("My Preferences")
+            .navigationTitle("My Profile")
             .task { loadProfile() }
         }
     }
