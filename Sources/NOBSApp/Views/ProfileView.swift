@@ -17,20 +17,32 @@ struct ProfileView: View {
             Form {
                 Section("What should NOBS call you?") {
                     TextField("Display name", text: $displayName)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .padding(.vertical, 8)
                 }
 
                 Section("Your full name") {
                     TextField("Full name", text: $fullName)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                        .padding(.vertical, 8)
                 }
 
                 Section("What topics or things matter most to you?") {
                     TextEditor(text: $interests)
                         .frame(minHeight: 80)
+                        .background(Color(UIColor.systemBackground))
+                        .cornerRadius(12)
+                        .shadow(radius: 4)
+                        .padding(.vertical, 8)
                 }
 
                 Section("Any daily habits or routines to keep in mind?") {
                     TextEditor(text: $routines)
                         .frame(minHeight: 80)
+                        .background(Color(UIColor.systemBackground))
+                        .cornerRadius(12)
+                        .shadow(radius: 4)
+                        .padding(.vertical, 8)
                 }
 
                 Section {
@@ -39,6 +51,10 @@ struct ProfileView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .disabled(displayName.trimmingCharacters(in: .whitespaces).isEmpty)
+                    .background(Color(UIColor.systemBlue))
+                    .foregroundColor(.white)
+                    .cornerRadius(12)
+                    .padding(.vertical, 8)
                 }
 
                 if saved {
