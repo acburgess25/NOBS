@@ -34,7 +34,7 @@ struct NOBSApp: App {
         var storageMode: StorageMode = .localOnly
         if icloudEnabled {
             if FileManager.default.ubiquityIdentityToken != nil {
-                storageMode = .iCloud(containerID: "iCloud.com.nobs.app")
+                storageMode = .iCloud(containerID: "iCloud.com.nobsdash.nobs")
             } else {
                 UserDefaults.standard.set(false, forKey: "icloud_sync_enabled")
             }

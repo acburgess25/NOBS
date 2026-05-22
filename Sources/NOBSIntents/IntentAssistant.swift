@@ -12,7 +12,7 @@ import NOBSReminders
 
 public enum IntentAssistant {
 
-    private static let groupID = "group.com.nobs.app"
+    private static let groupID = "group.com.nobsdash.nobs"
 
     /// Returns a configured NOBSAssistant using the stored Tank/on-device settings.
     public static func make() -> NOBSAssistant {

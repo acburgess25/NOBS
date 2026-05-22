@@ -14,7 +14,7 @@ class APIClient: ObservableObject {
     }
 
     private let baseURL = URL(string: "https://nobsdash.com/api/v1")!
-    private let keychain = KeychainStore(service: "com.nobs.app")
+    private let keychain = KeychainStore(service: "com.nobsdash.nobs")
     private let tokenKey = "auth_token"
     private let usernameKey = "auth_username"
 

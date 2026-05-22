@@ -8,7 +8,7 @@ import AppIntents
 @available(iOS 18.0, *)
 struct NOBSControlWidget: ControlWidget {
     var body: some ControlWidgetConfiguration {
-        StaticControlConfiguration(kind: "com.nobs.app.control.ask") {
+        StaticControlConfiguration(kind: "com.nobsdash.nobs.control.ask") {
             ControlWidgetButton(action: AskNOBSControlAction()) {
                 Label("Ask NOBS", systemImage: "brain.head.profile")
             }
