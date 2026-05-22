@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>NOBS — Brand Kit</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Nunito:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Permanent+Marker&family=Special+Elite&family=Caveat:wght@600;700&display=swap" />
+  <style>
+    html, body { margin: 0; padding: 0; background: #ECE7DD; }
+    body {
+      font-family: "SF Pro Rounded", ui-rounded, "Nunito", -apple-system, system-ui, sans-serif;
+      color: #1C1917;
+      -webkit-font-smoothing: antialiased;
+    }
+    /* Sticky top index */
+    .topnav {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(236, 231, 221, 0.92);
+      backdrop-filter: saturate(180%) blur(14px);
+      -webkit-backdrop-filter: saturate(180%) blur(14px);
+      border-bottom: 1px solid rgba(60,40,20,0.08);
+    }
+    .topnav-inner {
+      max-width: 1280px; margin: 0 auto;
+      padding: 12px 32px; display: flex; align-items: center; gap: 24px;
+      font-family: "JetBrains Mono", ui-monospace, monospace;
+      font-size: 11px; letter-spacing: 1.2px; text-transform: uppercase; color: #57534E;
+    }
+    .topnav-brand {
+      font-family: "Archivo Black", sans-serif; letter-spacing: -1px; font-size: 18px;
+      color: #1C1917; text-decoration: none; letter-spacing: 0;
+    }
+    .topnav a { color: inherit; text-decoration: none; }
+    .topnav a:hover { color: #1C1917; }
+    .page { max-width: 1280px; margin: 0 auto; padding: 32px 32px 96px; }
+  </style>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <script type="text/babel" src="nobs-tokens.jsx"></script>
+  <script type="text/babel" src="app-icon.jsx"></script>
+  <script type="text/babel" src="brand-kit.jsx"></script>
+  <script type="text/babel" src="brand-banners.jsx"></script>
+</head>
+<body>
+  <nav class="topnav">
+    <div class="topnav-inner">
+      <a class="topnav-brand" href="#top">NOBS.</a>
+      <span style="opacity:0.45">brand kit · v1.0</span>
+      <div style="flex:1"></div>
+      <a href="#essence">01 essence</a>
+      <a href="#logo">02 logo</a>
+      <a href="#color">03 color</a>
+      <a href="#type">04 type</a>
+      <a href="#icons">05 icons</a>
+      <a href="#banners">06 banners</a>
+      <a href="#texture">07 texture</a>
+      <a href="#voice">08 voice</a>
+      <a href="#components">09 ui</a>
+      <a href="#spec">10 spec</a>
+    </div>
+  </nav>
+
+  <main class="page" id="top">
+    <div id="root"></div>
+  </main>
+
+  <script type="text/babel" data-presets="react">
+    function App() {
+      return (
+        <>
+          <CoverSection />
+          <EssenceSection />
+          <LogoSection />
+          <ColorSection />
+          <TypeSection />
+          <IconSection />
+          <BannersSection />
+          <TextureSection />
+          <VoiceSection />
+          <ComponentsSection />
+          <SpecSection />
+        </>
+      );
+    }
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

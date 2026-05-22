@@ -1,0 +1,203 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>NOBS — iOS UI Kit</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" />
+  <style>
+    html, body { margin: 0; padding: 0; background: #f0eee9; }
+    body { font-family: "SF Pro Rounded", ui-rounded, "Nunito", -apple-system, system-ui, sans-serif; }
+  </style>
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+  <script type="text/babel" src="design-canvas.jsx"></script>
+  <script type="text/babel" src="ios-frame.jsx"></script>
+  <script type="text/babel" src="nobs-tokens.jsx"></script>
+  <script type="text/babel" src="nobs-components.jsx"></script>
+  <script type="text/babel" src="nobs-screens.jsx"></script>
+  <script type="text/babel" src="nobs-system.jsx"></script>
+  <script type="text/babel" src="nobs-spec.jsx"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel" data-presets="react">
+    const { useState } = React;
+
+    // Helper: iPhone 16 Pro device frame around a NOBS screen (393 × 852 logical).
+    // We size the IOSDevice to that spec so each artboard is to-the-pixel.
+    function Phone({ children, dark = false }) {
+      return (
+        <IOSDevice width={393} height={852} dark={dark}>
+          {children}
+        </IOSDevice>
+      );
+    }
+
+    // Plain-function helper (not a component) so DCSection's type-based
+    // child-walk sees the two DCArtboards as direct children. A wrapper
+    // component would hide them.
+    function lightDark(render) {
+      const board = { background: 'transparent', boxShadow: 'none', overflow: 'visible' };
+      return [
+        <DCArtboard key="light" id="light" label="Light" width={393} height={852} style={board}>
+          <Phone dark={false}>{render(false)}</Phone>
+        </DCArtboard>,
+        <DCArtboard key="dark"  id="dark"  label="Dark"  width={393} height={852} style={board}>
+          <Phone dark={true}>{render(true)}</Phone>
+        </DCArtboard>,
+      ];
+    }
+
+    function App() {
+      return (
+        <DesignCanvas>
+          {/* ── BRAND OVERVIEW ────────────────────────────────── */}
+          <DCSection id="cover" title="NOBS · iOS UI Kit" subtitle="Your private AI. No cloud. No compromise. — iPhone 16 Pro, 393pt">
+            <DCArtboard id="brand-cover" label="Cover" width={920} height={520} style={{ background: NOBS.light.bg, borderRadius: 22 }}>
+              <div style={{ width: '100%', height: '100%', padding: 56, boxSizing: 'border-box', fontFamily: NOBS.font, display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
+                  <NobsLogo size={88} />
+                  <div>
+                    <div style={{ ...TYPE.largeTitle, fontSize: 64, lineHeight: '68px', color: NOBS.light.text, letterSpacing: -1.5 }}>NOBS</div>
+                    <div style={{ ...TYPE.title3, color: NOBS.light.textSecondary, fontWeight: 500 }}>Your private AI. No cloud. No compromise.</div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
+                  {[
+                    { label: 'Background', token: '#FAF8F5', color: '#FAF8F5' },
+                    { label: 'Charcoal',   token: '#1C1917', color: '#1C1917' },
+                    { label: 'Amber',      token: '#D97706', color: '#D97706' },
+                    { label: 'Sage',       token: '#65A36E', color: '#65A36E' },
+                  ].map(s => (
+                    <div key={s.label} style={{
+                      background: s.color, height: 110, borderRadius: 18,
+                      border: s.color === '#FAF8F5' ? `0.5px solid ${NOBS.light.border}` : 'none',
+                      position: 'relative', display: 'flex', alignItems: 'flex-end', padding: 14,
+                      boxShadow: '0 1px 2px rgba(60,40,20,0.04), 0 4px 16px rgba(60,40,20,0.06)',
+                    }}>
+                      <div>
+                        <div style={{ ...TYPE.caption, color: s.color === '#FAF8F5' ? NOBS.light.text : 'rgba(255,255,255,0.95)', fontWeight: 700 }}>{s.label}</div>
+                        <div style={{ ...TYPE.caption, color: s.color === '#FAF8F5' ? NOBS.light.textTertiary : 'rgba(255,255,255,0.65)', fontFamily: NOBS.fontMono }}>{s.token}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div style={{ display: 'flex', gap: 36, ...TYPE.footnote, color: NOBS.light.textSecondary }}>
+                  <div><b style={{ color: NOBS.light.text }}>6</b> screens · light & dark</div>
+                  <div><b style={{ color: NOBS.light.text }}>SF Pro Rounded</b> type stack</div>
+                  <div><b style={{ color: NOBS.light.text }}>iPhone 16 Pro</b> · 393 × 852pt</div>
+                  <div><b style={{ color: NOBS.light.text }}>Ready for</b> SwiftUI</div>
+                </div>
+              </div>
+            </DCArtboard>
+          </DCSection>
+
+          {/* ── DESIGN SYSTEM ─────────────────────────────────── */}
+          <DCSection id="system" title="Design system" subtitle="Tokens, type, spacing, components — the warm/human foundation">
+            <DCArtboard id="color-light" label="Color · Light"   width={760} height={920}><ColorSystemBoard dark={false} /></DCArtboard>
+            <DCArtboard id="color-dark"  label="Color · Dark"    width={760} height={920}><ColorSystemBoard dark={true}  /></DCArtboard>
+            <DCArtboard id="type"        label="Type scale"      width={760} height={920}><TypeSystemBoard  dark={false} /></DCArtboard>
+            <DCArtboard id="spacing"     label="Spacing & radii" width={760} height={920}><SpacingSystemBoard dark={false} /></DCArtboard>
+            <DCArtboard id="components"  label="Components"      width={760} height={920}><ComponentsBoard  dark={false} /></DCArtboard>
+            <DCArtboard id="icon"        label="App icon"        width={760} height={920}><AppIconBoard     dark={false} /></DCArtboard>
+          </DCSection>
+
+          {/* ── ONBOARDING ────────────────────────────────────── */}
+          <DCSection id="onboarding" title="Onboarding" subtitle="5-step welcome flow with warm illustration marks and amber CTA">
+            <DCArtboard id="welcome-light" label="Welcome · Light" width={393} height={852} style={{ background: 'transparent', boxShadow: 'none', overflow: 'visible' }}>
+              <Phone dark={false}><WelcomeScreen dark={false} /></Phone>
+            </DCArtboard>
+            <DCArtboard id="welcome-dark" label="Welcome · Dark" width={393} height={852} style={{ background: 'transparent', boxShadow: 'none', overflow: 'visible' }}>
+              <Phone dark={true}><WelcomeScreen dark={true} /></Phone>
+            </DCArtboard>
+            <DCArtboard id="step1-light" label="Step 1 · Privacy" width={393} height={852} style={{ background: 'transparent', boxShadow: 'none', overflow: 'visible' }}>
+              <Phone dark={false}><OnboardingScreen dark={false} step={0} /></Phone>
+            </DCArtboard>
+            <DCArtboard id="step2-light" label="Step 2 · Encrypted" width={393} height={852} style={{ background: 'transparent', boxShadow: 'none', overflow: 'visible' }}>
+              <Phone dark={false}><OnboardingScreen dark={false} step={1} /></Phone>
+            </DCArtboard>
+            <DCArtboard id="step3-light" label="Step 3 · Connect" width={393} height={852} style={{ background: 'transparent', boxShadow: 'none', overflow: 'visible' }}>
+              <Phone dark={false}><OnboardingScreen dark={false} step={2} /></Phone>
+            </DCArtboard>
+            <DCArtboard id="step4-light" label="Step 4 · Local" width={393} height={852} style={{ background: 'transparent', boxShadow: 'none', overflow: 'visible' }}>
+              <Phone dark={false}><OnboardingScreen dark={false} step={3} /></Phone>
+            </DCArtboard>
+            <DCArtboard id="step5-light" label="Step 5 · Control" width={393} height={852} style={{ background: 'transparent', boxShadow: 'none', overflow: 'visible' }}>
+              <Phone dark={false}><OnboardingScreen dark={false} step={4} /></Phone>
+            </DCArtboard>
+            <DCArtboard id="step3-dark" label="Step 3 · Dark" width={393} height={852} style={{ background: 'transparent', boxShadow: 'none', overflow: 'visible' }}>
+              <Phone dark={true}><OnboardingScreen dark={true} step={2} /></Phone>
+            </DCArtboard>
+          </DCSection>
+
+          {/* ── MEMORIES ──────────────────────────────────────── */}
+          <DCSection id="memories" title="Home · Memories" subtitle="Card feed of encrypted memories. Personal/Work toggle. Floating compose at the bottom.">
+            {lightDark((dark) => <MemoriesScreen dark={dark} />)}
+          </DCSection>
+
+          {/* ── TASKS ─────────────────────────────────────────── */}
+          <DCSection id="tasks" title="Tasks" subtitle="Pending & completed sections. Animated circle checkboxes. Sage tick for done.">
+            {lightDark((dark) => <TasksScreen dark={dark} />)}
+          </DCSection>
+
+          {/* ── MORE ──────────────────────────────────────────── */}
+          <DCSection id="more" title="More · Tools" subtitle="Grouped sections for Reminders, Phone, Integrations, Siri">
+            {lightDark((dark) => <MoreScreen dark={dark} />)}
+          </DCSection>
+
+          {/* ── SETTINGS ──────────────────────────────────────── */}
+          <DCSection id="settings" title="Settings" subtitle="Account at top · grouped rows with icon badges · danger zone at the bottom">
+            {lightDark((dark) => <SettingsScreen dark={dark} />)}
+          </DCSection>
+
+          {/* ── INTERACTION STATES ────────────────────────────── */}
+          <DCSection id="states" title="States & flows" subtitle="Empty, focused input, detail, and quick-action sheet — the moments between the six core screens">
+            <DCArtboard id="empty-light" label="Empty Memories · Light" width={393} height={852} style={{ background: 'transparent', boxShadow: 'none', overflow: 'visible' }}>
+              <Phone dark={false}><EmptyMemoriesScreen dark={false} /></Phone>
+            </DCArtboard>
+            <DCArtboard id="empty-dark" label="Empty Memories · Dark" width={393} height={852} style={{ background: 'transparent', boxShadow: 'none', overflow: 'visible' }}>
+              <Phone dark={true}><EmptyMemoriesScreen dark={true} /></Phone>
+            </DCArtboard>
+            <DCArtboard id="add-light" label="Add Memory · Keyboard up" width={393} height={852} style={{ background: 'transparent', boxShadow: 'none', overflow: 'visible' }}>
+              <Phone dark={false}><AddMemoryScreen dark={false} /></Phone>
+            </DCArtboard>
+            <DCArtboard id="add-dark" label="Add Memory · Dark" width={393} height={852} style={{ background: 'transparent', boxShadow: 'none', overflow: 'visible' }}>
+              <Phone dark={true}><AddMemoryScreen dark={true} /></Phone>
+            </DCArtboard>
+            <DCArtboard id="detail-light" label="Memory Detail · Light" width={393} height={852} style={{ background: 'transparent', boxShadow: 'none', overflow: 'visible' }}>
+              <Phone dark={false}><MemoryDetailScreen dark={false} /></Phone>
+            </DCArtboard>
+            <DCArtboard id="detail-dark" label="Memory Detail · Dark" width={393} height={852} style={{ background: 'transparent', boxShadow: 'none', overflow: 'visible' }}>
+              <Phone dark={true}><MemoryDetailScreen dark={true} /></Phone>
+            </DCArtboard>
+            <DCArtboard id="homekit-light" label="HomeKit Quick Sheet" width={393} height={852} style={{ background: 'transparent', boxShadow: 'none', overflow: 'visible' }}>
+              <Phone dark={false}><HomeKitSheet dark={false} /></Phone>
+            </DCArtboard>
+            <DCArtboard id="homekit-dark" label="HomeKit · Dark" width={393} height={852} style={{ background: 'transparent', boxShadow: 'none', overflow: 'visible' }}>
+              <Phone dark={true}><HomeKitSheet dark={true} /></Phone>
+            </DCArtboard>
+          </DCSection>
+
+          {/* ── HANDOFF ───────────────────────────────────────── */}
+          <DCSection id="handoff" title="Handoff to Claude Code" subtitle="Swift tokens, component anatomy, and implementation notes — everything an engineer needs">
+            <DCArtboard id="swift-tokens" label="Swift tokens · NOBSTheme.swift" width={920} height={920}><SwiftTokensBoard dark={false} /></DCArtboard>
+            <DCArtboard id="swift-tokens-dark" label="Swift tokens · Dark IDE" width={920} height={920}><SwiftTokensBoard dark={true} /></DCArtboard>
+            <DCArtboard id="anatomy" label="Component anatomy" width={920} height={1180}><ComponentAnatomyBoard dark={false} /></DCArtboard>
+            <DCArtboard id="notes" label="Implementation notes" width={760} height={1180}><HandoffBoard dark={false} /></DCArtboard>
+          </DCSection>
+
+
+        </DesignCanvas>
+      );
+    }
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>

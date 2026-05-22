@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NOBS — Your private AI. No cloud. No compromise.</title>
+  <meta name="description" content="NOBS is a privacy-first personal AI assistant that runs entirely on your devices. On-device with Apple Intelligence, or on your own home server. Your data never leaves your network." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Reset & Base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:        #FAF8F5;
+      --bg-card:   #FFFFFF;
+      --text:      #1C1917;
+      --text-sub:  #57534E;
+      --accent:    #D97706;
+      --accent-dk: #B45309;
+      --sage:      #65A36E;
+      --border:    rgba(60,40,20,0.08);
+      --shadow-sm: 0 1px 2px rgba(60,40,20,0.04), 0 4px 12px rgba(60,40,20,0.06);
+      --shadow-md: 0 1px 2px rgba(60,40,20,0.04), 0 8px 24px rgba(60,40,20,0.08);
+      --radius-card: 20px;
+      --radius-btn:  999px;
+      --font: 'SF Pro Rounded', ui-rounded, 'Nunito', system-ui, sans-serif;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg:       #1C1917;
+        --bg-card:  #292524;
+        --text:     #F5F1EA;
+        --text-sub: #A8A29E;
+        --border:   rgba(245,241,234,0.07);
+        --shadow-sm: 0 1px 2px rgba(0,0,0,0.2), 0 4px 12px rgba(0,0,0,0.3);
+        --shadow-md: 0 1px 2px rgba(0,0,0,0.2), 0 8px 24px rgba(0,0,0,0.35);
+      }
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--font);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── Layout ── */
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 24px;
+    }
+
+    section {
+      padding: 80px 0;
+    }
+
+    /* ── Nav ── */
+    .nav-wrap {
+      padding: 20px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--text);
+    }
+
+    .nav-wordmark {
+      font-size: 1.2rem;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+    }
+
+    .nav-link {
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-sub);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .nav-link:hover { color: var(--accent); }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 28px;
+      border-radius: var(--radius-btn);
+      font-family: var(--font);
+      font-size: 1rem;
+      font-weight: 700;
+      text-decoration: none;
+      cursor: pointer;
+      border: none;
+      transition: transform 0.15s ease, box-shadow 0.15s ease, opacity 0.15s;
+    }
+
+    .btn:active { transform: scale(0.97); }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 2px 8px rgba(217,119,6,0.35);
+    }
+
+    .btn-primary:hover {
+      opacity: 0.92;
+      box-shadow: 0 4px 16px rgba(217,119,6,0.4);
+      transform: translateY(-1px);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text);
+      border: 2px solid var(--border);
+    }
+
+    .btn-ghost:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      transform: translateY(-1px);
+    }
+
+    /* ── Hero ── */
+    .hero {
+      text-align: center;
+      padding: 60px 0 80px;
+    }
+
+    .hero-logo {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 32px;
+    }
+
+    .hero-headline {
+      font-size: clamp(2.4rem, 6vw, 4rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      margin-bottom: 20px;
+    }
+
+    .hero-headline .accent { color: var(--accent); }
+
+    .hero-tagline {
+      font-size: clamp(1.05rem, 2.5vw, 1.2rem);
+      color: var(--text-sub);
+      margin-bottom: 40px;
+      max-width: 460px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .hero-ctas {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      justify-content: center;
+    }
+
+    /* ── Section title ── */
+    .section-label {
+      font-size: 0.78rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--accent);
+      margin-bottom: 10px;
+    }
+
+    .section-title {
+      font-size: clamp(1.6rem, 4vw, 2.2rem);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 14px;
+    }
+
+    .section-sub {
+      font-size: 1.05rem;
+      color: var(--text-sub);
+      max-width: 520px;
+    }
+
+    .section-header { margin-bottom: 48px; }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-card);
+      box-shadow: var(--shadow-md);
+      padding: 32px 28px;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 2px 4px rgba(60,40,20,0.04), 0 16px 40px rgba(60,40,20,0.12);
+    }
+
+    /* ── How it works ── */
+    .how-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 20px;
+    }
+
+    .how-card .how-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, rgba(217,119,6,0.12), rgba(217,119,6,0.06));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 20px;
+      font-size: 1.5rem;
+    }
+
+    .how-card h3 {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .how-card p {
+      font-size: 0.95rem;
+      color: var(--text-sub);
+      line-height: 1.6;
+    }
+
+    /* ── Features ── */
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+    }
+
+    .feature-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px 20px;
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .feature-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .feature-icon {
+      font-size: 1.6rem;
+      margin-bottom: 12px;
+      display: block;
+    }
+
+    .feature-card h4 {
+      font-size: 0.95rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .feature-card p {
+      font-size: 0.85rem;
+      color: var(--text-sub);
+      line-height: 1.5;
+    }
+
+    /* ── Privacy statement ── */
+    .privacy-section {
+      text-align: center;
+      background: var(--bg-card);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .privacy-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(101,163,110,0.12);
+      border: 1px solid rgba(101,163,110,0.25);
+      border-radius: 999px;
+      padding: 6px 16px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--sage);
+      margin-bottom: 28px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .privacy-statement {
+      font-size: clamp(1.4rem, 3.5vw, 2rem);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.35;
+      max-width: 640px;
+      margin: 0 auto 20px;
+    }
+
+    .privacy-statement .highlight {
+      color: var(--sage);
+    }
+
+    .privacy-sub {
+      font-size: 1rem;
+      color: var(--text-sub);
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      padding: 40px 24px;
+      font-size: 0.875rem;
+      color: var(--text-sub);
+    }
+
+    footer a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    footer a:hover { text-decoration: underline; }
+
+    footer .footer-sep { margin: 0 8px; opacity: 0.4; }
+
+    /* ── Divider ── */
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 0 24px;
+    }
+
+    /* ── Mobile ── */
+    @media (max-width: 600px) {
+      section { padding: 60px 0; }
+      .hero { padding: 40px 0 60px; }
+      .btn { padding: 13px 22px; font-size: 0.95rem; }
+      .how-grid { grid-template-columns: 1fr; }
+      .features-grid { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media (max-width: 380px) {
+      .features-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ── Nav ── -->
+  <header>
+    <div class="nav-wrap">
+      <a class="nav-logo" href="/">
+        <svg width="34" height="34" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect width="34" height="34" rx="9" fill="#B45309"/>
+          <text x="17" y="24" font-family="'SF Pro Rounded', ui-rounded, 'Nunito', system-ui, sans-serif" font-size="18" font-weight="800" fill="#FEF3C7" text-anchor="middle">N</text>
+          <path d="M9 27.5 Q17 25.5 25 27.5" stroke="#FEF3C7" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+        </svg>
+        <span class="nav-wordmark">NOBS</span>
+      </a>
+      <a class="nav-link" href="#how">How it works</a>
+    </div>
+  </header>
+
+  <!-- ── Hero ── -->
+  <section class="hero">
+    <div class="container">
+      <div class="hero-logo">
+        <svg width="100" height="100" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="NOBS logo">
+          <rect width="100" height="100" rx="26" fill="#B45309"/>
+          <text x="50" y="68" font-family="'SF Pro Rounded', ui-rounded, 'Nunito', system-ui, sans-serif" font-size="54" font-weight="800" fill="#FEF3C7" text-anchor="middle">N</text>
+          <path d="M20 82 Q50 76 80 82" stroke="#FEF3C7" stroke-width="3.5" stroke-linecap="round" fill="none"/>
+        </svg>
+      </div>
+
+      <h1 class="hero-headline">
+        Your private AI.<br/>
+        <span class="accent">No cloud.</span> No compromise.
+      </h1>
+
+      <p class="hero-tagline">
+        NOBS runs entirely on your devices — Apple Intelligence on-device, or your own home server. Your data never leaves your network.
+      </p>
+
+      <div class="hero-ctas">
+        <a class="btn btn-primary" href="https://testflight.apple.com/join/placeholder">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+          Join TestFlight
+        </a>
+        <a class="btn btn-ghost" href="#how">Learn more</a>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- ── How it works ── -->
+  <section id="how">
+    <div class="container">
+      <div class="section-header">
+        <p class="section-label">How it works</p>
+        <h2 class="section-title">Built different, by design.</h2>
+        <p class="section-sub">Three principles that make NOBS possible — and that no big-tech AI app can match.</p>
+      </div>
+
+      <div class="how-grid">
+        <div class="card how-card">
+          <div class="how-icon">🧠</div>
+          <h3>On-Device AI</h3>
+          <p>iPhone 15 Pro and iPhone 16+ run NOBS entirely through Apple Intelligence. Inference never leaves your chip. Not your carrier. Not Apple's servers. Not ours.</p>
+        </div>
+
+        <div class="card how-card">
+          <div class="how-icon">🏠</div>
+          <h3>Home Server</h3>
+          <p>Older hardware? NOBS Server runs on your own machine at home — a Mac mini, a NUC, or a Raspberry Pi. You own the hardware. You own the model. You own the data.</p>
+        </div>
+
+        <div class="card how-card">
+          <div class="how-icon">🔒</div>
+          <h3>Your data stays home</h3>
+          <p>No OpenAI. No Google. No Anthropic. No AWS. Every conversation, memory, and task lives on a device you physically control. Full stop.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- ── Features ── -->
+  <section id="features">
+    <div class="container">
+      <div class="section-header">
+        <p class="section-label">Features</p>
+        <h2 class="section-title">Everything you need. Nothing you don't.</h2>
+        <p class="section-sub">NOBS integrates the parts of your life that matter most — and keeps them yours.</p>
+      </div>
+
+      <div class="features-grid">
+        <div class="feature-card">
+          <span class="feature-icon">🧩</span>
+          <h4>Memories</h4>
+          <p>Capture and recall anything. Your AI learns you over time without ever syncing to a cloud service.</p>
+        </div>
+
+        <div class="feature-card">
+          <span class="feature-icon">✅</span>
+          <h4>Tasks</h4>
+          <p>Smart task management with AI context. Your assistant understands your priorities — not just your to-do list.</p>
+        </div>
+
+        <div class="feature-card">
+          <span class="feature-icon">💡</span>
+          <h4>HomeKit</h4>
+          <p>Control your home with natural language. "Turn off the living room after the movie" just works.</p>
+        </div>
+
+        <div class="feature-card">
+          <span class="feature-icon">❤️</span>
+          <h4>Health</h4>
+          <p>AI that knows your health context. On-device only — Apple Health data never leaves your phone.</p>
+        </div>
+
+        <div class="feature-card">
+          <span class="feature-icon">🎙️</span>
+          <h4>Voice</h4>
+          <p>Encrypted voice conversations with your AI. Transcription and understanding happen on your hardware.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="divider"></div>
+
+  <!-- ── Privacy Statement ── -->
+  <section class="privacy-section">
+    <div class="container">
+      <div class="privacy-badge">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.25C17.25 22.15 21 17.25 21 12V7L12 2z"/></svg>
+        Privacy First
+      </div>
+
+      <p class="privacy-statement">
+        "We don't have your data.<br/>
+        We <span class="highlight">can't</span>.<br/>
+        It never leaves your network."
+      </p>
+
+      <p class="privacy-sub">
+        NOBS has no backend. No account. No telemetry. There is no server to breach, no database to leak, and no company between you and your AI.
+      </p>
+    </div>
+  </section>
+
+  <!-- ── Footer ── -->
+  <footer>
+    <p>
+      NOBS
+      <span class="footer-sep">·</span>
+      Built by <a href="https://nobsdash.com" target="_blank" rel="noopener">Alex Burgess</a>
+      <span class="footer-sep">·</span>
+      <a href="https://nobsdash.com" target="_blank" rel="noopener">nobsdash.com</a>
+    </p>
+  </footer>
+
+</body>
+</html>

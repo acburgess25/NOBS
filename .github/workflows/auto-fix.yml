@@ -1,0 +1,147 @@
+name: Auto-Fix CI
+
+on:
+  workflow_run:
+    workflows: ["TestFlight"]
+    types: [completed]
+
+jobs:
+  fix:
+    # Only run on failure, and stop if last 3 commits are all auto-fixes (loop guard)
+    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
+    runs-on: macos-15
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_PAT }}
+          fetch-depth: 5
+
+      - name: Loop guard — stop if 3 consecutive auto-fixes already tried
+        run: |
+          RECENT=$(git log --oneline -3 --format="%s")
+          COUNT=$(echo "$RECENT" | grep -c "^auto-fix:" || true)
+          if [ "$COUNT" -ge 3 ]; then
+            echo "::warning::3 consecutive auto-fixes failed — stopping loop. Manual fix needed."
+            exit 0
+          fi
+
+      - name: Fetch failure logs from Tank
+        run: |
+          gh run view ${{ github.event.workflow_run.id }} --log-failed 2>&1 \
+            | grep -v "^.*warning" \
+            | tail -200 > /tmp/failure.log
+          echo "--- failure log ---"
+          cat /tmp/failure.log
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Ask Tank (Ollama) to diagnose and fix
+        run: |
+          python3 << 'PYEOF'
+          import urllib.request, json, sys, textwrap
+
+          with open('/tmp/failure.log') as f:
+              logs = f.read()[-5000:]
+
+          prompt = textwrap.dedent(f"""
+          You are an iOS CI expert fixing a Fastlane + Xcode + TestFlight build.
+
+          Project layout:
+          - fastlane/Fastfile          — build + upload lane
+          - fastlane/Appfile           — bundle ID, team ID
+          - .github/workflows/testflight.yml — GitHub Actions workflow
+          - project.yml                — xcodegen config
+          - Resources/Info.plist       — app Info.plist
+          - Resources/Assets.xcassets/AppIcon.appiconset/ — app icons
+
+          Analyze the error logs below and output a JSON object (nothing else):
+          {{
+            "file": "<relative file path to edit, or null>",
+            "find": "<exact string to find and replace>",
+            "replace": "<replacement string>",
+            "reason": "<one sentence explanation>"
+          }}
+
+          If no single-file edit can fix it, output:
+          {{"file": null, "reason": "<what needs manual attention>"}}
+
+          ERROR LOGS:
+          {logs}
+          """).strip()
+
+          payload = json.dumps({
+              "model": "qwen2.5-coder",
+              "prompt": prompt,
+              "stream": False,
+              "options": {"temperature": 0.1, "num_predict": 512}
+          })
+
+          try:
+              req = urllib.request.Request(
+                  "http://192.168.0.77:11434/api/generate",
+                  data=payload.encode(),
+                  headers={"Content-Type": "application/json"}
+              )
+              with urllib.request.urlopen(req, timeout=180) as resp:
+                  raw = json.loads(resp.read())["response"].strip()
+                  # Extract JSON if wrapped in markdown
+                  if "```" in raw:
+                      raw = raw.split("```")[1]
+                      if raw.startswith("json"):
+                          raw = raw[4:]
+                  fix = json.loads(raw)
+                  print(f"Tank says: {fix}")
+                  with open('/tmp/fix.json', 'w') as f:
+                      json.dump(fix, f)
+          except Exception as e:
+              print(f"Tank unavailable or parse error: {e}")
+              with open('/tmp/fix.json', 'w') as f:
+                  json.dump({"file": None, "reason": f"Tank error: {e}"}, f)
+          PYEOF
+
+      - name: Apply fix, commit, push
+        run: |
+          python3 << 'PYEOF'
+          import json, subprocess, sys
+
+          with open('/tmp/fix.json') as f:
+              fix = json.load(f)
+
+          if not fix.get('file'):
+              print(f"No auto-fix: {fix.get('reason')}")
+              sys.exit(0)
+
+          filepath = fix['file']
+          find_str = fix.get('find', '')
+          replace_str = fix.get('replace', '')
+          reason = fix.get('reason', 'auto-fix')
+
+          if not find_str:
+              print("No find string — cannot apply fix safely")
+              sys.exit(0)
+
+          try:
+              with open(filepath, 'r') as f:
+                  content = f.read()
+          except FileNotFoundError:
+              print(f"File not found: {filepath}")
+              sys.exit(0)
+
+          if find_str not in content:
+              print(f"String not found in {filepath} — fix may be stale or wrong")
+              sys.exit(0)
+
+          new_content = content.replace(find_str, replace_str, 1)
+          with open(filepath, 'w') as f:
+              f.write(new_content)
+
+          subprocess.run(['git', 'config', 'user.email', 'tank-bot@nobsdash.com'], check=True)
+          subprocess.run(['git', 'config', 'user.name', 'Tank Auto-Fix'], check=True)
+          subprocess.run(['git', 'add', filepath], check=True)
+          subprocess.run(['git', 'commit', '-m', f'auto-fix: {reason}'], check=True)
+          subprocess.run(['git', 'push'], check=True)
+          print(f"✅ Pushed fix to {filepath}: {reason}")
+          PYEOF
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}

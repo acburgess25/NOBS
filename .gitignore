@@ -1,0 +1,47 @@
+# Swift build artifacts
+.build/
+*.o
+*.d
+*.swp
+
+# Xcode
+*.xcworkspace/xcuserdata/
+# NOBS.xcodeproj is tracked so Xcode Cloud can find it without running xcodegen first
+!NOBS.xcodeproj/
+*.xcodeproj/
+xcuserdata/
+DerivedData/
+*.xccheckout
+*.xcscmblueprint
+
+# SPM resolve cache
+.swiftpm/
+
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V7
+.Trashes
+
+# Secrets (never commit credentials)
+Secrets/
+*.p8
+*.pem
+credentials.json
+GoogleService-Info.plist
+
+# Local workspace files & builds
+build/
+.claude/
+
+# Removed from iOS repo
+Resources/AppIcons/
+TankServer/
+tools/
+scripts/
+.swiftpm/xcode/
+
+# Website legacy assets
+Website/logo.png
+Website/sage_leaf_logo.png
