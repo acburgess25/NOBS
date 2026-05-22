@@ -1,10 +1,3 @@
-/// LoadingSkeletonView — Shimmer skeleton loading components
-///
-/// Animated warm-gray shimmer that mimics real content rows.
-/// Use SkeletonList as a drop-in replacement for a task list
-/// while data is loading. The shimmer gradient sweeps left → right
-/// on a repeating animation.
-
 import SwiftUI
 
 // MARK: - Shimmer Animation Key
