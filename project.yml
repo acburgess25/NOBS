@@ -17,7 +17,6 @@ targets:
       - path: Sources/NOBSApp
     resources:
       - path: Resources
-      - path: Resources/AppIcons
     dependencies:
       - package: NOBSKit
         product: NOBSKit

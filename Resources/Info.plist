@@ -22,34 +22,6 @@
     <string>NOBS v2.0</string>
     <key>CFBundleIconName</key>
     <string>AppIcon</string>
-    <key>CFBundleIcons</key>
-    <dict>
-        <key>CFBundlePrimaryIcon</key>
-        <dict>
-            <key>CFBundleIconFiles</key>
-            <array>
-                <string>AppIcons/AppIcon-60</string>
-                <string>AppIcons/AppIcon-120</string>
-                <string>AppIcons/AppIcon-180</string>
-            </array>
-            <key>CFBundleIconName</key>
-            <string>AppIcon</string>
-        </dict>
-    </dict>
-    <key>CFBundleIcons~ipad</key>
-    <dict>
-        <key>CFBundlePrimaryIcon</key>
-        <dict>
-            <key>CFBundleIconFiles</key>
-            <array>
-                <string>AppIcons/AppIcon-76</string>
-                <string>AppIcons/AppIcon-152</string>
-                <string>AppIcons/AppIcon-167</string>
-            </array>
-            <key>CFBundleIconName</key>
-            <string>AppIcon</string>
-        </dict>
-    </dict>
     <key>LSRequiresIPhoneOS</key>
     <true/>
     <key>NSAppTransportSecurity</key>
