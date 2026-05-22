@@ -15,7 +15,9 @@ struct SettingsView: View {
                 accountSection
                 preferencesSection
                 storageSection
-                kitchenSection
+                if NOBSDatabase.shared.isPersonalModeEnabled {
+                    kitchenSection
+                }
                 aboutSection
             }
             .navigationTitle("Settings")

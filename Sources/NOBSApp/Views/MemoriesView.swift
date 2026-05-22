@@ -3,7 +3,7 @@ import NOBSDatabase
 import NOBSCore
 
 struct MemoriesView: View {
-    @State private var context: DataContext = .personal
+    @State private var context: DataContext = NOBSDatabase.shared.isPersonalModeEnabled ? .personal : .work
     @State private var memories: [DecryptedMemory] = []
     @State private var newMemoryText = ""
     @State private var searchText = ""
@@ -24,7 +24,11 @@ struct MemoriesView: View {
             }
             .searchable(text: $searchText, prompt: "Search memories")
             .navigationTitle("Memories")
-            .toolbar { contextPicker }
+            .toolbar {
+                if NOBSDatabase.shared.isPersonalModeEnabled {
+                    contextPicker
+                }
+            }
             .task { loadMemories() }
             .refreshable { await refresh() }
             .alert("Error", isPresented: $showError, presenting: errorMessage) { _ in

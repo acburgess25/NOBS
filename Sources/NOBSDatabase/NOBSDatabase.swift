@@ -153,6 +153,14 @@ public final class NOBSDatabase: @unchecked Sendable {
     private var containers: [DataContext: NSPersistentContainer] = [:]
     private let lock = NSLock()
 
+    /// Track the active user username.
+    public var activeUsername: String = ""
+
+    /// Computed property indicating if personal mode features are unlocked.
+    public var isPersonalModeEnabled: Bool {
+        return activeUsername.lowercased() == "alex"
+    }
+
     /// The storage mode this database was set up with.
     public private(set) var storageMode: StorageMode = .localOnly
 
@@ -197,10 +205,11 @@ public final class NOBSDatabase: @unchecked Sendable {
     /// Returns the main-thread managed object context for the given data context.
     /// - Throws: `DatabaseError.notSetUp` if `setup()` has not been called yet.
     public func viewContext(for dataContext: DataContext) throws -> NSManagedObjectContext {
-        if containers[dataContext] == nil {
+        let resolvedContext = (!isPersonalModeEnabled && dataContext == .personal) ? .work : dataContext
+        if containers[resolvedContext] == nil {
             try? setup(storageMode: .localOnly)
         }
-        guard let container = containers[dataContext] else {
+        guard let container = containers[resolvedContext] else {
             throw DatabaseError.notSetUp
         }
         return container.viewContext
@@ -209,10 +218,11 @@ public final class NOBSDatabase: @unchecked Sendable {
     /// Creates a new background context for the given data context.
     /// - Throws: `DatabaseError.notSetUp` if `setup()` has not been called yet.
     public func newBackgroundContext(for dataContext: DataContext) throws -> NSManagedObjectContext {
-        if containers[dataContext] == nil {
+        let resolvedContext = (!isPersonalModeEnabled && dataContext == .personal) ? .work : dataContext
+        if containers[resolvedContext] == nil {
             try? setup(storageMode: .localOnly)
         }
-        guard let container = containers[dataContext] else {
+        guard let container = containers[resolvedContext] else {
             throw DatabaseError.notSetUp
         }
         return container.newBackgroundContext()
@@ -614,6 +624,15 @@ public actor MemoryIntentHandler: IntentHandler {
 public final class NOBSDatabase: @unchecked Sendable {
     public static let shared = NOBSDatabase()
     public private(set) var storageMode: StorageMode = .localOnly
+    
+    /// Track the active user username.
+    public var activeUsername: String = ""
+
+    /// Computed property indicating if personal mode features are unlocked.
+    public var isPersonalModeEnabled: Bool {
+        return activeUsername.lowercased() == "alex"
+    }
+
     private init() {}
 
     public func setup(storageMode: StorageMode = .localOnly, inMemory: Bool = false) throws {

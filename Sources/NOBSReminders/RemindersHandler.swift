@@ -64,13 +64,15 @@ public struct ReminderItem: Sendable {
 public actor RemindersHandler: IntentHandler {
     private let inMemory: Bool
     private var mockItems: [ReminderItem] = []
+    private let isPersonalModeEnabled: @Sendable () -> Bool
 
 #if canImport(EventKit)
     private let store = EKEventStore()
 #endif
 
-    public init(inMemory: Bool = false) {
+    public init(inMemory: Bool = false, isPersonalModeEnabled: @escaping @Sendable () -> Bool = { true }) {
         self.inMemory = inMemory
+        self.isPersonalModeEnabled = isPersonalModeEnabled
     }
 
     // MARK: IntentHandler
@@ -85,12 +87,14 @@ public actor RemindersHandler: IntentHandler {
     public func handle(_ intent: AssistantIntent) async throws -> String {
         switch intent {
         case .createReminder(let title, let dueDate, let notes, let context):
-            let item = ReminderItem(title: title, dueDate: dueDate, notes: notes, dataContext: context)
+            let resolvedContext = (!isPersonalModeEnabled() && context == .personal) ? .work : context
+            let item = ReminderItem(title: title, dueDate: dueDate, notes: notes, dataContext: resolvedContext)
             try await create(item)
             return "Reminder '\(title)' created."
         case .listReminders(let context):
-            let items = try await list(context: context)
-            if items.isEmpty { return "No pending \(context.rawValue) reminders." }
+            let resolvedContext = (!isPersonalModeEnabled() && context == .personal) ? .work : context
+            let items = try await list(context: resolvedContext)
+            if items.isEmpty { return "No pending \(resolvedContext.rawValue) reminders." }
             return items
                 .map { "• \($0.title)" + ($0.dueDate.map { " (due \(Self.format($0)))" } ?? "") }
                 .joined(separator: "\n")
@@ -105,18 +109,21 @@ public actor RemindersHandler: IntentHandler {
     // MARK: - CRUD
 
     public func create(_ item: ReminderItem) async throws {
+        let resolvedContext = (!isPersonalModeEnabled() && item.dataContext == .personal) ? .work : item.dataContext
+        let resolvedItem = (resolvedContext != item.dataContext) ? ReminderItem(id: item.id, title: item.title, dueDate: item.dueDate, isCompleted: item.isCompleted, notes: item.notes, dataContext: resolvedContext) : item
+
         if inMemory {
-            mockItems.append(item)
+            mockItems.append(resolvedItem)
             return
         }
 #if canImport(EventKit)
         try await requestAccess()
         let reminder = EKReminder(eventStore: store)
-        reminder.title = item.title
-        reminder.notes = [item.notes, "nobs-context:\(item.dataContext.rawValue)"]
+        reminder.title = resolvedItem.title
+        reminder.notes = [resolvedItem.notes, "nobs-context:\(resolvedItem.dataContext.rawValue)"]
             .compactMap { $0 }
             .joined(separator: "\n")
-        if let due = item.dueDate {
+        if let due = resolvedItem.dueDate {
             reminder.dueDateComponents = Calendar.current.dateComponents(
                 [.year, .month, .day, .hour, .minute],
                 from: due
@@ -133,8 +140,9 @@ public actor RemindersHandler: IntentHandler {
     }
 
     public func list(context: DataContext) async throws -> [ReminderItem] {
+        let resolvedContext = (!isPersonalModeEnabled() && context == .personal) ? .work : context
         if inMemory {
-            return mockItems.filter { $0.dataContext == context && !$0.isCompleted }
+            return mockItems.filter { $0.dataContext == resolvedContext && !$0.isCompleted }
         }
 #if canImport(EventKit)
         try await requestAccess()
@@ -143,7 +151,7 @@ public actor RemindersHandler: IntentHandler {
         )
         return await withCheckedContinuation { continuation in
             store.fetchReminders(matching: predicate) { ekReminders in
-                let tag = "nobs-context:\(context.rawValue)"
+                let tag = "nobs-context:\(resolvedContext.rawValue)"
                 let items = (ekReminders ?? [])
                     .filter { $0.notes?.contains(tag) == true }
                     .map { r -> ReminderItem in
@@ -153,7 +161,7 @@ public actor RemindersHandler: IntentHandler {
                             dueDate: r.dueDateComponents.flatMap { Calendar.current.date(from: $0) },
                             isCompleted: r.isCompleted,
                             notes: r.notes,
-                            dataContext: context
+                            dataContext: resolvedContext
                         )
                     }
                 continuation.resume(returning: items)

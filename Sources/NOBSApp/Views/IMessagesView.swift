@@ -10,10 +10,12 @@ struct IMessagesView: View {
     @State private var messages: [String] = []
     @State private var showComposer = false
     @State private var newContact = ""
-    @State private var context: DataContext = .personal
+    @State private var context: DataContext = NOBSDatabase.shared.isPersonalModeEnabled ? .personal : .work
 
     private let handler = iMessageHandler()
-    private let history = ConversationHistory(dataContext: .personal)
+    private var history: ConversationHistory {
+        ConversationHistory(dataContext: NOBSDatabase.shared.isPersonalModeEnabled ? .personal : .work)
+    }
 
     var body: some View {
         NavigationStack {

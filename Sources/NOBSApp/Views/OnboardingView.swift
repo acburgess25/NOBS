@@ -10,7 +10,9 @@ struct OnboardingView: View {
     @State private var routines = ""
 
     private let totalSteps = 5
-    private let personalMemories = MemoryRepository(context: .personal)
+    private var personalMemories: MemoryRepository {
+        MemoryRepository(context: NOBSDatabase.shared.isPersonalModeEnabled ? .personal : .work)
+    }
 
     var body: some View {
         VStack(spacing: 0) {

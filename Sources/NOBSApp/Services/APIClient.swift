@@ -2,11 +2,16 @@ import Foundation
 import Security
 import CryptoKit
 import NOBSSecurity
+import NOBSDatabase
 
 @MainActor
 class APIClient: ObservableObject {
     @Published var isAuthenticated = false
-    @Published var username = ""
+    @Published var username = "" {
+        didSet {
+            NOBSDatabase.shared.activeUsername = username
+        }
+    }
 
     private let baseURL = URL(string: "https://nobsdash.com/api/v1")!
     private let keychain = KeychainStore(service: "com.nobs.app")

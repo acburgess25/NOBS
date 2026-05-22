@@ -3,7 +3,7 @@ import NOBSDatabase
 import NOBSCore
 
 struct TasksView: View {
-    @State private var context: DataContext = .personal
+    @State private var context: DataContext = NOBSDatabase.shared.isPersonalModeEnabled ? .personal : .work
     @State private var tasks: [UserTaskMO] = []
     @State private var newTaskTitle = ""
     @State private var isLoading = false
@@ -25,7 +25,11 @@ struct TasksView: View {
                 completedSection
             }
             .navigationTitle("Tasks")
-            .toolbar { contextPicker }
+            .toolbar {
+                if NOBSDatabase.shared.isPersonalModeEnabled {
+                    contextPicker
+                }
+            }
             .task { loadTasks() }
             .refreshable { loadTasks() }
             .alert("Error", isPresented: $showError, presenting: errorMessage) { _ in

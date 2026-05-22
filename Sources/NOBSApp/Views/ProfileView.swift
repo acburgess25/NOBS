@@ -8,7 +8,9 @@ struct ProfileView: View {
     @State private var routines = ""
     @State private var saved = false
 
-    private let personalMemories = MemoryRepository(context: .personal)
+    private var personalMemories: MemoryRepository {
+        MemoryRepository(context: NOBSDatabase.shared.isPersonalModeEnabled ? .personal : .work)
+    }
 
     var body: some View {
         NavigationStack {

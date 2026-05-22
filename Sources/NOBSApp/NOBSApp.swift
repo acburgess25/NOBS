@@ -59,7 +59,7 @@ struct NOBSApp: App {
             config: modelConfig,
             handlers: [
                 MemoryIntentHandler(),
-                RemindersHandler(),
+                RemindersHandler(isPersonalModeEnabled: { NOBSDatabase.shared.isPersonalModeEnabled }),
                 HomeKitHandler(),
                 CallManager(),
                 iMessageHandler(),

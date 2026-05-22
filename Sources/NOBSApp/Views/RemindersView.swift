@@ -1,9 +1,10 @@
 import SwiftUI
 import NOBSReminders
 import NOBSCore
+import NOBSDatabase
 
 struct RemindersView: View {
-    @State private var context: DataContext = .personal
+    @State private var context: DataContext = NOBSDatabase.shared.isPersonalModeEnabled ? .personal : .work
     @State private var reminders: [ReminderItem] = []
     @State private var newTitle = ""
     @State private var newDueDate = Date()
@@ -64,13 +65,15 @@ struct RemindersView: View {
             }
             .navigationTitle("Reminders")
             .toolbar {
-                ToolbarItem(placement: .principal) {
-                    Picker("Context", selection: $context) {
-                        Text("Personal").tag(DataContext.personal)
-                        Text("Work").tag(DataContext.work)
+                if NOBSDatabase.shared.isPersonalModeEnabled {
+                    ToolbarItem(placement: .principal) {
+                        Picker("Context", selection: $context) {
+                            Text("Personal").tag(DataContext.personal)
+                            Text("Work").tag(DataContext.work)
+                        }
+                        .pickerStyle(.segmented)
+                        .onChange(of: context) { _, _ in loadReminders() }
                     }
-                    .pickerStyle(.segmented)
-                    .onChange(of: context) { _, _ in loadReminders() }
                 }
                 ToolbarItem(placement: .primaryAction) {
                     Button("Add", systemImage: "plus") {
