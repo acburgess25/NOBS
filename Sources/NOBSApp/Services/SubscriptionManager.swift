@@ -10,8 +10,46 @@ import Observation
 // MARK: - Product IDs
 
 private enum ProductID {
-    static let serverMonthly = "ai.nobs.server.monthly"
-    static let serverYearly  = "ai.nobs.server.yearly"
+    static let serverMonthly  = "ai.nobs.server.monthly"
+    static let serverYearly   = "ai.nobs.server.yearly"
+    static let agencyStarter  = "ai.nobs.agency.starter"
+    static let agencyGrowth   = "ai.nobs.agency.growth"
+    static let agencyPremium  = "ai.nobs.agency.premium"
+
+    static var allAgency: [String] { [agencyStarter, agencyGrowth, agencyPremium] }
+    static var allServer: [String] { [serverMonthly, serverYearly] }
+}
+
+// MARK: - Agency Tier
+
+public enum AgencyTier: String, CaseIterable {
+    case starter = "ai.nobs.agency.starter"
+    case growth  = "ai.nobs.agency.growth"
+    case premium = "ai.nobs.agency.premium"
+
+    public var displayName: String {
+        switch self {
+        case .starter: return "Starter"
+        case .growth:  return "Growth"
+        case .premium: return "Premium"
+        }
+    }
+
+    public var postsPerMonth: Int {
+        switch self {
+        case .starter: return 10
+        case .growth:  return 20
+        case .premium: return 40
+        }
+    }
+
+    public var platforms: String {
+        switch self {
+        case .starter: return "1 platform"
+        case .growth:  return "3 platforms"
+        case .premium: return "All platforms"
+        }
+    }
 }
 
 // MARK: - SubscriptionManager
@@ -25,6 +63,7 @@ public final class SubscriptionManager {
     // MARK: State
     public var products: [Product] = []
     public var isSubscribed: Bool = false
+    public var agencyTier: AgencyTier? = nil
     public var isLoading: Bool = false
     public var errorMessage: String?
 
@@ -34,6 +73,7 @@ public final class SubscriptionManager {
         updateListenerTask = listenForTransactions()
         Task { await loadProducts() }
         Task { await refreshSubscriptionStatus() }
+        Task { await refreshAgencyStatus() }
     }
 
     deinit { updateListenerTask?.cancel() }
@@ -43,10 +83,9 @@ public final class SubscriptionManager {
     public func loadProducts() async {
         isLoading = true
         do {
-            products = try await Product.products(for: [
-                ProductID.serverMonthly,
-                ProductID.serverYearly
-            ])
+            products = try await Product.products(for:
+                ProductID.allServer + ProductID.allAgency
+            )
             .sorted { $0.price < $1.price }
         } catch {
             errorMessage = "Couldn't load subscription options: \(error.localizedDescription)"
@@ -95,12 +134,25 @@ public final class SubscriptionManager {
         var active = false
         for await result in Transaction.currentEntitlements {
             guard case .verified(let transaction) = result else { continue }
-            if transaction.productID == ProductID.serverMonthly ||
-               transaction.productID == ProductID.serverYearly {
+            if ProductID.allServer.contains(transaction.productID) {
                 active = transaction.revocationDate == nil
             }
         }
         isSubscribed = active
+    }
+
+    public func refreshAgencyStatus() async {
+        var activeTier: AgencyTier? = nil
+        for await result in Transaction.currentEntitlements {
+            guard case .verified(let transaction) = result,
+                  transaction.revocationDate == nil,
+                  let tier = AgencyTier(rawValue: transaction.productID) else { continue }
+            // Pick the highest active tier
+            if activeTier == nil || tier == .premium || (tier == .growth && activeTier == .starter) {
+                activeTier = tier
+            }
+        }
+        agencyTier = activeTier
     }
 
     // MARK: - Transaction listener
@@ -111,6 +163,7 @@ public final class SubscriptionManager {
                 do {
                     let transaction = try await self.checkVerified(result)
                     await self.refreshSubscriptionStatus()
+                    await self.refreshAgencyStatus()
                     await transaction.finish()
                 } catch {
                     print("Transaction failed: \(error)")
@@ -135,4 +188,14 @@ public extension SubscriptionManager {
 
     var monthlyPriceString: String { monthlyProduct?.displayPrice ?? "$4.99" }
     var yearlyPriceString: String  { yearlyProduct?.displayPrice  ?? "$39.99" }
+
+    var agencyProducts: [Product] {
+        products.filter { ProductID.allAgency.contains($0.id) }
+    }
+
+    func agencyProduct(for tier: AgencyTier) -> Product? {
+        products.first { $0.id == tier.rawValue }
+    }
+
+    var hasAgencyAccess: Bool { agencyTier != nil }
 }

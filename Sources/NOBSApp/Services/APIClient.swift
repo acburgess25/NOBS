@@ -48,6 +48,11 @@ class APIClient: ObservableObject {
         let _ = try await request(path: "/auth/register", method: "POST", body: body)
     }
 
+    func syncAgencySubscription(tier: AgencyTier) async throws {
+        let body: [String: String] = ["tier": tier.rawValue.components(separatedBy: ".").last ?? tier.rawValue]
+        _ = try await request(path: "/agency/subscription", method: "POST", body: body)
+    }
+
     func logout() {
         token = nil
         username = ""

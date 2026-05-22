@@ -8,12 +8,15 @@ struct SettingsView: View {
     @State private var showDisclosure = false
     @State private var pendingToggle = false
     @State private var showOnboardingAlert = false
+    @State private var showAgencyPaywall = false
+    @State private var manager = SubscriptionManager.shared
 
     var body: some View {
         NavigationStack {
             Form {
                 accountSection
                 preferencesSection
+                agencySection
                 storageSection
                 if NOBSDatabase.shared.isPersonalModeEnabled {
                     kitchenSection
@@ -74,6 +77,40 @@ struct SettingsView: View {
             } label: {
                 Label("Show Welcome Tour", systemImage: "arrow.triangle.capsulepath")
             }
+        }
+    }
+
+    private var agencySection: some View {
+        Section {
+            Button {
+                showAgencyPaywall = true
+            } label: {
+                HStack {
+                    Label("NOBS Agency", systemImage: "building.2.fill")
+                    Spacer()
+                    if let tier = manager.agencyTier {
+                        Text(tier.displayName)
+                            .foregroundStyle(.secondary)
+                            .font(.caption)
+                    } else {
+                        Text("Not subscribed")
+                            .foregroundStyle(.secondary)
+                            .font(.caption)
+                    }
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                }
+                .foregroundStyle(.primary)
+            }
+        } footer: {
+            Text(manager.hasAgencyAccess
+                ? "AI social media agency running on your Tank server."
+                : "Subscribe to unlock AI-powered social media management on Tank.")
+        }
+        .sheet(isPresented: $showAgencyPaywall) {
+            AgencyPaywallView(auth: auth)
+                .presentationDetents([.large])
         }
     }
 

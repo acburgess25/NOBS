@@ -68,14 +68,15 @@ platform :ios do
     )
 
     # ── Upload to TestFlight ───────────────────────────────────────
-    pilot(
-      api_key:                          api_key,
-      ipa:                              "/tmp/gym_output/NOBS.ipa",
+    upload_to_testflight(
+      api_key:                           api_key,
+      app_identifier:                    "com.nobsdash.app",
+      ipa:                               "/tmp/gym_output/NOBS.ipa",
       skip_waiting_for_build_processing: true,
-      skip_submission:                  true,
-      distribute_external:              false,
-      notify_external_testers:          false,
-      changelog:                        "Latest build from main branch"
+      skip_submission:                   true,
+      distribute_external:               false,
+      notify_external_testers:           false,
+      changelog:                         "Latest build from main branch"
     )
 
     UI.success "✅ Build uploaded to TestFlight!"
@@ -149,8 +150,9 @@ platform :ios do
 
     # ── Upload to App Store ────────────────────────────────────────
     upload_to_app_store(
-      api_key:                          api_key,
-      ipa:                              "/tmp/gym_output/NOBS.ipa",
+      api_key:                           api_key,
+      app_identifier:                    "com.nobsdash.app",
+      ipa:                               "/tmp/gym_output/NOBS.ipa",
       skip_waiting_for_build_processing: true,
       submit_for_review:                 true,
       automatic_release:                 true
