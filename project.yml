@@ -16,7 +16,7 @@ targets:
     sources:
       - path: Sources/NOBSApp
     resources:
-      - path: Resources
+      - path: Resources/Assets.xcassets
     dependencies:
       - package: NOBSKit
         product: NOBSKit
