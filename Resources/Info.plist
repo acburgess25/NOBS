@@ -74,8 +74,8 @@
     <!-- ── Background Task Identifiers ───────────────────────────── -->
     <key>BGTaskSchedulerPermittedIdentifiers</key>
     <array>
-        <string>com.nobsdash.app.sync</string>
-        <string>com.nobsdash.app.ai-refresh</string>
+        <string>com.nobs.app.sync</string>
+        <string>com.nobs.app.ai-refresh</string>
     </array>
 
     <!-- ── Privacy Usage Descriptions ────────────────────────────── -->

@@ -1,6 +1,6 @@
 name: NOBS
 options:
-  bundleIdPrefix: com.nobsdash
+  bundleIdPrefix: com.nobs
   deploymentTarget:
     iOS: "17.0"
   xcodeVersion: "16.0"
@@ -25,7 +25,7 @@ targets:
       path: Resources/NOBS.entitlements
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.nobsdash.app
+        PRODUCT_BUNDLE_IDENTIFIER: com.nobs.app
         INFOPLIST_FILE: Resources/Info.plist
         DEVELOPMENT_TEAM: K853LKQLAS
         CODE_SIGN_STYLE: Automatic
@@ -53,7 +53,7 @@ targets:
       path: NOBSWidget/NOBSWidget.entitlements
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.nobsdash.app.widget
+        PRODUCT_BUNDLE_IDENTIFIER: com.nobs.app.widget
         INFOPLIST_FILE: NOBSWidget/Info.plist
         DEVELOPMENT_TEAM: K853LKQLAS
         CODE_SIGN_STYLE: Automatic

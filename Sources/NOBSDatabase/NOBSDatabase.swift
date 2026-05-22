@@ -334,7 +334,7 @@ public final class NOBSDatabase: @unchecked Sendable {
         let fileManager = FileManager.default
         let dir: URL
         
-        if let sharedContainer = fileManager.containerURL(forSecurityApplicationGroupIdentifier: "group.com.nobsdash.app") {
+        if let sharedContainer = fileManager.containerURL(forSecurityApplicationGroupIdentifier: "group.com.nobs.app") {
             dir = sharedContainer.appendingPathComponent("Library/Application Support/NOBS", isDirectory: true)
         } else {
             let appSupport = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
