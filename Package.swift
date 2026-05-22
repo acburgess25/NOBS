@@ -18,6 +18,7 @@ let package = Package(
             "NOBSDatabase",
             "NOBSReminders",
             "NOBSSecurity",
+            "NOBSIntents",
         ]),
         // Individual modules can be consumed independently
         .library(name: "NOBSCore",      targets: ["NOBSCore"]),
@@ -28,6 +29,7 @@ let package = Package(
         .library(name: "NOBSDatabase",  targets: ["NOBSDatabase"]),
         .library(name: "NOBSReminders", targets: ["NOBSReminders"]),
         .library(name: "NOBSSecurity",  targets: ["NOBSSecurity"]),
+        .library(name: "NOBSIntents",   targets: ["NOBSIntents"]),
     ],
     targets: [
         // MARK: - Library targets
@@ -70,6 +72,12 @@ let package = Package(
             path: "Sources/NOBSReminders"
         ),
 
+
+        .target(
+            name: "NOBSIntents",
+            dependencies: ["NOBSCore", "NOBSAssistant", "NOBSDatabase", "NOBSHomeKit", "NOBSReminders"],
+            path: "Sources/NOBSIntents"
+        ),
 
         // MARK: - Test targets
         .testTarget(

@@ -1,4 +1,5 @@
 import SwiftUI
+import AppIntents
 import NOBSCore
 import NOBSAssistant
 import NOBSSecurity
@@ -7,6 +8,7 @@ import NOBSReminders
 import NOBSHomeKit
 import NOBSCallKit
 import NOBSiMessage
+import NOBSIntents
 
 @main
 struct NOBSApp: App {
@@ -27,6 +29,7 @@ struct NOBSApp: App {
     )
 
     init() {
+        NOBSShortcutsProvider.updateAppShortcutParameters()
         let icloudEnabled = UserDefaults.standard.bool(forKey: "icloud_sync_enabled")
         var storageMode: StorageMode = .localOnly
         if icloudEnabled {

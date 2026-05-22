@@ -20,7 +20,10 @@ targets:
     dependencies:
       - package: NOBSKit
         product: NOBSKit
+      - package: NOBSKit
+        product: NOBSIntents
       - target: NOBSWidget
+      - target: NOBSControl
     entitlements:
       path: Resources/NOBS.entitlements
     settings:
@@ -36,6 +39,30 @@ targets:
         TARGETED_DEVICE_FAMILY: "1,2"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+      configs:
+        Release:
+          CODE_SIGN_STYLE: Automatic
+          DEVELOPMENT_TEAM: K853LKQLAS
+
+  NOBSControl:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: NOBSControl
+    dependencies:
+      - package: NOBSKit
+        product: NOBSIntents
+    entitlements:
+      path: Resources/NOBS.entitlements
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.nobs.app.control
+        INFOPLIST_FILE: NOBSControl/Info.plist
+        DEVELOPMENT_TEAM: K853LKQLAS
+        CODE_SIGN_STYLE: Automatic
+        SWIFT_VERSION: 5.0
+        CURRENT_PROJECT_VERSION: "5"
+        MARKETING_VERSION: "2.0.0"
       configs:
         Release:
           CODE_SIGN_STYLE: Automatic
