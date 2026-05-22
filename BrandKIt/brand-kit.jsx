@@ -12,7 +12,7 @@ const BK = {
   rule:  'rgba(60,40,20,0.10)',
   ruleSoft: 'rgba(60,40,20,0.06)',
   amber: '#D97706',
-  amberDeep: '#B45309',
+  amberDeep: '#B35914',
   amberSoft: '#F59E0B',
   sage:  '#65A36E',
   sageDeep: '#3F7E47',
@@ -370,7 +370,7 @@ function CenteredLabel({ title, note, dark, warn }) {
 function ColorSection() {
   const brand = [
     { name: 'Amber',      hex: '#D97706', use: 'Primary action · CTA · brand accent', fg: '#FFFFFF' },
-    { name: 'Amber Deep', hex: '#B45309', use: 'Pressed states · stamp ink',           fg: '#FFFFFF' },
+    { name: 'Amber Deep', hex: '#B35914', use: 'Pressed states · stamp ink',           fg: '#FFFFFF' },
     { name: 'Amber Soft', hex: '#F59E0B', use: 'Highlight on dark · marker accent',   fg: '#1C1917' },
     { name: 'Sage',       hex: '#65A36E', use: 'Done · safe · positive',               fg: '#FFFFFF' },
     { name: 'Sage Deep',  hex: '#3F7E47', use: 'Stamped marks · sage variant',         fg: '#FFFFFF' },

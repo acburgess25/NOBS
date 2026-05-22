@@ -7,7 +7,7 @@ const APAL = {
   ink:   '#1C1917',
   ink2:  '#57534E',
   amber: '#D97706',
-  amberDeep: '#B45309',
+  amberDeep: '#B35914',
   amberBright: '#F59E0B',
   sage:  '#65A36E',
   sageDeep: '#3F7E47',

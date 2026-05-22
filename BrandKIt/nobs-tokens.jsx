@@ -34,7 +34,7 @@ const NOBS = {
   // Brand accents (same in both modes; alpha-tinted for backgrounds)
   brand: {
     amber:      '#D97706',
-    amberDeep:  '#B45309',
+    amberDeep:  '#B35914',
     amberSoft:  '#F59E0B',
     amberTint:  'rgba(217,119,6,0.10)',
     amberTintD: 'rgba(245,158,11,0.14)',

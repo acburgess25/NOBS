@@ -25,7 +25,7 @@ enum NOBSColor {
 
     // ── Brand (mode-agnostic) ────────────────────────────────
     static let amber          = Color(hex: 0xD97706)
-    static let amberDeep      = Color(hex: 0xB45309)
+    static let amberDeep      = Color(hex: 0xB35914)
     static let amberSoft      = Color(hex: 0xF59E0B)
     static let sage           = Color(hex: 0x65A36E)
     static let sageDeep       = Color(hex: 0x3F7E47)
@@ -99,7 +99,7 @@ function SwiftTokensBoard({ dark = false }) {
   const COLORS = dark ? {
     bg: '#0F0D0B', text: '#F5F1EA', com: '#78716C', kw: '#F59E0B', typ: '#9DC4A6', num: '#E0BC8A', str: '#D9B884',
   } : {
-    bg: '#FFFDF8', text: '#1C1917', com: '#A39A8E', kw: '#B45309', typ: '#3F7E47', num: '#6B7280', str: '#9C4A1A',
+    bg: '#FFFDF8', text: '#1C1917', com: '#A39A8E', kw: '#B35914', typ: '#3F7E47', num: '#6B7280', str: '#9C4A1A',
   };
 
   // Manual tokenize per line

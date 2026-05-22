@@ -7,7 +7,7 @@
   <meta name="description" content="NOBS is a privacy-first personal AI assistant that runs entirely on your devices. On-device with Apple Intelligence, or on your own home server. Your data never leaves your network." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Nunito:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
   <style>
     /* ── Reset & Base ── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -18,7 +18,7 @@
       --text:      #1C1917;
       --text-sub:  #57534E;
       --accent:    #D97706;
-      --accent-dk: #B45309;
+      --accent-dk: #B35914;
       --sage:      #65A36E;
       --border:    rgba(60,40,20,0.08);
       --shadow-sm: 0 1px 2px rgba(60,40,20,0.04), 0 4px 12px rgba(60,40,20,0.06);
@@ -148,6 +148,45 @@
       align-items: center;
       justify-content: center;
       margin-bottom: 32px;
+    }
+
+    .hero-logo-lockup {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 40px;
+    }
+
+    .hero-logo-main {
+      display: flex;
+      align-items: center;
+      gap: 18px;
+      margin-bottom: 6px;
+    }
+
+    .hero-logo-icon {
+      flex-shrink: 0;
+      filter: drop-shadow(0 4px 12px rgba(179,89,20,0.15));
+    }
+
+    .hero-logo-text {
+      font-family: 'Archivo Black', 'Helvetica Neue', sans-serif;
+      font-size: clamp(3.2rem, 8vw, 4.8rem);
+      font-weight: 900;
+      line-height: 1;
+      letter-spacing: -0.04em;
+      color: var(--text);
+    }
+
+    .hero-logo-tagline {
+      font-family: 'JetBrains Mono', ui-monospace, monospace;
+      font-size: clamp(0.72rem, 1.8vw, 0.85rem);
+      font-weight: 600;
+      letter-spacing: 0.4em;
+      text-transform: uppercase;
+      color: var(--text-sub);
+      margin-top: 4px;
+      padding-left: 0.4em;
     }
 
     .hero-headline {
@@ -376,9 +415,9 @@
     <div class="nav-wrap">
       <a class="nav-logo" href="/">
         <svg width="34" height="34" viewBox="0 0 34 34" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-          <rect width="34" height="34" rx="9" fill="#B45309"/>
-          <text x="17" y="24" font-family="'SF Pro Rounded', ui-rounded, 'Nunito', system-ui, sans-serif" font-size="18" font-weight="800" fill="#FEF3C7" text-anchor="middle">N</text>
-          <path d="M9 27.5 Q17 25.5 25 27.5" stroke="#FEF3C7" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+          <rect width="34" height="34" rx="9" fill="#B35914"/>
+          <text x="17" y="24" font-family="'Archivo Black', sans-serif" font-size="18" font-weight="900" fill="#FFFFFF" text-anchor="middle">N</text>
+          <path d="M8.5 27.8 C 14 26, 20 29.6, 25.5 27.8" stroke="#FFFFFF" stroke-width="1.5" stroke-linecap="round" fill="none" opacity="0.95"/>
         </svg>
         <span class="nav-wordmark">NOBS</span>
       </a>
@@ -389,12 +428,17 @@
   <!-- ── Hero ── -->
   <section class="hero">
     <div class="container">
-      <div class="hero-logo">
-        <svg width="100" height="100" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="NOBS logo">
-          <rect width="100" height="100" rx="26" fill="#B45309"/>
-          <text x="50" y="68" font-family="'SF Pro Rounded', ui-rounded, 'Nunito', system-ui, sans-serif" font-size="54" font-weight="800" fill="#FEF3C7" text-anchor="middle">N</text>
-          <path d="M20 82 Q50 76 80 82" stroke="#FEF3C7" stroke-width="3.5" stroke-linecap="round" fill="none"/>
-        </svg>
+      <div class="hero-logo-lockup">
+        <div class="hero-logo-main">
+          <svg class="hero-logo-icon" width="90" height="90" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="NOBS logo icon">
+            <rect width="100" height="100" rx="21" fill="#B35914"/>
+            <rect x="1" y="1" width="98" height="98" rx="20" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="2"/>
+            <text x="50" y="40" font-family="'Archivo Black', sans-serif" font-size="74" font-weight="900" fill="#FFFFFF" text-anchor="middle" dominant-baseline="central" letter-spacing="-6">N</text>
+            <path d="M 24 82 C 41 80, 59 84, 76 82" stroke="#FFFFFF" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none" opacity="0.95"/>
+          </svg>
+          <div class="hero-logo-text">NOBS</div>
+        </div>
+        <div class="hero-logo-tagline">NO CLOUD • NO COMPROMISE</div>
       </div>
 
       <h1 class="hero-headline">

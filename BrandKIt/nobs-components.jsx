@@ -354,25 +354,13 @@ function SecondaryButton({ children, full, dark = false, size = 'md' }) {
 
 // ── NOBS logomark — rounded square, amber gradient, leaf/brain ───
 function NobsLogo({ size = 64, radius }) {
-  const r = radius || size * 0.24;
-  const id = `nobs-grad-${size}`;
+  const r = radius || size * 0.21;
   return (
-    <svg width={size} height={size} viewBox="0 0 64 64" style={{ display: 'block' }}>
-      <defs>
-        <linearGradient id={id} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#FBBF24" />
-          <stop offset="55%" stopColor="#F59E0B" />
-          <stop offset="100%" stopColor="#B45309" />
-        </linearGradient>
-      </defs>
-      <rect width="64" height="64" rx={r * (64 / size)} fill={`url(#${id})`} />
-      {/* Soft inner highlight */}
-      <rect x="1" y="1" width="62" height="62" rx={r * (64 / size) - 1} fill="none" stroke="rgba(255,255,255,0.25)" />
-      {/* Leaf mark */}
-      <g transform="translate(32 32)">
-        <path d="M -13 13 C -13 -2, -2 -13, 13 -13 C 13 2, 2 13, -13 13 Z" fill="rgba(255,255,255,0.95)" />
-        <path d="M -13 13 L 8 -8" stroke="rgba(180,83,9,0.7)" strokeWidth="1.6" strokeLinecap="round" fill="none" />
-      </g>
+    <svg width={size} height={size} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ display: 'block' }}>
+      <rect width="100" height="100" rx={r * (100 / size)} fill="#B35914"/>
+      <rect x="1" y="1" width="98" height="98" rx={r * (100 / size) - 1} fill="none" stroke="rgba(255,255,255,0.18)" strokeWidth="2"/>
+      <text x="50" y="40" fontFamily="'Archivo Black', sans-serif" fontSize="74" fontWeight="900" fill="#FFFFFF" textAnchor="middle" dominantBaseline="central" letterSpacing="-6">N</text>
+      <path d="M 24 82 C 41 80, 59 84, 76 82" stroke="#FFFFFF" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" fill="none" opacity="0.95"/>
     </svg>
   );
 }

@@ -15,7 +15,7 @@ extension Color {
 
     // Accent
     static let nobsAccent      = Color("NBAccent")        // #D97706 amber
-    static let nobsAccentDeep  = Color("NBAccentDeep")    // #B45309
+    static let nobsAccentDeep  = Color("NBAccentDeep")    // #B35914
     static let nobsAccentSoft  = Color("NBAccentSoft")    // amber 10-14% tint bg
     static let nobsGreen       = Color("NBGreen")         // #65A36E sage
     static let nobsGreenSoft   = Color("NBGreenSoft")     // sage 12-18% tint bg
@@ -298,7 +298,7 @@ struct NobsLogo: View {
             // 1. Amber-deep background
             ctx.fill(
                 rrect.path(in: rect),
-                with: .color(Color(hex: "#B45309"))
+                with: .color(Color(hex: "#B35914"))
             )
 
             // 2. Inner highlight ring — 2pt cream stroke at 18% opacity
@@ -310,9 +310,9 @@ struct NobsLogo: View {
 
             // 3. Bold "N" centered at 40% height
             let nText = Text("N")
-                .font(.system(size: size * 0.74, weight: .black, design: .default))
-                .foregroundStyle(Color(hex: "#FAF8F5"))
-            ctx.draw(nText, at: CGPoint(x: size / 2, y: size * 0.40))
+                 .font(.system(size: size * 0.74, weight: .black, design: .default))
+                 .foregroundStyle(Color.white)
+             ctx.draw(nText, at: CGPoint(x: size / 2, y: size * 0.40))
 
             // 4. Wavy underline (scaled from 320-viewbox)
             let y    = 262 * sf
@@ -328,7 +328,7 @@ struct NobsLogo: View {
             )
             ctx.stroke(
                 wave,
-                with: .color(Color(hex: "#FAF8F5").opacity(0.95)),
+                with: .color(Color.white.opacity(0.95)),
                 style: StrokeStyle(lineWidth: size * 0.026, lineCap: .round)
             )
         }

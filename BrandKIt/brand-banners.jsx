@@ -507,7 +507,7 @@ function SpecSection() {
     color: {
       brand: {
         amber:     '#D97706',
-        amberDeep: '#B45309',
+        amberDeep: '#B35914',
         amberSoft: '#F59E0B',
         sage:      '#65A36E',
         sageDeep:  '#3F7E47',

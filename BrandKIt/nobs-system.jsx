@@ -62,7 +62,7 @@ function ColorSystemBoard({ dark = false }) {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
           <Swatch dark={dark} name="Amber"      token="#D97706" color={NOBS.brand.amber}     sub="#D97706" />
           <Swatch dark={dark} name="Amber Soft" token="#F59E0B" color={NOBS.brand.amberSoft} sub="#F59E0B" />
-          <Swatch dark={dark} name="Amber Deep" token="#B45309" color={NOBS.brand.amberDeep} sub="#B45309" />
+          <Swatch dark={dark} name="Amber Deep" token="#B35914" color={NOBS.brand.amberDeep} sub="#B35914" />
           <Swatch dark={dark} name="Amber Tint" token="10% / 14%" color={dark ? NOBS.brand.amberTintD : NOBS.brand.amberTint} />
         </div>
       </SystemSection>
@@ -354,7 +354,7 @@ function AppIconBoard({ dark = false }) {
 
   return (
     <div style={{ background: c.bg, color: c.text, fontFamily: NOBS.font, padding: 48, height: '100%', boxSizing: 'border-box', overflow: 'auto' }}>
-      <SystemTitle dark={dark} sub="A rounded square in warm amber, with a leaf mark for &lsquo;quiet, local, growing.&rsquo; The wordmark stands alone for splash and About.">
+      <SystemTitle dark={dark} sub="A rounded square in warm rust-brown, with a bold white monogram 'N' and wavy underline.">
         App icon &amp; logomark
       </SystemTitle>
 
