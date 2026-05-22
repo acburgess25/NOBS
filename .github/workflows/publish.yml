@@ -3,6 +3,7 @@ name: Production Release
 on:
   schedule:
     - cron: '0 5 * * 1'  # Weekly build every Monday at 12:00 AM EST (for production/App Store review)
+  workflow_dispatch:
 
 jobs:
   publish:

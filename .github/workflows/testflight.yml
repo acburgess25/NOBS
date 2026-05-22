@@ -5,6 +5,7 @@ on:
     branches: [ "main" ]
   schedule:
     - cron: '0 5 * * *'  # Daily build at 12:00 AM EST (for beta testers)
+  workflow_dispatch:
 
 jobs:
   beta:
