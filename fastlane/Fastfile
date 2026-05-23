@@ -79,17 +79,19 @@ platform :ios do
       silent:             false
     )
 
-    # ── Upload to TestFlight ───────────────────────────────────────
-    upload_to_testflight(
-      api_key:                           api_key,
-      app_identifier:                    "com.nobsdash.nobs",
-      ipa:                               "/tmp/gym_output/NOBS.ipa",
-      skip_waiting_for_build_processing: true,
-      skip_submission:                   true,
-      distribute_external:               false,
-      notify_external_testers:           false,
-      changelog:                         "Latest build from main branch"
-    )
+    # ── Upload to TestFlight via xcrun altool ─────────────────────
+    # pilot/upload_to_testflight hits a Spaceship app-lookup bug when using
+    # API-key auth ("Couldn't find app on account of ''"), so we upload
+    # directly with xcrun altool which skips that lookup entirely.
+    key_dir = "#{ENV['HOME']}/.appstoreconnect/private_keys"
+    sh "mkdir -p '#{key_dir}'"
+    sh "cp '#{asc_key_path}' '#{key_dir}/AuthKey_3DRJXFL3AZ.p8'"
+
+    sh "xcrun altool --upload-app -f /tmp/gym_output/NOBS.ipa " \
+       "--type ios " \
+       "--apiKey 3DRJXFL3AZ " \
+       "--apiIssuer 68f79706-7f0b-490d-a0f1-4601bbe95e87 " \
+       "--output-format normal 2>&1"
 
     UI.success "✅ Build uploaded to TestFlight!"
   end
