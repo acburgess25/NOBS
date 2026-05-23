@@ -15,8 +15,9 @@ targets:
     platform: iOS
     sources:
       - path: Sources/NOBSApp
-    resources:
       - path: Resources/Assets.xcassets
+    resources:
+      - path: Resources/AppIcons
     dependencies:
       - package: NOBSKit
         product: NOBSKit

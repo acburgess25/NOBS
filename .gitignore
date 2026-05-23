@@ -35,7 +35,6 @@ build/
 .claude/
 
 # Removed from iOS repo
-Resources/AppIcons/
 TankServer/
 tools/
 scripts/
