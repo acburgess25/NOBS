@@ -3,42 +3,10 @@ import SwiftUI
 import NOBSCore
 import NOBSDatabase
 
-struct NOBSShortcuts: AppShortcutsProvider {
-    static var appShortcuts: [AppShortcut] {
-        AppShortcut(
-            intent: CreateMemoryIntent(),
-            phrases: [
-                "Create a memory with \(.applicationName)",
-                "Save a memory in \(.applicationName)",
-                "Remember something with \(.applicationName)",
-            ],
-            shortTitle: "Save Memory",
-            systemImageName: "brain.head.profile"
-        )
-
-        AppShortcut(
-            intent: AddTaskIntent(),
-            phrases: [
-                "Add a task to \(.applicationName)",
-                "Create a task in \(.applicationName)",
-                "Remind me with \(.applicationName)",
-            ],
-            shortTitle: "Add Task",
-            systemImageName: "checklist"
-        )
-
-        AppShortcut(
-            intent: ListTasksIntent(),
-            phrases: [
-                "Show my tasks in \(.applicationName)",
-                "What do I need to do in \(.applicationName)",
-                "List my reminders in \(.applicationName)",
-            ],
-            shortTitle: "List Tasks",
-            systemImageName: "list.bullet"
-        )
-    }
-}
+// NOBSShortcuts intents — available in the Shortcuts app.
+// Siri phrase registration is handled exclusively by NOBSShortcutsProvider (in NOBSIntents)
+// to avoid duplicate AppShortcutsProvider conformances, which crash at runtime.
+enum NOBSShortcuts {}
 
 enum IntentContext: String, AppEnum {
     case personal

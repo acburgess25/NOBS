@@ -79,7 +79,7 @@ jobs:
 
           try:
               req = urllib.request.Request(
-                  "http://192.168.0.77:11434/api/generate",
+                  "http://100.96.97.50:11434/api/generate",
                   data=payload.encode(),
                   headers={"Content-Type": "application/json"}
               )

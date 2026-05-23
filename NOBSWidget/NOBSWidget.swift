@@ -170,7 +170,7 @@ struct NOBSWidgetEntryView: View {
 
 // MARK: - Widget Configuration
 struct NOBSWidget: Widget {
-    let kind: String = "com.nobs.widget"
+    let kind: String = "com.nobsdash.nobs.widget"
 
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: kind, provider: Provider()) { entry in
