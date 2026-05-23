@@ -33,3 +33,77 @@ jobs:
           DIST_CERT_PASSWORD: ${{ secrets.DIST_CERT_PASSWORD }}
           ASC_PRIVATE_KEY: ${{ secrets.ASC_PRIVATE_KEY }}
           GITHUB_RUN_NUMBER: ${{ github.run_number }}
+
+  screenshots:
+    runs-on: macos-15
+    needs: []
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode 26
+        run: sudo xcode-select -s /Applications/Xcode_26.3.app
+
+      - name: Install xcodegen
+        run: brew install xcodegen 2>/dev/null || true
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Boot iPhone 17 Pro Max simulator
+        run: |
+          SIM=$(xcrun simctl list devices available -j | python3 -c "
+          import sys,json
+          d=json.load(sys.stdin)
+          for runtime,devs in d['devices'].items():
+              for dev in devs:
+                  if 'iPhone 17 Pro Max' in dev['name'] and dev['isAvailable']:
+                      print(dev['udid']); break
+              else: continue
+              break
+          ")
+          echo "SIM_ID=$SIM" >> $GITHUB_ENV
+          xcrun simctl boot "$SIM" || true
+
+      - name: Build for simulator
+        run: |
+          xcodebuild \
+            -project NOBS.xcodeproj \
+            -scheme NOBS \
+            -destination "platform=iOS Simulator,id=$SIM_ID" \
+            -configuration Debug \
+            build \
+            CODE_SIGNING_ALLOWED=NO 2>&1 | tail -5
+
+      - name: Launch app and take screenshots
+        run: |
+          APP=$(find ~/Library/Developer/Xcode/DerivedData -name "NOBS.app" -path "*/Debug-iphonesimulator/*" | head -1)
+          xcrun simctl install "$SIM_ID" "$APP"
+          xcrun simctl launch "$SIM_ID" com.nobsdash.nobs || true
+          sleep 4
+
+          mkdir -p screenshots
+          xcrun simctl io "$SIM_ID" screenshot screenshots/01_onboarding.png
+          sleep 1
+
+          # Dismiss any permission dialogs and advance through onboarding
+          xcrun simctl io "$SIM_ID" screenshot screenshots/02_screen.png
+
+      - name: Publish screenshots to Tank
+        if: ${{ secrets.TANK_SSH_KEY != '' }}
+        run: |
+          echo "${{ secrets.TANK_SSH_KEY }}" > /tmp/tank_key
+          chmod 600 /tmp/tank_key
+          ssh -i /tmp/tank_key -o StrictHostKeyChecking=no \
+            alex@100.96.97.50 "mkdir -p /home/alex/nobs-agent/screenshots"
+          rsync -avz -e "ssh -i /tmp/tank_key -o StrictHostKeyChecking=no" \
+            screenshots/ \
+            alex@100.96.97.50:/home/alex/nobs-agent/screenshots/
+        env:
+          TANK_SSH_KEY: ${{ secrets.TANK_SSH_KEY }}
+
+      - name: Upload screenshots as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-screenshots
+          path: screenshots/
+          retention-days: 7
