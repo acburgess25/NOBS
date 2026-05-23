@@ -1,8 +1,3 @@
-/// PaywallView — Shown to users whose device doesn't support Apple Intelligence
-///
-/// Clearly explains what's required and offers the NOBS Server subscription
-/// as an alternative so they can still use the full app via Tank's AI.
-
 import SwiftUI
 import StoreKit
 import NOBSCore
@@ -23,11 +18,11 @@ struct PaywallView: View {
                 footer
             }
             .padding(Spacing.lg)
+            .background(Color.nobsBg)
+            .alert("Error", isPresented: $showError, presenting: manager.errorMessage) { _ in
+                Button("OK") {}
+            } message: { msg in Text(msg) }
         }
-        .background(Color.nobsBg)
-        .alert("Error", isPresented: $showError, presenting: manager.errorMessage) { _ in
-            Button("OK") {}
-        } message: { msg in Text(msg) }
     }
 
     // MARK: - Header
