@@ -143,7 +143,7 @@ struct SettingsView: View {
             HStack {
                 Label("Server", systemImage: "server.rack")
                 Spacer()
-                Text("192.168.0.77")
+                Text("100.96.97.50")
                     .foregroundStyle(.secondary)
                     .fontDesign(.monospaced)
             }

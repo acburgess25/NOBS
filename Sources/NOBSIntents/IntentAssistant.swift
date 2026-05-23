@@ -17,7 +17,7 @@ public enum IntentAssistant {
     /// Returns a configured NOBSAssistant using the stored Tank/on-device settings.
     public static func make() -> NOBSAssistant {
         let defaults = UserDefaults(suiteName: groupID) ?? .standard
-        let tankURL   = defaults.string(forKey: "tank_url")   ?? "http://192.168.0.77:11434"
+        let tankURL   = defaults.string(forKey: "tank_url")   ?? "http://100.96.97.50:11434"
         let tankModel = defaults.string(forKey: "tank_model") ?? "llama3.1:8b"
         let isPersonal = !defaults.bool(forKey: "work_mode_active")
         let isSubscribed = defaults.bool(forKey: "nobs_subscribed")

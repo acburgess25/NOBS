@@ -42,7 +42,7 @@ public final class DeviceCapability: ObservableObject {
     @Published public private(set) var isThermallyThrottled: Bool = false
 
     // MARK: - Tank config
-    public var tankURL   = URL(string: "http://192.168.0.77:11434")!
+    public var tankURL   = URL(string: "http://100.96.97.50:11434")!
     public var tankModel = "llama3.1:8b"
 
     // MARK: - Init

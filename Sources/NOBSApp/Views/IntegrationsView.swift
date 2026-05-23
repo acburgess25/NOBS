@@ -62,7 +62,7 @@ struct IntegrationsView: View {
                     FeatureRow(
                         icon: "server.rack",
                         name: "AI Model",
-                        status: "qwen2:1.5b on tank (192.168.0.77)",
+                        status: "qwen2:1.5b on tank (100.96.97.50)",
                         configured: true
                     )
                     FeatureRow(
