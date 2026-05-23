@@ -26,6 +26,11 @@ targets:
       - target: NOBSControl
     entitlements:
       path: Resources/NOBS.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.nobsdash.nobs
+        com.apple.developer.homekit: true
+        com.apple.developer.siri: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.nobsdash.nobs
@@ -53,7 +58,10 @@ targets:
       - package: NOBSKit
         product: NOBSIntents
     entitlements:
-      path: Resources/NOBS.entitlements
+      path: NOBSControl/NOBSControl.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.nobsdash.nobs
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.nobsdash.nobs.control
@@ -78,6 +86,9 @@ targets:
         product: NOBSKit
     entitlements:
       path: NOBSWidget/NOBSWidget.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.nobsdash.nobs
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.nobsdash.nobs.widget
