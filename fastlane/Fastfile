@@ -79,6 +79,26 @@ platform :ios do
       silent:             false
     )
 
+    # ── Debug: inspect IPA icon contents ─────────────────────────
+    sh <<~SHELL
+      set -e
+      echo "=== IPA icon diagnostic ==="
+      cd /tmp
+      rm -rf ipa_inspect && mkdir ipa_inspect
+      cp gym_output/NOBS.ipa ipa_inspect/NOBS.zip
+      cd ipa_inspect && unzip -q NOBS.zip
+      BUNDLE="Payload/NOBS.app"
+      echo "--- Files in bundle root matching Icon ---"
+      find "$BUNDLE" -maxdepth 1 -name "*[Ii]con*" | sort || true
+      echo "--- Assets.car present? ---"
+      ls -lh "$BUNDLE/Assets.car" 2>/dev/null || echo "NO Assets.car found"
+      echo "--- actool/assetutil dump of Assets.car (icon entries) ---"
+      xcrun assetutil --info "$BUNDLE/Assets.car" 2>/dev/null | grep -A5 '"Name" : "AppIcon"' || echo "(no AppIcon in Assets.car or assetutil unavailable)"
+      echo "--- Info.plist icon keys ---"
+      plutil -p "$BUNDLE/Info.plist" | grep -i icon || true
+      echo "=== end diagnostic ==="
+    SHELL
+
     # ── Upload to TestFlight ───────────────────────────────────────
     # apple_id bypasses the bundle-ID→Apple-ID lookup that was failing
     # ("Couldn't find app on account of ''") with API-key auth.
