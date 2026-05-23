@@ -60,6 +60,7 @@ struct PhoneView: View {
             .navigationTitle("Phone")
             .listStyle(GroupedListStyle())
             .accentColor(.green)
+            .padding()
         }
     }
 
