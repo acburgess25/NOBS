@@ -90,7 +90,7 @@ struct FeatureRow: View {
                 .foregroundStyle(configured ? .green : .gray)
             VStack(alignment: .leading) {
                 Text(name)
-                    .font(.body)
+                    .font(.headline)
                 Text(status)
                     .font(.caption)
                     .foregroundStyle(.secondary)
