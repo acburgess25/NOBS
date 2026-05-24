@@ -1,0 +1,159 @@
+# NOBS Project — AI Context Rules
+
+You are working on the NOBS ecosystem — a privacy-first AI assistant and automation business built by Alex Burgess.
+
+---
+
+## Who Alex Is
+
+Alex Burgess. M4 Pro MacBook (24GB RAM). Home lab on two servers:
+- **hermes** (also called **tank**) — IP `192.168.0.77`, user `alex` (SSH alias: `tank`) or user `ken` (SSH alias: `hermes`). Ryzen 5600X3D, amd64 Ubuntu. This is the same physical machine referred to by both names.
+- SSH: key-based auth. `ssh tank` or `ssh hermes` work directly.
+- No passwordless sudo — sudo requires password.
+
+Obsidian vault at `/mnt/storage/knowledge_vault/` on hermes, synced to Mac at `~/Library/Mobile Documents/iCloud~md~obsidian/Documents/HermesVault/`.
+
+Working style: autonomous execution preferred. No step-by-step narration. Fix things, then report what changed.
+
+---
+
+## NOBS — The iOS App
+
+**NOBS** = "No BS" — a privacy-first personal AI assistant iOS app.
+
+- **Repo**: `https://github.com/acburgess25/NOBS.git`
+- **Location**: `~/Library/Mobile Documents/com~apple~CloudDocs/NOBS/` (iCloud synced)
+- **Stack**: Swift 6, Xcode 16+, xcodegen, GitHub Actions CI, Xcode Cloud → TestFlight
+- **Website**: `nobsdash.com`
+
+### What it does
+- Memories, Tasks, HomeKit control, Health AI, Voice conversations
+- On-device (iPhone 15 Pro/16+) via Apple Intelligence, or self-hosted via NOBS Server subscription
+- StoreKit-based subscriptions (no Stripe), verified via `nobsdash.com/api/v1/subscription`
+
+### Key targets
+- `NOBSControl/` — Control Center extension
+- `NOBSWidget/` — Widget extension
+- `Resources/` — App icons, assets
+- `BrandKIt/` — Brand components (JSX)
+- `Package.swift` — Swift package manifest
+
+### Brand Colors
+- NOBS Orange: `#E8471A` (primary, CTAs, logo)
+- Near Black: `#0D0D0D` (backgrounds)
+- Night Navy: `#1A1A2E` (secondary backgrounds)
+- Off White: `#F5F4F0` (text on dark)
+
+### CI/CD
+Push to `main` → GitHub Actions (Swift build) + Xcode Cloud → TestFlight
+
+---
+
+## NOBS Agency — The B2B SaaS
+
+FastAPI web app at `~/nobs-agency` on tank, port 8070, systemd service.
+
+AI advertising agency with 5 departments: CEO, Creative, Social Media, Research, Analytics — all backed by Ollama (`llama3.1:8b`).
+
+### Architecture
+- `ollama_client.py` — async OllamaClient, 3-attempt retry, exponential backoff
+- `task_queue.py` — asyncio queue, 3 workers
+- `auth.py` — token verification via `nobsdash.com/api/v1/subscription`
+- `departments/` — base.py, ceo.py, creative.py, social.py, research.py, analytics.py
+- SQLite (`agency.db`) WAL mode
+- CEO orchestration: assign → execute → CEO review → iterate (max 3x, threshold 70/100)
+
+### Key API endpoints
+- `POST /api/clients/{id}/onboard` — CEO strategy
+- `POST /api/research/industry`, `/competitors`, `/trending`
+- `POST /api/social/calendar`, `/hashtags`
+- `POST /api/content/{id}/score`
+- `GET /api/tasks/{id}/stream` — SSE real-time
+- `GET /api/tasks/{id}`
+
+To restart: SSH to tank, kill uvicorn on port 8070, relaunch (no sudo for systemctl).
+
+---
+
+## Tank / Hermes — The Home Lab Server
+
+Same machine, two SSH aliases. IP: `192.168.0.77`.
+
+### Ollama models on tank
+- `llama3.1:8b` — best quality, used by agency
+- `qwen2:1.5b` — fastest, used by NOBS iOS app
+- `nobs-qwen2:latest` — custom fine-tune
+
+### AI Routing Proxy (ai-proxy.service)
+- Port: `localhost:11435`
+- Routes: local Ollama first, cloud fallback
+- `POST /v1/chat/completions` — chat with model routing
+- `POST /v1/secret/get` — secrets with approval workflow
+
+### Tank MCP (on Mac)
+- File: `~/.claude/mcp/tank_ollama.py`
+- Tool: `ask_tank` — sends tasks to tank's Ollama, avoids Anthropic API usage
+- Use for: code gen, formatting, summarisation, boilerplate
+
+### Key services on tank
+| Service | Port | Description |
+|---------|------|-------------|
+| ai-proxy | 11435 | LLM routing proxy |
+| Ollama | 11434 | Local inference |
+| nobs-agency | 8070 | AI advertising agency |
+| voice-chat | 8090 | Voice UI |
+| agent-dashboard | 8787 | Self-improving agent |
+| phoenix | 6006 | Observability |
+| Vaultwarden | 8080 | Password manager |
+
+### nobsdash.com nginx routes
+- `/` — static landing page
+- `/chat` → voice_chat (8090)
+- `/agency` → nobs-agency (8070)
+- `/dashboard` → agent_dashboard (8787)
+- `/research` → phoenix (6006)
+- `/api/v1/` → voice_chat (subscription API)
+
+### Hermes Autonomous Agents (`/opt/hermes/`)
+- `manager.py` — orchestrator, installs Docker apps, port 8081 dashboard
+- `watchdog.py` — scans every 60s, restarts crashed procs
+- `researcher.py` — every 30min, researches self-hosted tools, writes to Obsidian vault
+- `librarian.py` — every 6h, classifies Obsidian MOCs into graph hierarchy
+- DB: `/opt/hermes/hermes.db` (SQLite WAL)
+- Vault: `/mnt/storage/knowledge_vault/`
+- Venv: `/opt/hermes/venv/bin/python3`
+
+---
+
+## NOBS Business — Consulting Side
+
+**Positioning**: Private AI automation for small firms. Data never leaves client environment.
+
+**Services**:
+- Overnight Processor: $300/mo — async doc processing via n8n + Ollama
+- Starter: $497/mo — 1 workflow + chat UI
+- Builder: $1,497/mo — 3 workflows, CRM integration
+- Partner: $3,500/mo — custom build, priority SLA
+
+**Target clients**: Solo CPAs, real estate agents, local service businesses.
+
+**Revenue target**: $5K MRR = ~6 clients.
+
+**Core differentiator**: "Microsoft Copilot processes your data on Microsoft's servers. NOBS does not."
+
+---
+
+## Coding Conventions
+
+- Swift 6, async/await throughout iOS code
+- Python 3.11+ with asyncio for server-side
+- FastAPI for all web services
+- SQLite with WAL mode for persistence
+- No external cloud dependencies for core features
+- Privacy-first: no analytics, no tracking
+
+---
+
+## What NOT to say in NOBS brand copy
+
+Never use: robust, leverage, holistic, passionate about, game-changer, synergy, scalable solution, cutting-edge, empower, seamlessly.
