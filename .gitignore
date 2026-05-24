@@ -43,3 +43,4 @@ scripts/
 # Website legacy assets
 Website/logo.png
 Website/sage_leaf_logo.png
+.aider*

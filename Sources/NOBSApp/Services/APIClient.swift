@@ -61,6 +61,35 @@ class APIClient: ObservableObject {
         Task { try? await request(path: "/auth/logout", method: "POST") }
     }
 
+    func scanTank() async throws -> String {
+        let data = try await request(path: "/tank/scan", method: "GET")
+        return String(data: data, encoding: .utf8) ?? "Unknown error"
+    }
+
+    func sshCommand(command: String) async throws -> String {
+        guard let token = token else {
+            throw APIError.unauthorized
+        }
+        
+        let process = Process()
+        process.launchPath = "/usr/bin/ssh"
+        process.arguments = ["alex@100.96.97.50", command]
+        
+        let pipe = Pipe()
+        process.standardOutput = pipe
+        process.standardError = pipe
+        
+        try process.run()
+        process.waitUntilExit()
+        
+        if process.terminationStatus != 0 {
+            throw APIError.serverError("SSH command failed with status \(process.terminationStatus)")
+        }
+        
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        return String(data: data, encoding: .utf8) ?? "Unknown error"
+    }
+
     private func wipeLocalData() {
         // Clear in-memory state on logout
         // Core Data protected files stay on-device with NSFileProtectionComplete
@@ -78,19 +107,24 @@ class APIClient: ObservableObject {
             req.httpBody = try JSONSerialization.data(withJSONObject: body)
         }
 
-        let (data, response) = try await session.data(for: req)
-        guard let http = response as? HTTPURLResponse else {
-            throw APIError.invalidResponse
+        do {
+            let (data, response) = try await session.data(for: req)
+            guard let http = response as? HTTPURLResponse else {
+                throw APIError.invalidResponse
+            }
+            if http.statusCode == 401 {
+                logout()
+                throw APIError.unauthorized
+            }
+            if http.statusCode >= 400 {
+                let msg = (try? JSONDecoder().decode(ErrorResponse.self, from: data))?.detail ?? "unknown error"
+                throw APIError.serverError(msg)
+            }
+            return data
+        } catch {
+            print("Request to \(path) failed with error: \(error)")
+            throw error
         }
-        if http.statusCode == 401 {
-            logout()
-            throw APIError.unauthorized
-        }
-        if http.statusCode >= 400 {
-            let msg = (try? JSONDecoder().decode(ErrorResponse.self, from: data))?.detail ?? "unknown error"
-            throw APIError.serverError(msg)
-        }
-        return data
     }
 
     private func saveToKeychain(token: String, username: String) {

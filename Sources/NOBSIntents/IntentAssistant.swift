@@ -47,4 +47,10 @@ public enum IntentAssistant {
             dataContext: context
         )
     }
+
+    /// Scans the Tank server and returns the result.
+    public static func scanServer() async throws -> String {
+        let apiClient = APIClient()
+        return try await apiClient.scanTank()
+    }
 }
