@@ -102,7 +102,9 @@ extension AssistantIntent {
             self = .readMessages(from: decodeString("from"))
         case "controlDevice":
             let actionStr = decodeString("action") ?? ""
-            let action = HomeAction(rawValue: actionStr) ?? .turnOn
+            guard let action = HomeAction(rawValue: actionStr) else {
+                throw DecodingError.dataCorrupted(.init(codingPath: [], debugDescription: "Invalid HomeAction value: \(actionStr)"))
+            }
             self = .controlDevice(
                 deviceName: decodeString("deviceName") ?? "",
                 action: action
@@ -113,10 +115,15 @@ extension AssistantIntent {
             self = .queryDevice(deviceName: decodeString("deviceName") ?? "")
         case "createReminder":
             let ctxStr = decodeString("context") ?? ""
-            let ctx = DataContext(rawValue: ctxStr) ?? .personal
+            guard let ctx = DataContext(rawValue: ctxStr) else {
+                throw DecodingError.dataCorrupted(.init(codingPath: [], debugDescription: "Invalid DataContext value: \(ctxStr)"))
+            }
             var dueDate: Date? = nil
             if let iso = decodeString("dueDate") {
-                dueDate = ISO8601DateFormatter().date(from: iso)
+                guard let date = ISO8601DateFormatter().date(from: iso) else {
+                    throw DecodingError.dataCorrupted(.init(codingPath: [], debugDescription: "Invalid ISO8601 date format: \(iso)"))
+                }
+                dueDate = date
             }
             self = .createReminder(
                 title: decodeString("title") ?? "",
@@ -126,7 +133,9 @@ extension AssistantIntent {
             )
         case "listReminders":
             let ctxStr = decodeString("context") ?? ""
-            let ctx = DataContext(rawValue: ctxStr) ?? .personal
+            guard let ctx = DataContext(rawValue: ctxStr) else {
+                throw DecodingError.dataCorrupted(.init(codingPath: [], debugDescription: "Invalid DataContext value: \(ctxStr)"))
+            }
             self = .listReminders(context: ctx)
         case "completeReminder":
             self = .completeReminder(id: decodeString("id") ?? "")
@@ -134,11 +143,15 @@ extension AssistantIntent {
             self = .browseWeb(query: decodeString("query") ?? "")
         case "storeMemory":
             let ctxStr = decodeString("context") ?? ""
-            let ctx = DataContext(rawValue: ctxStr) ?? .personal
+            guard let ctx = DataContext(rawValue: ctxStr) else {
+                throw DecodingError.dataCorrupted(.init(codingPath: [], debugDescription: "Invalid DataContext value: \(ctxStr)"))
+            }
             self = .storeMemory(content: decodeString("content") ?? "", context: ctx)
         case "recallMemory":
             let ctxStr = decodeString("context") ?? ""
-            let ctx = DataContext(rawValue: ctxStr) ?? .personal
+            guard let ctx = DataContext(rawValue: ctxStr) else {
+                throw DecodingError.dataCorrupted(.init(codingPath: [], debugDescription: "Invalid DataContext value: \(ctxStr)"))
+            }
             self = .recallMemory(query: decodeString("query") ?? "", context: ctx)
         default:
             self = .unknown(rawText: intentName)
