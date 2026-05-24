@@ -30,3 +30,11 @@ jobs:
           -scheme NOBS \
           -destination "generic/platform=iOS Simulator" \
           CODE_SIGNING_ALLOWED=NO
+    - name: Run Tests
+      run: |
+        xcodebuild test \
+          -project NOBS.xcodeproj \
+          -scheme NOBS \
+          -destination "generic/platform=iOS Simulator" \
+          -enableCodeCoverage YES \
+          CODE_SIGNING_ALLOWED=NO
