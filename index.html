@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NOBS Dash</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <aside class="sidebar">
+            <div class="logo">NOBS Dash</div>
+            <nav>
+                <ul>
+                    <li><a href="#" class="active">Dashboard</a></li>
+                    <li><a href="#compute-gpu" onclick="event.preventDefault(); document.querySelector('.compute-gpu').scrollIntoView({ behavior: 'smooth' });">Compute & GPU</a></li>
+                    <li><a href="#api-traffic" onclick="event.preventDefault(); document.querySelector('.api-traffic').scrollIntoView({ behavior: 'smooth' });">API Traffic</a></li>
+                    <li><a href="#">Settings</a></li>
+                    <li><a href="#">Profile</a></li>
+                </ul>
+            </nav>
+        </aside>
+        <main class="main-content">
+            <div class="widget compute-gpu" id="compute-gpu">
+                <h2>Compute & GPU</h2>
+                <div class="compute-grid">
+                    <div class="compute-card">
+                        <p>VRAM Usage: <span id="vram-usage">0%</span></p>
+                    </div>
+                    <div class="compute-card">
+                        <p>Token Generation Speed: <span id="token-speed">0 t/s</span></p>
+                    </div>
+                    <div class="compute-card">
+                        <p>Active LLM Models: <span id="active-models">Qwen, Llama 3</span></p>
+                    </div>
+                </div>
+            </div>
+            <div class="widget api-traffic" id="api-traffic">
+                <h2>API Traffic</h2>
+                <div class="api-grid">
+                    <div class="api-card">
+                        <p>Customer Requests: <span id="customer-requests">0</span></p>
+                    </div>
+                    <div class="api-card">
+                        <p>Rate Limits: <span id="rate-limits">1000 req/min</span></p>
+                    </div>
+                    <div class="api-card">
+                        <p>Active API Keys: <span id="active-api-keys">50</span></p>
+                    </div>
+                </div>
+            </div>
+            <div class="widget pending-proposals">
+                <h2>Pending AI Proposals</h2>
+                <div class="proposal-grid">
+                    <div class="proposal-card">
+                        <img src="mockup1.png" alt="Proposal 1">
+                        <p>Feature: Real-time Analytics Dashboard</p>
+                    </div>
+                    <div class="proposal-card">
+                        <img src="mockup2.png" alt="Proposal 2">
+                        <p>Feature: Advanced Search Functionality</p>
+                    </div>
+                    <div class="proposal-card">
+                        <img src="mockup3.png" alt="Proposal 3">
+                        <p>Feature: Integration with Third-party Tools</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script src="dash.js"></script>
+</body>
+</html>
