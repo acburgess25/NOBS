@@ -1,0 +1,32 @@
+# This workflow will build a Swift project
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-swift
+
+name: Swift
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true  # Opt-in early for Node.js 24 GitHub Actions compatibility
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+
+    runs-on: macos-15
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Select Xcode 26
+      run: sudo xcode-select -s /Applications/Xcode_26.3.app
+    - name: Generate Xcode project
+      run: brew install xcodegen 2>/dev/null || true && xcodegen generate
+    - name: Build
+      run: |
+        xcodebuild build \
+          -project NOBS.xcodeproj \
+          -scheme NOBS \
+          -destination "generic/platform=iOS Simulator" \
+          CODE_SIGNING_ALLOWED=NO

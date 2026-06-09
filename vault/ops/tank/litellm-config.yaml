@@ -1,0 +1,66 @@
+# ==============================================================================
+# LiteLLM Configuration for Tank Homelab Gateway
+# Exposes a single unified OpenAI-compatible endpoint on Port 4000
+# ==============================================================================
+
+model_list:
+  # ----------------------------------------------------------------------------
+  # 1. Primary Local Models (Served by Tank's host-native Ollama)
+  # ----------------------------------------------------------------------------
+  - model_name: local-coder-14b
+    litellm_params:
+      model: ollama/qwen2.5-coder:14b
+      api_base: http://host.docker.internal:11434
+      tpm: 100000
+      rpm: 1000
+
+  - model_name: local-coder-7b
+    litellm_params:
+      model: ollama/qwen2.5-coder:7b
+      api_base: http://host.docker.internal:11434
+      tpm: 100000
+      rpm: 1000
+
+  - model_name: local-embed
+    litellm_params:
+      model: ollama/nomic-embed-text
+      api_base: http://host.docker.internal:11434
+
+  # ----------------------------------------------------------------------------
+  # 2. MacBook Pro Local Ollama (Failover / Offline Dev)
+  # ----------------------------------------------------------------------------
+  - model_name: macbook-coder-14b
+    litellm_params:
+      model: ollama/qwen2.5-coder:14b
+      api_base: http://host.docker.internal:11434  # Routed over SSH/Tailscale tunnel if mapped
+      tpm: 100000
+      rpm: 1000
+
+  # ----------------------------------------------------------------------------
+  # 3. High-Tier Fallback Cloud Models (Optional, loaded via env keys)
+  # ----------------------------------------------------------------------------
+  - model_name: fallback-claude
+    litellm_params:
+      model: anthropic/claude-3-7-sonnet-20250219
+      api_key: os.environ/ANTHROPIC_API_KEY
+
+  - model_name: fallback-deepseek
+    litellm_params:
+      model: deepseek/deepseek-coder
+      api_key: os.environ/DEEPSEEK_API_KEY
+
+# ==============================================================================
+# Router & Fallback Rules
+# ==============================================================================
+router_settings:
+  routing_strategy: least-busy
+  enable_pre_call_checks: true
+  fallback_to_backup_model: true
+  
+# Define fallbacks when local Ollama is busy, out of VRAM, or returns timeout errors
+allowed_fails: 3
+cooldown_time: 10
+
+general_settings:
+  master_key: nobs_litellm_master_secret_8829401
+

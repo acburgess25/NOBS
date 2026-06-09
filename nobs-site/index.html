@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f8fafc" />
+    <meta
+      name="description"
+      content="NOBS is an Apple-native private health and wellness AI layer for tracking medications, managing screen time digital wellness, and personal nutrition planning."
+    />
+    <title>NOBS - Private On-device Personal Health & Wellness AI</title>
+    <meta property="og:title" content="NOBS - Private personal health AI" />
+    <meta property="og:description" content="A secure, local-first wellness assistant for medication dose logging, digital screen break coaching, and personalized eating plans." />
+    <meta property="og:image" content="https://nobsdash.com/assets/nobs-og-card.png" />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="icon" href="/assets/favicon.ico" sizes="any" />
+    <link rel="apple-touch-icon" href="/assets/apple-touch-icon.png" />
+    <link rel="stylesheet" href="/styles.css?v=20260608-1540" />
+  </head>
+  <body>
+    <canvas id="line-field" aria-hidden="true"></canvas>
+
+    <header class="site-header">
+      <a class="brand" href="/" aria-label="NOBS home">
+        <span class="brand-wordmark">NOBS<span class="brand-dot"></span></span>
+        <span class="brand-tagline">Private personal health AI</span>
+      </a>
+      <nav aria-label="Primary navigation">
+        <a href="#meds">Medications</a>
+        <a href="#wellness">Digital Wellness</a>
+        <a href="#nutrition">Nutrition</a>
+        <a href="#privacy">Privacy</a>
+        <a href="/donate.html">Donate</a>
+      </nav>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="hero-copy">
+          <div class="trust-badge" aria-label="Local-first and HealthKit integrated">
+            <span class="mini-mark">N<span></span></span>
+            <span>On-device & 100% Encrypted.</span>
+          </div>
+          <p class="eyebrow">Local Health AI for Apple Devices</p>
+          <h1>NOBS</h1>
+          <p class="lede">
+            A cutting-edge, private health assistant for tracking medication schedules, logging screen breaks based on clinical research, and planning nutrition securely on-device.
+          </p>
+          <div class="hero-actions">
+            <a class="button primary" href="/testflight">Join TestFlight Beta</a>
+            <a class="button secondary" href="/donate.html">Support the build</a>
+          </div>
+          <div class="hero-status" aria-label="Current beta status">
+            <div>
+              <span></span>
+              <strong>Apple HealthKit & on-device sync ready</strong>
+            </div>
+            <div>
+              <span></span>
+              <strong>Siri AI App Intents fully integrated</strong>
+            </div>
+            <div>
+              <span></span>
+              <strong>Medication reminders & dose log active</strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="device-stage" aria-label="NOBS app preview">
+          <div class="motion-frame" aria-hidden="true">
+            <span class="motion-line line-a"></span>
+            <span class="motion-line line-b"></span>
+            <span class="motion-line line-c"></span>
+            <span class="motion-node node-a"></span>
+            <span class="motion-node node-b"></span>
+            <span class="motion-node node-c"></span>
+          </div>
+          <div class="phone-shell">
+            <div class="dynamic-island"></div>
+            <div class="phone-screen">
+              <div class="status-row">
+                <span>NOBS Hub</span>
+                <span>Active</span>
+              </div>
+              
+              <!-- Medication log card -->
+              <div class="signal-card active">
+                <span class="signal-dot"></span>
+                <div>
+                  <strong>Lipitor 20mg - 9:00 AM</strong>
+                  <small>Dose taken · Next due tomorrow</small>
+                </div>
+              </div>
+
+              <!-- Digital wellness card -->
+              <div class="signal-card">
+                <span class="signal-dot wellness"></span>
+                <div>
+                  <strong>Screen break in 8 min</strong>
+                  <small>20-20-20 rule active · Eye strain low</small>
+                </div>
+              </div>
+
+              <!-- HealthKit Panel -->
+              <div class="privacy-panel">
+                <div>
+                  <span>HealthKit Sync</span>
+                  <strong>100% On-Device & Encrypted</strong>
+                </div>
+                <svg viewBox="0 0 92 30" aria-hidden="true">
+                  <path d="M2 18C18 4 30 28 46 14C62 1 73 28 90 9" />
+                </svg>
+              </div>
+
+              <!-- Liquid Glass Transparency control -->
+              <div class="glass-control-panel">
+                <div class="glass-control-header">
+                  <span>Liquid Glass customization</span>
+                  <span id="transparency-val">68%</span>
+                </div>
+                <input type="range" id="transparency-slider" min="10" max="100" value="68" aria-label="Liquid Glass Transparency" />
+              </div>
+
+              <!-- Diet Coach message -->
+              <div class="message">
+                <span>NOBS Coach</span>
+                <p>Based on current research, looking away for 20 seconds will restore cognitive focus. Ready to start?</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="brand-strip" aria-label="NOBS health principles">
+        <div>
+          <span>01</span>
+          <strong>HealthKit Synced</strong>
+        </div>
+        <div>
+          <span>02</span>
+          <strong>Clinical Backed</strong>
+        </div>
+        <div>
+          <span>03</span>
+          <strong>Screen-time aware</strong>
+        </div>
+        <div>
+          <span>04</span>
+          <strong>100% Private</strong>
+        </div>
+      </section>
+
+      <section class="founder-strip" aria-label="NOBS app features">
+        <div>
+          <span>Medication log</span>
+          <strong>Never miss a dose. Apple Watch & Siri AI prompts.</strong>
+        </div>
+        <div>
+          <span>Digital rest</span>
+          <strong>Automated eye-strain triggers based on actual research.</strong>
+        </div>
+        <div>
+          <span>Local nutrition</span>
+          <strong>Analyze meals with local LLMs. Zero cloud logs.</strong>
+        </div>
+      </section>
+
+      <section id="meds" class="band">
+        <div class="section-heading">
+          <p class="eyebrow">Medication adherence & scheduling</p>
+          <h2>Log prescriptions and track doses natively.</h2>
+        </div>
+        <div class="feature-grid">
+          <article>
+            <span class="icon">􀋰</span>
+            <h3>Pill Schedule</h3>
+            <p>Organize complex medication plans with reminders that trigger precisely on time. Log took/skipped state with dynamic checklist badges.</p>
+          </article>
+          <article>
+            <span class="icon">􀤆</span>
+            <h3>HealthKit Sync</h3>
+            <p>Save dose logs natively inside HealthKit under `HKMedicationDoseEventType`. View trends alongside your vitals and heart rate.</p>
+          </article>
+          <article>
+            <span class="icon">􀆪</span>
+            <h3>Siri AI Queries</h3>
+            <p>Query medication history securely: "Siri, did I take my evening Lipitor?" NOBS outputs a private status card directly in Siri AI.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="wellness" class="split">
+        <div class="section-heading">
+          <p class="eyebrow">Digital Wellness & Habits</p>
+          <h2>Manage app allowances and cognitive strain dynamically.</h2>
+        </div>
+        <div class="role-list">
+          <article>
+            <h3>20-20-20 Eye Rest</h3>
+            <p>Uses screen usage metrics to prompt you to look away for 20 seconds every 20 minutes, reducing digital eye strain based on optometry studies.</p>
+          </article>
+          <article>
+            <h3>App Limits & Allowances</h3>
+            <p>Define app category boundaries using iOS 27 Time Allowances API, helping you build better focus habits and cut down screen overload.</p>
+          </article>
+          <article>
+            <h3>Parent & Care Circle Alerts</h3>
+            <p>Opt-in to share screen wellness logs or medication adherence with trusted caretakers, parents, or doctors over encrypted iCloud links.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="nutrition" class="band">
+        <div class="section-heading">
+          <p class="eyebrow">Local Nutrition & Eating Plans</p>
+          <h2>Personalized diet planning and meal checklists without cloud logs.</h2>
+        </div>
+        <div class="feature-grid approval-grid">
+          <article>
+            <span class="icon">􀉭</span>
+            <h3>Macro Goals</h3>
+            <p>Determine daily calorie targets and carbohydrate/protein/fat ratios. Track foods and meals with private-first on-device suggestions.</p>
+          </article>
+          <article>
+            <span class="icon">􀈂</span>
+            <h3>Local Meal Planner</h3>
+            <p>Structure your weekly groceries and meals. Ask NOBS to adapt recipes to your dietary needs, food allergies, or medical restrictions.</p>
+          </article>
+          <article>
+            <span class="icon">􀉩</span>
+            <h3>Zero Data Leaks</h3>
+            <p>Traditional diet scanners track what you eat on central servers. NOBS runs models locally on your Mac or iPhone, keeping your diet private.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="privacy" class="split">
+        <div class="section-heading">
+          <p class="eyebrow">Privacy & Security Architecture</p>
+          <h2>Your personal health data stays securely on your own hardware.</h2>
+        </div>
+        <div class="role-list">
+          <article>
+            <h3>On-Device Storage</h3>
+            <p>Prescriptions, wellness goals, and dietary preferences are encrypted on your local database. NOBS stores absolutely no copies.</p>
+          </article>
+          <article>
+            <h3>Apple Security Native</h3>
+            <p>Secured behind Face ID / Touch ID, utilizing Apple's CryptoKit, Keychain, and iOS App Sandbox limits for maximum data isolation.</p>
+          </article>
+          <article>
+            <h3>Local Network Compute</h3>
+            <p>If your iPhone doesn't support Apple Intelligence, route queries over local Wi-Fi to your home Mac mini, avoiding the public cloud.</p>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <span>NOBS Health</span>
+      <a href="/privacy.html">Privacy</a>
+    </footer>
+
+    <script src="/script.js?v=20260608-1540"></script>
+  </body>
+</html>

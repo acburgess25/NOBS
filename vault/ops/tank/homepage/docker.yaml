@@ -1,0 +1,3 @@
+# Homepage docker.yaml
+my-docker:
+  socket: /var/run/docker.sock

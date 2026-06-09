@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="refresh" content="4; url=https://testflight.apple.com/join/cs7znFqY" />
+  <title>NOBS TestFlight Beta</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      color-scheme: light dark;
+      --bg: #f7f4ef;
+      --ink: #101418;
+      --muted: #66706b;
+      --panel: rgba(255,255,255,0.76);
+      --line: rgba(16,20,24,0.1);
+      --green: #35a66f;
+      font-family: ui-rounded, "SF Pro Rounded", system-ui, sans-serif;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #111412;
+        --ink: #f5f2ec;
+        --muted: #a7ada8;
+        --panel: rgba(28,31,29,0.78);
+        --line: rgba(245,242,236,0.12);
+      }
+    }
+    body {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 22% 12%, rgba(53,166,111,0.16), transparent 28rem),
+        radial-gradient(circle at 82% 24%, rgba(217,119,6,0.13), transparent 28rem),
+        var(--bg);
+      padding: 24px;
+      -webkit-font-smoothing: antialiased;
+    }
+    main {
+      width: min(720px, 100%);
+      padding: clamp(24px, 6vw, 42px);
+      border: 1px solid var(--line);
+      border-radius: 30px;
+      background: var(--panel);
+      box-shadow: 0 24px 70px rgba(16,20,24,0.12);
+      backdrop-filter: blur(22px);
+      -webkit-backdrop-filter: blur(22px);
+    }
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 38px;
+      font-weight: 900;
+    }
+    .mark {
+      position: relative;
+      width: 42px;
+      height: 42px;
+      display: grid;
+      place-items: center;
+      border-radius: 13px;
+      color: #f4f7f9;
+      background: #090e14;
+      font-size: 26px;
+      font-weight: 900;
+    }
+    .mark::after {
+      content: "";
+      position: absolute;
+      right: 5px;
+      bottom: 5px;
+      width: 11px;
+      height: 11px;
+      border-radius: 999px;
+      background: var(--green);
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 18px;
+      color: var(--muted);
+      font-weight: 850;
+      font-size: 0.92rem;
+    }
+    .pulse {
+      width: 9px;
+      height: 9px;
+      border-radius: 999px;
+      background: var(--green);
+      box-shadow: 0 0 0 7px rgba(53,166,111,0.12);
+    }
+    h1 {
+      max-width: 620px;
+      font-size: clamp(2.8rem, 8vw, 5.4rem);
+      line-height: 0.96;
+      letter-spacing: 0;
+      margin-bottom: 20px;
+    }
+    p {
+      color: var(--muted);
+      font-size: clamp(1.04rem, 2vw, 1.18rem);
+      line-height: 1.55;
+      margin-bottom: 26px;
+    }
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    a.button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 52px;
+      padding: 14px 20px;
+      border-radius: 999px;
+      color: #fff;
+      background: var(--ink);
+      text-decoration: none;
+      font-weight: 900;
+    }
+    a.secondary {
+      color: var(--ink);
+      background: transparent;
+      border: 1px solid var(--line);
+    }
+    .small {
+      margin: 0;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+    code { color: var(--ink); font-weight: 800; }
+    @media (max-width: 560px) {
+      .actions a { width: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <div class="brand"><span class="mark">N</span><span>NOBS</span></div>
+    <div class="pill"><span class="pulse"></span><span>Apple TestFlight beta</span></div>
+    <h1>Join NOBS in TestFlight.</h1>
+    <p>
+      This is the full Apple-managed beta path. TestFlight handles the invite, install, updates, tester status, and feedback. You will be sent to Apple automatically.
+    </p>
+    <div class="actions">
+      <a class="button" href="https://testflight.apple.com/join/cs7znFqY">Open TestFlight</a>
+      <a class="button secondary" href="/">Back to NOBS</a>
+    </div>
+    <p class="small">
+      Public beta link: <code>https://testflight.apple.com/join/cs7znFqY</code><br />
+      Current external build state: waiting for Apple TestFlight Beta Review.
+    </p>
+  </main>
+</body>
+</html>

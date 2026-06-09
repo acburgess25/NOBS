@@ -1,0 +1,12 @@
+# Homepage bookmarks.yaml
+- Repositories:
+    - name: nobs-app GitHub
+      href: https://github.com/acburgess25/nobs-app
+      icon: github
+    - name: nobs-vault GitHub
+      href: https://github.com/acburgess25/nobs-vault
+      icon: github
+- Local References:
+    - name: Obsidian Vault Graph
+      href: obsidian://open?vault=NOBS
+      icon: obsidian

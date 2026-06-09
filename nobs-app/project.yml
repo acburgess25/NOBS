@@ -1,0 +1,124 @@
+name: NOBS
+options:
+  bundleIdPrefix: com.nobsdash
+  deploymentTarget:
+    iOS: "26.0"
+  xcodeVersion: "16.3"
+
+packages:
+  NOBSKit:
+    path: .
+
+schemes:
+  NOBS:
+    build:
+      targets:
+        NOBS: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets: []
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release
+
+targets:
+  NOBS:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sources/NOBSApp
+      - path: Resources/Assets.xcassets
+    resources:
+      - path: Resources/AppIcons
+    dependencies:
+      - package: NOBSKit
+        product: NOBSKit
+      - package: NOBSKit
+        product: NOBSIntents
+      - target: NOBSWidget
+      - target: NOBSControl
+    entitlements:
+      path: Resources/NOBS.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.nobsdash.nobs
+        com.apple.developer.homekit: true
+        com.apple.developer.siri: true
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.nobsdash.nobs
+        INFOPLIST_FILE: Resources/Info.plist
+        DEVELOPMENT_TEAM: K853LKQLAS
+        CODE_SIGN_STYLE: Automatic
+        SWIFT_VERSION: 5.0
+        CURRENT_PROJECT_VERSION: "9"
+        MARKETING_VERSION: "2.0.2"
+        SUPPORTED_PLATFORMS: iphoneos iphonesimulator
+        TARGETED_DEVICE_FAMILY: "1,2"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+      configs:
+        Release:
+          CODE_SIGN_STYLE: Automatic
+          DEVELOPMENT_TEAM: K853LKQLAS
+
+  NOBSControl:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: NOBSControl
+      - path: Resources/Assets.xcassets
+    dependencies:
+      - package: NOBSKit
+        product: NOBSIntents
+    entitlements:
+      path: NOBSControl/NOBSControl.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.nobsdash.nobs
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.nobsdash.nobs.control
+        INFOPLIST_FILE: NOBSControl/Info.plist
+        DEVELOPMENT_TEAM: K853LKQLAS
+        CODE_SIGN_STYLE: Automatic
+        SWIFT_VERSION: 5.0
+        CURRENT_PROJECT_VERSION: "9"
+        MARKETING_VERSION: "2.0.2"
+      configs:
+        Release:
+          CODE_SIGN_STYLE: Automatic
+          DEVELOPMENT_TEAM: K853LKQLAS
+
+  NOBSWidget:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: NOBSWidget
+      - path: Resources/Assets.xcassets
+    dependencies:
+      - package: NOBSKit
+        product: NOBSKit
+    entitlements:
+      path: NOBSWidget/NOBSWidget.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.nobsdash.nobs
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.nobsdash.nobs.widget
+        INFOPLIST_FILE: NOBSWidget/Info.plist
+        DEVELOPMENT_TEAM: K853LKQLAS
+        CODE_SIGN_STYLE: Automatic
+        SWIFT_VERSION: 5.0
+        CURRENT_PROJECT_VERSION: "9"
+        MARKETING_VERSION: "2.0.2"
+      configs:
+        Release:
+          CODE_SIGN_STYLE: Automatic
+          DEVELOPMENT_TEAM: K853LKQLAS

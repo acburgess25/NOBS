@@ -1,0 +1,19 @@
+# OS metadata
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+
+# Xcode/Swift build folders
+.build/
+.swiftpm/
+DerivedData/
+*.xcuserstate
+*.xcworkspace
+
+# Python caches
+__pycache__/
+*.pyc
+
+# Local/custom configs
+.env

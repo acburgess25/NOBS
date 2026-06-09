@@ -1,0 +1,38 @@
+# Homepage services.yaml
+- Dev Applications:
+    - AI Web Portal:
+        icon: open-webui
+        href: http://100.96.97.50:8082
+        description: Open WebUI unified chatbot interface
+        server: my-docker
+        container: open-webui
+    - LiteLLM Gateway:
+        icon: litellm
+        href: http://100.96.97.50:4000
+        description: Model router & API gateway
+        server: my-docker
+        container: litellm-gateway
+    - NOBS Proposals:
+        icon: robot
+        href: http://100.96.97.50:5051
+        description: Approvals and AI conflict resolution console
+        server: my-docker
+        container: approval-api
+
+- Infrastructure:
+    - Nginx Proxy Manager:
+        icon: nginx-proxy-manager
+        href: http://100.96.97.50:81
+        description: Reverse proxy and SSL manager
+        server: my-docker
+        container: nginx-proxy-manager
+    - Cockpit OS Admin:
+        icon: cockpit
+        href: https://100.96.97.50:9090
+        description: Native Ubuntu host administration console
+    - ntfy Push Server:
+        icon: ntfy
+        href: http://100.96.97.50:5050
+        description: iOS push notification publisher gateway
+        server: my-docker
+        container: ntfy

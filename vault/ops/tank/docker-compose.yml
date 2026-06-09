@@ -1,0 +1,162 @@
+version: '3.8'
+
+networks:
+  homelab-net:
+    name: homelab-net
+    driver: bridge
+
+volumes:
+  open-webui-data:
+
+services:
+  # ----------------------------------------------------------------------------
+  # 1. Reverse Proxy & SSL (Nginx Proxy Manager)
+  # ----------------------------------------------------------------------------
+  nginx-proxy-manager:
+    image: 'jc21/nginx-proxy-manager:latest'
+    container_name: nginx-proxy-manager
+    restart: unless-stopped
+    ports:
+      - '80:80'
+      - '81:81' # Admin Web Console
+      - '443:443'
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./data/nginx-proxy-manager:/data
+      - ./data/letsencrypt:/etc/letsencrypt
+      - /var/www/nobsdash:/var/www/nobsdash
+    networks:
+      - homelab-net
+
+  # ----------------------------------------------------------------------------
+  # 2. Unified Web Portal (Open WebUI)
+  # ----------------------------------------------------------------------------
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: open-webui
+    restart: unless-stopped
+    ports:
+      - '8082:8080' # Exposed locally, route via NPM to ai.nobsdash.com
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - open-webui-data:/app/backend/data
+    environment:
+      # Connect to host-native Ollama
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      # Connect to LiteLLM router (port 4000) for fallback cloud & local models
+      - OPENAI_API_BASE_URL=http://litellm:4000/v1
+      - OPENAI_API_KEY=nobs_litellm_master_secret_8829401 # Matches LiteLLM master key
+      # Enable web search / other integrations if needed
+      - WEBUI_NAME=NOBS AI Portal
+      - ENABLE_SIGNUP=false # Restrict to you only
+      # Native Web Search (RAG) using free DuckDuckGo
+      - ENABLE_RAG_WEB_SEARCH=True
+      - RAG_WEB_SEARCH_ENGINE=duckduckgo
+      - RAG_WEB_SEARCH_RESULT_LIMIT=3
+      # Code execution sandbox
+      - ENABLE_CODE_EXECUTION=True
+      # GPU-Accelerated RAG Embeddings via Ollama
+      - RAG_EMBEDDING_ENGINE=ollama
+      - RAG_EMBEDDING_MODEL=nomic-embed-text:latest
+    networks:
+      - homelab-net
+
+  # ----------------------------------------------------------------------------
+  # 3. LLM Router (LiteLLM)
+  # ----------------------------------------------------------------------------
+  litellm:
+    image: 'ghcr.io/berriai/litellm:main-latest'
+    container_name: litellm-gateway
+    restart: unless-stopped
+    ports:
+      - '4000:4000'
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./litellm-config.yaml:/app/config.yaml
+      - ./data/litellm:/app/data
+    environment:
+      - LITELLM_MASTER_KEY=nobs_litellm_master_secret_8829401
+    command: ["--config", "/app/config.yaml", "--port", "4000"]
+    networks:
+      - homelab-net
+
+  # ----------------------------------------------------------------------------
+  # 4. Service Dashboard Portal (Homepage)
+  # ----------------------------------------------------------------------------
+  homepage:
+    image: 'ghcr.io/gethomepage/homepage:latest'
+    container_name: homepage
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    volumes:
+      - ./config/homepage:/app/config
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - HOMEPAGE_ALLOWED_HOSTS=*
+    networks:
+      - homelab-net
+
+  # ----------------------------------------------------------------------------
+  # 5. Push Notification Server (ntfy) → iPhone
+  # ----------------------------------------------------------------------------
+  ntfy:
+    image: 'binwiederhier/ntfy'
+    container_name: ntfy
+    restart: unless-stopped
+    command: serve
+    ports:
+      - '5050:5050'
+    volumes:
+      - ./config/ntfy:/etc/ntfy
+      - ./data/ntfy:/var/lib/ntfy
+    environment:
+      - TZ=America/Chicago
+    networks:
+      - homelab-net
+
+  # ----------------------------------------------------------------------------
+  # 6. Proposal Approval API (FastAPI + SQLite)
+  # ----------------------------------------------------------------------------
+  approval-api:
+    build:
+      context: ./approval-api
+      dockerfile: Dockerfile
+    container_name: approval-api
+    restart: unless-stopped
+    ports:
+      - '5051:5051'
+    volumes:
+      - ./data/approval-api:/data
+    networks:
+      - homelab-net
+
+  # ----------------------------------------------------------------------------
+  # 7. Autonomous Agent (Playwright + Ollama + APScheduler)
+  # ----------------------------------------------------------------------------
+  agent:
+    build:
+      context: ./agent
+      dockerfile: Dockerfile
+    container_name: nobs-agent
+    restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /opt/homelab:/opt/homelab:ro
+      - ./data/agent:/data
+      - ./data/sessions:/sessions
+      - /var/www/nobsdash:/var/www/nobsdash:rw
+    environment:
+      - OLLAMA_URL=http://host.docker.internal:11434
+      - OLLAMA_MODEL=qwen2.5-coder:14b
+      - APPROVAL_API_URL=http://approval-api:5051
+    depends_on:
+      - approval-api
+      - ntfy
+    networks:
+      - homelab-net

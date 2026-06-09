@@ -1,0 +1,407 @@
+<!-- pipeline-test-1779821226 -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Sign in to your NOBS Dashboard to manage your AI automation and infrastructure.">
+  <title>Sign In — NOBS Dashboard</title>
+  
+  <link rel="stylesheet" href="system.css">
+  
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: #0c0a09;
+      font-family: var(--font-family);
+      color: var(--text-primary);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* Ambient glows */
+    .glow-container {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      pointer-events: none;
+      z-index: 1;
+      overflow: hidden;
+    }
+    .glow-spot {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(130px);
+      opacity: 0.08;
+      animation: floatGlow 25s ease-in-out infinite;
+    }
+    .glow-amber {
+      width: 450px; height: 450px;
+      background: radial-gradient(circle, var(--primary-color) 0%, transparent 70%);
+      top: -10%; left: -10%;
+    }
+    .glow-sage {
+      width: 450px; height: 450px;
+      background: radial-gradient(circle, var(--secondary-color) 0%, transparent 70%);
+      bottom: -10%; right: -10%;
+    }
+    @keyframes floatGlow {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      50% { transform: translate(40px, 60px) scale(1.15); }
+    }
+
+    .login-wrap {
+      width: 100%;
+      max-width: 420px;
+      position: relative;
+      z-index: 10;
+    }
+
+    .back-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: var(--font-mono);
+      color: var(--text-muted);
+      text-decoration: none;
+      margin-bottom: 24px;
+      padding: 6px 12px;
+      border: 1px solid rgba(255,255,255,0.03);
+      background: rgba(255,255,255,0.01);
+      border-radius: 8px;
+      transition: all var(--transition-fast);
+    }
+    .back-link:hover {
+      color: var(--primary-color);
+      border-color: rgba(217,119,6,0.2);
+      background: rgba(217,119,6,0.05);
+      transform: translateX(-2px);
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.015);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 48px 40px;
+      box-shadow: var(--shadow-xl);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(255,255,255,0.02) 0%, transparent 100%);
+      pointer-events: none;
+    }
+
+    .logo-wrap {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+    .logo-wrap img {
+      width: 56px;
+      height: 56px;
+      margin-bottom: 16px;
+      filter: drop-shadow(0 4px 12px rgba(217,119,6,0.25));
+    }
+    .logo-name {
+      font-size: 24px;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      color: var(--text-primary);
+      display: block;
+    }
+    .logo-sub {
+      font-size: 13px;
+      font-family: var(--font-mono);
+      color: var(--text-muted);
+      display: block;
+      margin-top: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .form-group {
+      margin-bottom: 22px;
+    }
+    label {
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    input {
+      width: 100%;
+      padding: 14px 16px;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      font-family: var(--font-family);
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-primary);
+      background: rgba(255,255,255,0.02);
+      outline: none;
+      transition: all var(--transition-fast);
+    }
+    input:focus {
+      border-color: var(--primary-color);
+      background: rgba(255,255,255,0.04);
+      box-shadow: 0 0 0 3px rgba(217,119,6,0.15);
+    }
+    input::placeholder { color: var(--text-muted); }
+
+    .btn-submit {
+      width: 100%;
+      padding: 14px;
+      background: var(--primary-color);
+      color: #0c0a09;
+      border: 1px solid var(--primary-color);
+      border-radius: 12px;
+      font-family: var(--font-family);
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 8px;
+      box-shadow: var(--shadow-lg);
+      transition: all var(--transition-fast);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+    .btn-submit:hover {
+      background: var(--white);
+      border-color: var(--white);
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-xl);
+    }
+    .btn-submit:active { transform: translateY(0); }
+    .btn-submit:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid rgba(12,10,9,0.3);
+      border-top-color: #0c0a09;
+      border-radius: 50%;
+      display: none;
+      animation: spin 0.7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .error-msg {
+      display: none;
+      background: rgba(239,68,68,0.08);
+      border: 1px solid rgba(239,68,68,0.2);
+      color: #f87171;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 12px 16px;
+      border-radius: 10px;
+      margin-bottom: 20px;
+      text-align: center;
+      font-family: var(--font-mono);
+    }
+
+    .privacy-note {
+      text-align: center;
+      margin-top: 24px;
+      font-size: 12px;
+      color: var(--text-muted);
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      font-family: var(--font-mono);
+    }
+
+    @media (max-width: 480px) {
+      .card { padding: 36px 24px; }
+    }
+  </style>
+  <script
+    src="https://browser.sentry-cdn.com/7.119.2/bundle.min.js"
+    crossorigin="anonymous"
+  ></script>
+  <script>
+    Sentry.init({
+      dsn: "https://6047954c3f49575243c2487679456dbf@o4511447752048640.ingest.us.sentry.io/4511447778787328",
+      tracesSampleRate: 0.1,
+      environment: "production",
+      release: "nobsdash@1.0",
+    });
+  </script>
+</head>
+<body>
+
+  <!-- Floating Ambient Glow System -->
+  <div class="glow-container">
+    <div class="glow-spot glow-amber"></div>
+    <div class="glow-spot glow-sage"></div>
+  </div>
+
+  <div class="login-wrap">
+    <a href="/" class="back-link" aria-label="Back to NOBS">← Home</a>
+
+    <div class="card">
+      <div class="logo-wrap">
+        <img src="/logo.png" alt="NOBS Logo">
+        <span class="logo-name">NOBS</span>
+        <span class="logo-sub">Control Center</span>
+      </div>
+
+      <div class="error-msg" id="errorMsg" aria-label="Error message">Invalid email or password.</div>
+
+      <form id="loginForm" onsubmit="handleLogin(event)" aria-label="Login form">
+        
+        <div class="form-group">
+          <label for="email">Identity Email</label>
+          <input
+            type="email"
+            id="email"
+            placeholder="alex@nobsdash.com"
+            required
+            autocomplete="email"
+            autocapitalize="none"
+            value=""
+            aria-label="Email address"
+          >
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input
+            type="password"
+            id="password"
+            placeholder="••••••••"
+            required
+            autocomplete="current-password"
+            value=""
+            aria-label="Password"
+          >
+        </div>
+        <button type="submit" class="btn-submit" id="submitBtn" aria-label="Sign In button">
+          <div class="spinner" id="spinner"></div>
+          <span id="btnText">Sign In</span>
+        </button>
+      </form>
+
+      <div class="privacy-note" aria-label="Privacy note">
+        🔒 SECURE END-TO-END SESSION
+      </div>
+    </div>
+  </div>
+
+  <script>
+    function isOwnerEmail(email) {
+      if (!email) return false;
+      const lower = email.toLowerCase().trim();
+      return (
+        lower === 'alex@nobsdash.com' ||
+        lower === 'admin@nobsdash.com' ||
+        lower === '11ee990000@gmail.com' ||
+        lower.endsWith('@nobsdash.com') ||
+        lower.endsWith('@aburgess.live') ||
+        lower.endsWith('@alexburgess.com')
+      );
+    }
+
+    // Redirect if already logged in
+    if (localStorage.getItem('nobs_jwt')) {
+      const savedEmail = localStorage.getItem('nobs_email') || '';
+      if (isOwnerEmail(savedEmail)) {
+        window.location.href = 'dash.html';
+      } else {
+        window.location.href = '/chat';
+      }
+    }
+
+    async function sha256(message) {
+      const msgBuffer = new TextEncoder().encode(message);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const hexHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      return hexHash;
+    }
+  
+    async function handleLogin(e) {
+      e.preventDefault();
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      
+      const btn = document.getElementById('submitBtn');
+      const spinner = document.getElementById('spinner');
+      const btnText = document.getElementById('btnText');
+      const errorMsg = document.getElementById('errorMsg');
+
+      // Input validation
+      if (!email || !email.includes('@') || !password) {
+        errorMsg.textContent = 'Invalid email or password.';
+        errorMsg.style.display = 'block';
+        return;
+      }
+
+      // Loading state
+      btn.disabled = true;
+      spinner.style.display = 'block';
+      btnText.textContent = 'Signing in…';
+      errorMsg.style.display = 'none';
+
+      try {
+        const res = await fetch('/api/v1/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: email, password })
+        });
+
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.detail || 'Invalid credentials');
+        }
+
+        const data = await res.json();
+        localStorage.setItem('nobs_jwt', data.access_token);
+        localStorage.setItem('nobs_email', email);
+
+        btnText.textContent = '✓ Success!';
+        spinner.style.display = 'none';
+
+        setTimeout(() => {
+          if (isOwnerEmail(email)) {
+            window.location.href = 'dash.html';
+          } else {
+            window.location.href = '/chat';
+          }
+        }, 400);
+
+      } catch (err) {
+        errorMsg.textContent = err.message || 'Sign in failed. Please try again.';
+        errorMsg.style.display = 'block';
+        btn.disabled = false;
+        spinner.style.display = 'none';
+        btnText.textContent = 'Sign In';
+      }
+    }
+
+    document.getElementById('loginForm').addEventListener('submit', handleLogin);
+  </script>
+
+</body>
+</html>

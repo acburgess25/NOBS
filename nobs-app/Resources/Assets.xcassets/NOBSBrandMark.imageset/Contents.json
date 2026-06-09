@@ -1,0 +1,23 @@
+{
+  "images": [
+    {
+      "filename": "nobs-mark-128.png",
+      "idiom": "universal",
+      "scale": "1x"
+    },
+    {
+      "filename": "nobs-mark-256.png",
+      "idiom": "universal",
+      "scale": "2x"
+    },
+    {
+      "filename": "nobs-mark-512.png",
+      "idiom": "universal",
+      "scale": "3x"
+    }
+  ],
+  "info": {
+    "author": "xcode",
+    "version": 1
+  }
+}

@@ -1,0 +1,11 @@
+# Homepage settings.yaml
+title: NOBS Homelab Portal
+theme: dark
+color: slate
+cardWidth: lg
+
+# Headers and system widgets
+headerStyle: clean
+showCpu: true
+showMem: true
+showDisk: true

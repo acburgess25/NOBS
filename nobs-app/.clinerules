@@ -1,0 +1,31 @@
+# Cline System Rules & Codebase Conventions (NOBS Project)
+
+You are an autonomous AI software engineer specializing in iOS, DevOps, and local AI agent tooling. Follow these rules strictly when operating inside this repository:
+
+---
+
+## 🧭 Context Retrieval & Obsidian MCP Rules
+1. **Query Vault Memory**: Before implementing new features, major refactors, or writing architectural files, you **must** invoke the `obsidian` MCP tool to search the vault `/Users/alexburgess/Library/Mobile Documents/com~apple~CloudDocs/NOBS/04-Memories` for existing design decisions, prompt histories, or backend structures.
+2. **Context Checks**: Read the memory index `00-Memory-Index.md` or consolidation logs if you need to understand network ports or API endpoints for custom services.
+
+---
+
+## 🛠️ iOS Compilation & Test Guidelines
+1. **Native Mac Compiling**: You are running in a native macOS shell. To compile the iOS target, run:
+   ```bash
+   xcodebuild -project NOBS.xcodeproj -scheme NOBS -configuration Debug -sdk iphonesimulator clean build
+   ```
+2. **Xcode Errors**: If the compilation fails, parse the stdout build logs, locate the specific file and line number causing the error, modify the file, and rebuild. Repeat this loop until the app builds cleanly.
+3. **Swift Style**:
+   - Prefer modern concurrency (`async/await`) over legacy closures/completion handlers.
+   - Avoid force unwraps (`!`). Use `if let` or `guard let` with explicit log error fallbacks.
+   - Separate concerns: Keep UI logic inside SwiftUI View elements separate from data/network structures.
+
+---
+
+## 🔌 API & Integration Context
+* **Local Router (LiteLLM)**: Tank runs a LiteLLM gateway on port `4000`. Custom endpoints should route through `http://100.96.97.50:4000/v1` or `http://tank.tailscale:4000/v1`.
+* **API Endpoints**:
+  - Voice Chat / Memories API: `nobs-memories-api` (Port `8090`).
+  - LLM Router: Port `4000`.
+  - Ollama host service: Port `11434` (on Tank's host network).

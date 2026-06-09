@@ -1,0 +1,27 @@
+services:
+  nobs-api:
+    build:
+      context: ./api
+    container_name: nobs-api
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:18080:8080"
+    environment:
+      NOBS_DATA_DIR: /data
+      NOBS_JWT_SECRET: ${NOBS_JWT_SECRET:?set NOBS_JWT_SECRET}
+      NOBS_BOOTSTRAP_USERNAME: ${NOBS_BOOTSTRAP_USERNAME:-alex}
+      NOBS_BOOTSTRAP_PASSWORD: ${NOBS_BOOTSTRAP_PASSWORD:-}
+      NOBS_EXEC_TOKEN: ${NOBS_EXEC_TOKEN:-}
+      OLLAMA_URL: ${OLLAMA_URL:-http://host.docker.internal:11434}
+      LITELLM_URL: ${LITELLM_URL:-http://host.docker.internal:4000}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./data/api:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/healthz', timeout=3).read()"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+

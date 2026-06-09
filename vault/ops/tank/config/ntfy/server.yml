@@ -1,0 +1,23 @@
+# ntfy server configuration
+# Self-hosted push notification server for NOBS homelab agent
+
+base-url: "http://100.96.97.50:5050"
+
+# Listener
+listen-http: ":5050"
+
+# Storage — persists messages so iPhone gets them even when app is backgrounded
+cache-file: "/var/lib/ntfy/cache.db"
+cache-duration: "24h"
+
+# Attachments (for sending screenshots/context with proposals)
+attachment-cache-dir: "/var/lib/ntfy/attachments"
+attachment-total-size: "1G"
+attachment-file-size: "10M"
+
+# Auth — single user for your iPhone
+auth-file: "/var/lib/ntfy/auth.db"
+auth-default-access: "deny-all"
+
+# Log
+log-level: "info"

@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>$(DEVELOPMENT_LANGUAGE)</string>
+    <key>CFBundleExecutable</key>
+    <string>$(EXECUTABLE_NAME)</string>
+    <key>CFBundleIdentifier</key>
+    <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleName</key>
+    <string>$(PRODUCT_NAME)</string>
+    <key>CFBundlePackageType</key>
+    <string>$(PRODUCT_BUNDLE_PACKAGE_TYPE)</string>
+    <key>CFBundleShortVersionString</key>
+    <string>$(MARKETING_VERSION)</string>
+    <key>CFBundleVersion</key>
+    <string>$(CURRENT_PROJECT_VERSION)</string>
+    <key>CFBundleDisplayName</key>
+    <string>NOBS</string>
+    <key>CFBundleIconName</key>
+    <string>AppIcon</string>
+    <key>CFBundleIcons</key>
+    <dict>
+        <key>CFBundlePrimaryIcon</key>
+        <dict>
+            <key>CFBundleIconFiles</key>
+            <array>
+                <string>AppIcon20x20</string>
+                <string>AppIcon29x29</string>
+                <string>AppIcon40x40</string>
+                <string>AppIcon60x60</string>
+            </array>
+            <key>CFBundleIconName</key>
+            <string>AppIcon</string>
+        </dict>
+    </dict>
+    <key>CFBundleIcons~ipad</key>
+    <dict>
+        <key>CFBundlePrimaryIcon</key>
+        <dict>
+            <key>CFBundleIconFiles</key>
+            <array>
+                <string>AppIcon20x20</string>
+                <string>AppIcon29x29</string>
+                <string>AppIcon40x40</string>
+                <string>AppIcon76x76</string>
+                <string>AppIcon83.5x83.5</string>
+            </array>
+            <key>CFBundleIconName</key>
+            <string>AppIcon</string>
+        </dict>
+    </dict>
+    <key>LSRequiresIPhoneOS</key>
+    <true/>
+
+    <!-- ── Live Activities ───────────────────────────────────────────── -->
+    <key>NSSupportsLiveActivities</key>
+    <true/>
+
+    <!-- ── Network Security ───────────────────────────────────────────── -->
+    <key>NSAppTransportSecurity</key>
+    <dict>
+        <key>NSAllowsLocalNetworking</key>
+        <true/>
+        <key>NSExceptionDomains</key>
+        <dict>
+            <key>192.168.0.77</key>
+            <dict>
+                <key>NSExceptionAllowsInsecureHTTPLoads</key>
+                <true/>
+                <key>NSIncludesSubdomains</key>
+                <false/>
+            </dict>
+        </dict>
+    </dict>
+
+    <!-- ── Scene & UI ─────────────────────────────────────────────────── -->
+    <key>UIApplicationSceneManifest</key>
+    <dict>
+        <key>UIApplicationSupportsMultipleScenes</key>
+        <false/>
+    </dict>
+    <key>UILaunchScreen</key>
+    <dict/>
+    <key>UISupportedInterfaceOrientations</key>
+    <array>
+        <string>UIInterfaceOrientationPortrait</string>
+        <string>UIInterfaceOrientationLandscapeLeft</string>
+        <string>UIInterfaceOrientationLandscapeRight</string>
+        <string>UIInterfaceOrientationPortraitUpsideDown</string>
+    </array>
+
+    <!-- ── Background Modes ───────────────────────────────────────────── -->
+    <!-- audio: keep voice sessions alive in background              -->
+    <!-- fetch: let the AI refresh data periodically                 -->
+    <!-- remote-notification: receive push notifications instantly   -->
+    <!-- processing: heavy AI/sync work via BGTaskScheduler          -->
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>audio</string>
+        <string>fetch</string>
+        <string>remote-notification</string>
+        <string>processing</string>
+    </array>
+
+    <!-- ── Background Task Identifiers ───────────────────────────── -->
+    <key>BGTaskSchedulerPermittedIdentifiers</key>
+    <array>
+        <string>com.nobsdash.nobs.sync</string>
+        <string>com.nobsdash.nobs.ai-refresh</string>
+    </array>
+
+    <!-- ── Privacy Usage Descriptions ────────────────────────────── -->
+
+    <!-- Already in use -->
+    <key>NSMicrophoneUsageDescription</key>
+    <string>NOBS uses the microphone for encrypted voice conversations with your AI assistant.</string>
+
+    <key>NSFaceIDUsageDescription</key>
+    <string>NOBS uses Face ID to keep your personal assistant secure.</string>
+
+    <key>NSHomeKitUsageDescription</key>
+    <string>NOBS uses HomeKit to let your AI assistant control your smart home devices.</string>
+
+    <key>NSRemindersUsageDescription</key>
+    <string>NOBS uses Reminders to create and manage your tasks through your AI assistant.</string>
+
+    <!-- New capabilities -->
+    <key>NSHealthShareUsageDescription</key>
+    <string>NOBS reads your health data so your AI assistant can provide personalized wellness insights.</string>
+
+    <key>NSHealthUpdateUsageDescription</key>
+    <string>NOBS can log health data on your behalf when you ask your AI assistant to.</string>
+
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>NOBS uses your location to provide local weather, nearby places, and location-aware AI responses.</string>
+
+    <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+    <string>NOBS uses your location in the background to send proactive AI suggestions based on where you are.</string>
+
+    <key>NFCReaderUsageDescription</key>
+    <string>NOBS uses NFC to let you trigger AI automations by tapping smart tags.</string>
+
+    <key>NSCalendarsUsageDescription</key>
+    <string>NOBS reads your calendar so your AI assistant can help you manage your schedule.</string>
+
+    <key>NSCalendarsWriteOnlyAccessUsageDescription</key>
+    <string>NOBS creates calendar events when you ask your AI assistant to schedule something.</string>
+
+    <key>NSContactsUsageDescription</key>
+    <string>NOBS reads your contacts so your AI assistant can help you communicate with the people in your life.</string>
+
+    <key>NSSpeechRecognitionUsageDescription</key>
+    <string>NOBS uses speech recognition to transcribe your voice commands to your AI assistant.</string>
+
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>NOBS can access your photos when you ask your AI assistant to help with images.</string>
+
+    <key>NSUserTrackingUsageDescription</key>
+    <string>NOBS does not track you. This permission is requested only if a future feature requires it.</string>
+
+</dict>
+</plist>

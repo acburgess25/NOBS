@@ -1,0 +1,27 @@
+# Syncthing
+.stfolder
+.stversions
+
+# OS metadata
+.DS_Store
+._*
+.Spotlight-V100
+.Trashes
+
+# Obsidian system & caches
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+.obsidian/cache/
+.obsidian/backups/
+
+# IDEs & Editors
+.idea/
+.vscode/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Aider history
+.aider*
+

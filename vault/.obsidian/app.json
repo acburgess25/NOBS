@@ -1,0 +1,24 @@
+{
+  "vimMode": false,
+  "autoPairBrackets": true,
+  "autoConvertHtml": false,
+  "newNoteTemplate": "",
+  "newFileFolderPath": "Inbox",
+  "promptDelete": true,
+  "alwaysUpdateLinks": true,
+  "useTab": true,
+  "lineLength": 0,
+  "readableLineLength": true,
+  "strictLineBreaks": false,
+  "showFrontmatter": false,
+  "showLineNumber": false,
+  "useMarkdownLinks": true,
+  "fileSortOrder": "alphabetical",
+  "obsidianCss": true,
+  "translatedLanguage": "en",
+  "translationExportFormat": "en",
+  "userIgnoreFilters": [
+    "**/._*",
+    "**/.*"
+  ]
+}

@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy — NOBS</title>
+  
+  <link rel="stylesheet" href="system.css">
+  
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background-color: #0c0a09;
+      font-family: var(--font-family);
+      color: var(--text-primary);
+      line-height: 1.7;
+      padding: 60px 24px 100px;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* Ambient glows */
+    .glow-container {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      pointer-events: none;
+      z-index: 1;
+      overflow: hidden;
+    }
+    .glow-spot {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(140px);
+      opacity: 0.07;
+      animation: floatGlow 30s ease-in-out infinite;
+    }
+    .glow-amber {
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, var(--primary-color) 0%, transparent 70%);
+      top: -15%; left: 10%;
+    }
+    .glow-sage {
+      width: 500px; height: 500px;
+      background: radial-gradient(circle, var(--secondary-color) 0%, transparent 70%);
+      bottom: -15%; right: 10%;
+    }
+    @keyframes floatGlow {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      50% { transform: translate(50px, 80px) scale(1.2); }
+    }
+
+    .container {
+      max-width: 760px;
+      margin: 0 auto;
+      position: relative;
+      z-index: 10;
+    }
+
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      color: var(--text-muted);
+      text-decoration: none;
+      text-transform: uppercase;
+      margin-bottom: 40px;
+      padding: 6px 12px;
+      border: 1px solid rgba(255,255,255,0.03);
+      background: rgba(255,255,255,0.01);
+      border-radius: 8px;
+      transition: all var(--transition-fast);
+    }
+    .logo:hover {
+      color: var(--primary-color);
+      border-color: rgba(217,119,6,0.2);
+      background: rgba(217,119,6,0.05);
+      transform: translateY(-1px);
+    }
+
+    .badge {
+      display: inline-block;
+      background: rgba(17, 231, 183, 0.08);
+      border: 1px solid rgba(17, 231, 183, 0.18);
+      color: #11E7B7;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 4px 12px;
+      border-radius: 9999px;
+      margin-bottom: 24px;
+    }
+
+    .document-card {
+      background: rgba(255, 255, 255, 0.015);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 56px 48px;
+      box-shadow: var(--shadow-xl);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .document-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(180deg, rgba(255,255,255,0.02) 0%, transparent 100%);
+      pointer-events: none;
+    }
+
+    h1 {
+      font-size: clamp(28px, 5vw, 42px);
+      font-weight: 800;
+      color: var(--text-primary);
+      margin-bottom: 8px;
+      letter-spacing: -0.04em;
+      line-height: 1.15;
+    }
+
+    .updated {
+      font-family: var(--font-mono);
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-bottom: 48px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    h2 {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--text-primary);
+      margin: 44px 0 16px;
+      letter-spacing: -0.02em;
+    }
+
+    p {
+      color: var(--text-secondary);
+      margin-bottom: 20px;
+    }
+
+    ul {
+      color: var(--text-secondary);
+      list-style-type: none;
+      padding-left: 0;
+      margin-bottom: 24px;
+    }
+
+    li {
+      margin-bottom: 12px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+
+    li strong {
+      color: var(--text-primary);
+    }
+
+    .bullet {
+      font-family: var(--font-mono);
+      font-weight: 700;
+      color: var(--secondary-color);
+      flex-shrink: 0;
+    }
+
+    .bullet-neg {
+      color: #f87171;
+    }
+
+    .highlight {
+      color: var(--primary-color);
+      font-weight: 600;
+    }
+
+    a {
+      color: var(--primary-color);
+      text-decoration: none;
+      font-weight: 600;
+      transition: color var(--transition-fast);
+    }
+    a:hover {
+      color: var(--white);
+      text-decoration: underline;
+    }
+
+    hr {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 48px 0;
+    }
+
+    footer {
+      color: var(--text-muted);
+      font-size: 13px;
+      font-family: var(--font-mono);
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    @media (max-width: 600px) {
+      .document-card { padding: 36px 24px; }
+      body { padding: 32px 16px; }
+    }
+  </style>
+  <script
+    src="https://browser.sentry-cdn.com/7.119.2/bundle.min.js"
+    crossorigin="anonymous"
+  ></script>
+  <script>
+    Sentry.init({
+      dsn: "https://6047954c3f49575243c2487679456dbf@o4511447752048640.ingest.us.sentry.io/4511447778787328",
+      tracesSampleRate: 0.1,
+      environment: "production",
+      release: "nobsdash@1.0",
+    });
+  </script>
+</head>
+<body>
+
+  <!-- Floating Ambient Glow System -->
+  <div class="glow-container">
+    <div class="glow-spot glow-amber"></div>
+    <div class="glow-spot glow-sage"></div>
+  </div>
+
+  <div class="container">
+    <a href="/" class="logo">NOBS ↗</a>
+
+    <div class="document-card">
+      <div class="badge">Privacy Protocol</div>
+
+      <h1>Your data stays yours.<br>Period.</h1>
+      <p class="updated">Last updated: May 2025</p>
+
+      <p>NOBS is built on a single premise: <span class="highlight">your personal AI assistant should never need to see your data</span>. All AI processing happens on your device or on your own private server. Nothing leaves your control.</p>
+
+      <h2>Information We Collect</h2>
+      <p>NOBS collects no personal data on our servers. When you grant permissions, all data stays on your device:</p>
+      
+      <ul>
+        <li>
+          <span class="bullet">[✓]</span>
+          <div><strong>Microphone</strong> — voice input for AI conversations, processed locally</div>
+        </li>
+        <li>
+          <span class="bullet">[✓]</span>
+          <div><strong>HomeKit</strong> — smart home control, never transmitted externally</div>
+        </li>
+        <li>
+          <span class="bullet">[✓]</span>
+          <div><strong>Reminders &amp; Calendar</strong> — scheduling assistance, stored on-device</div>
+        </li>
+        <li>
+          <span class="bullet">[✓]</span>
+          <div><strong>Contacts</strong> — people-aware responses, read locally only</div>
+        </li>
+        <li>
+          <span class="bullet">[✓]</span>
+          <div><strong>Health</strong> — wellness insights, never leaves your device</div>
+        </li>
+        <li>
+          <span class="bullet">[✓]</span>
+          <div><strong>Location</strong> — context-aware responses, not logged or stored</div>
+        </li>
+        <li>
+          <span class="bullet">[✓]</span>
+          <div><strong>Photos</strong> — image analysis only when you explicitly share a photo</div>
+        </li>
+      </ul>
+      <p>All permissions are optional. NOBS functions without them.</p>
+
+      <h2>What We Don't Do</h2>
+      <ul>
+        <li>
+          <span class="bullet bullet-neg">[-]</span>
+          <div>We do <strong>not</strong> send your conversations to any cloud service.</div>
+        </li>
+        <li>
+          <span class="bullet bullet-neg">[-]</span>
+          <div>We do <strong>not</strong> collect analytics, usage data, or behavioral signals.</div>
+        </li>
+        <li>
+          <span class="bullet bullet-neg">[-]</span>
+          <div>We do <strong>not</strong> sell or share your data with any third party.</div>
+        </li>
+        <li>
+          <span class="bullet bullet-neg">[-]</span>
+          <div>We do <strong>not</strong> require account creation.</div>
+        </li>
+        <li>
+          <span class="bullet bullet-neg">[-]</span>
+          <div>We do <strong>not</strong> use advertising or tracking SDKs.</div>
+        </li>
+      </ul>
+
+      <h2>How AI Processing Works</h2>
+      <p>NOBS runs AI models on-device using Apple's Neural Engine or connects to your own private local server (e.g. on your home network). No Anthropic, OpenAI, or other third-party AI API is called. <span class="highlight">Your conversations never touch anyone else's infrastructure.</span></p>
+
+      <h2>Data Storage</h2>
+      <p>Conversation history and preferences are stored in your device's local storage (Core Data / iCloud if you enable it). iCloud sync, if used, is protected by Apple's end-to-end encryption.</p>
+
+      <h2>In-App Purchases</h2>
+      <p>NOBS Pro is purchased through Apple's App Store. We never see or handle your payment information — all transactions are handled entirely by Apple.</p>
+
+      <h2>Children</h2>
+      <p>NOBS is not directed at children under 13. We do not knowingly collect information from children.</p>
+
+      <h2>Changes to This Policy</h2>
+      <p>We may update this policy as the app evolves. Significant changes will be noted in the App Store release notes. Continued use of the app constitutes acceptance of the updated policy.</p>
+
+      <h2>Contact</h2>
+      <p>Questions about privacy? We're reachable at <a href="mailto:11ee990000@gmail.com?subject=NOBS%20Support">support@nobsdash.com</a></p>
+
+      <hr>
+
+      <footer>
+        <div>&copy; 2026 NOBS</div>
+        <div><a href="https://nobsdash.com">nobsdash.com</a></div>
+      </footer>
+    </div>
+  </div>
+
+</body>
+</html>
