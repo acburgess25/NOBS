@@ -93,6 +93,7 @@ See full details in:
 
 - Approved product decisions: [`docs/PRODUCT_DECISIONS.md`](docs/PRODUCT_DECISIONS.md)
 - Shared Codex / Claude Code / Antigravity workflow: [`docs/AI_WORKFLOW.md`](docs/AI_WORKFLOW.md)
+- WWDC26 architecture impact and technical priorities: [`docs/WWDC26_IMPACT.md`](docs/WWDC26_IMPACT.md)
 - Product + architecture map: [`docs/PRD.md`](docs/PRD.md)
 - Apple framework integration plan: [`docs/NOBS_Apple_Integration_Map.md`](docs/NOBS_Apple_Integration_Map.md)
 - Backend phased build spec: [`docs/NOBS_TANK_BUILD.md`](docs/NOBS_TANK_BUILD.md)

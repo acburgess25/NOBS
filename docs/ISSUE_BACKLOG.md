@@ -14,6 +14,12 @@ This backlog is organized into epics and implementation-ready tasks with concise
 - `infra`
 - `docs`
 - `security`
+- `privacy`
+- `research`
+- `media`
+- `qa`
+- `accessibility`
+- `product`
 - `mvp`
 - `phase-1`
 - `phase-2`
@@ -259,13 +265,101 @@ Acceptance criteria:
 
 ## Suggested First Sprint (Top Priority)
 
-1. Issue 1 (backend skeleton)
-2. Issue 3 (`/health`)
-3. Issue 6 (Ollama client)
-4. Issue 8 (Apple token verification)
-5. Issue 13 (RevenueCat webhook endpoint)
-6. Issue 16 (`/research` gated stub)
-7. Issue 18 (systemd service)
+1. Issue 29 (Foundation Models routing spike)
+2. Issue 30 (App Schema and intent inventory)
+3. Issue 31 (evaluation harness)
+4. Issue 32 (agent-security threat model)
+5. Issue 1 (backend skeleton)
+6. Issue 3 (`/health`)
+7. Issue 6 (Ollama client)
+
+---
+
+## Epic 9 — WWDC26 Architecture Adoption
+
+### 29. Prototype Foundation Models routing
+**Labels:** ios, backend, security, mvp, phase-1
+
+Acceptance criteria:
+- stable NOBS request/response contract defined
+- on-device and mock Tank/provider routes demonstrated
+- route and privacy metadata visible
+- portable contract contains no Apple-only types
+
+### 30. Inventory NOBS App Schemas and App Intents
+**Labels:** ios, docs, mvp, phase-1
+
+Acceptance criteria:
+- MVP actions mapped to schema domains or custom intents
+- confirmation and sensitive-input behavior documented
+- unsupported actions return honest fallback copy
+- validation plan uses AppIntentsTesting
+
+### 31. Establish NOBS evaluation harness
+**Labels:** ios, backend, security, mvp, phase-1
+
+Acceptance criteria:
+- privacy routing, structured output, unsupported-feature honesty, and injection cases included
+- deterministic fixtures run locally and in CI
+- model/provider changes produce comparable results
+
+### 32. Threat-model agentic NOBS features
+**Labels:** security, backend, ios, mvp, phase-1
+
+Acceptance criteria:
+- tool, research-ingestion, App Intent, and generated-skill boundaries reviewed
+- data-flow and trust-boundary diagram created
+- required mitigations become testable backlog items
+
+### 33. Test a specialized model with Core AI
+**Labels:** ios, security, phase-1
+
+Acceptance criteria:
+- representative model imported and invoked
+- supported hardware, memory, latency, and energy measured
+- fallback behavior documented
+
+### 34. Prototype Research Library indexing with Core Spotlight
+**Labels:** ios, research, privacy, phase-1
+
+Acceptance criteria:
+- safe mock topic indexed with source count and updated date
+- Spotlight result deep-links into NOBS
+- sensitive content remains excluded by default
+- deletion removes the index entry
+
+### 35. Prototype remote media with Now Playing
+**Labels:** ios, media, phase-2
+
+Acceptance criteria:
+- mock Tank playback appears on supported system surfaces
+- play/pause state stays synchronized
+- unavailable or unsupported playback is represented honestly
+
+### 36. Create Device Hub QA matrix
+**Labels:** ios, qa, accessibility, phase-1
+
+Acceptance criteria:
+- representative iPhone sizes build and launch
+- Dynamic Type, contrast, reduced motion, offline, and permission states listed
+- screenshot capture is repeatable
+- physical-device-only capabilities identified
+
+### 37. Document Siri AI and NOBS ownership boundaries
+**Labels:** product, ios, docs, phase-1
+
+Acceptance criteria:
+- generic Siri capability is not duplicated without added value
+- explicit Siri-to-NOBS handoff cases defined
+- NOBS differentiators and user-facing explanation documented
+
+### 38. Add WWDC26 final-release audit
+**Labels:** docs, qa, ios, phase-1
+
+Acceptance criteria:
+- beta assumptions rechecked against final SDKs
+- prompts and evaluations rerun against the final Apple model
+- entitlement and regional availability changes documented
 
 ---
 

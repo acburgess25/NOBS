@@ -4,9 +4,9 @@
 
 NOBS is a privacy-first, local AI assistant platform for regular users in the Apple ecosystem. It provides a single conversation interface that becomes context-aware over time, performs useful proactive support, and preserves user trust by minimizing cloud dependence.
 
-NOBS monetizes via a two-tier model:
-- Free local-first tier (on-device inference)
-- Paid NOBScloud tier (hosted consultation path for heavier tasks)
+NOBS routes work transparently across on-device Apple models, user-owned Tank hardware, future NOBSbox hardware, and optional NOBScloud. Core local assistance remains useful for free. Paid services add capability rather than removing privacy or manufacturing hardware limits.
+
+The detailed approved product direction lives in [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md). WWDC26 architecture changes live in [`WWDC26_IMPACT.md`](WWDC26_IMPACT.md).
 
 ---
 
@@ -107,6 +107,26 @@ Context inputs:
 - FastAPI service with health/readiness endpoint
 - research endpoint stub with entitlement gating
 
+### FR-7: Transparent model routing
+- stable NOBS request contract independent of model provider
+- on-device, Tank, and optional NOBScloud routes
+- visible route, fallback reason, and privacy receipt
+
+### FR-8: Siri and system actions
+- App Intents and App Schema adoption for supported NOBS actions
+- deterministic confirmation, offline, and error behavior
+- automated validation with AppIntentsTesting where available
+
+### FR-9: Agent evaluation and safety
+- evaluation cases for privacy, structured output, routing, unsupported-feature honesty, and injection resistance
+- explicit tool permissions and sensitive-data boundaries
+- observable failures without personal-data logging
+
+### FR-10: Research retrieval baseline
+- locally index safe Research Library metadata
+- source-backed mock research entry and deep link
+- sensitive fields excluded from system indexing by default
+
 ---
 
 ## 8. Non-Functional Requirements
@@ -133,7 +153,21 @@ Context inputs:
 
 ## 9. System Architecture (Initial)
 
-Client (iOS) ↔ NOBScloud backend (FastAPI) ↔ local model path (Ollama bridge) + subscription/auth services
+The architecture is a policy-controlled router rather than a fixed client-to-cloud pipeline:
+
+```text
+iPhone chat / Siri / widgets / Live Activities
+                    │
+          NOBS intent + privacy policy
+                    │
+      ┌─────────────┼──────────────┐
+      │             │              │
+Apple local      Tank/NOBSbox   Optional cloud
+Foundation       portable       PCC or NOBScloud
+Models/Core AI   providers      provider
+```
+
+Foundation Models is the preferred Apple-side adapter. The shared NOBS request and response contracts remain platform-neutral for Windows/WSL2 Tank and future NOBSbox implementations.
 
 Key integration services:
 - Sign in with Apple
@@ -146,17 +180,22 @@ Key integration services:
 ## 10. Roadmap
 
 ### Phase 1 — Launch/MVP
-- Foundation Models
-- App Intents + Shortcuts
+- Foundation Models routing spike
+- App Schemas, App Intents, and AppIntentsTesting
+- Core AI feasibility spike
+- Evaluations and agent-security baseline
 - CloudKit memory sync
 - EventKit/HealthKit base context
 - StoreKit 2 + entitlement pipeline
 - Focus Filters
+- Core Spotlight Research Library metadata
+- Live Activities and WidgetKit briefing surfaces
 
 ### Phase 2 — Growth
 - HomeKit
-- WidgetKit
-- Live Activities
+- Home Assistant/Tank translation layer
+- Now Playing remote media sessions
+- MusicKit and optional Music Understanding
 - DeviceActivity
 - WatchKit
 
@@ -202,6 +241,12 @@ Key integration services:
 4. **Scope sprawl across ecosystem ambitions**
    - Mitigation: strict phase gates and out-of-scope enforcement.
 
+5. **Siri AI feature overlap**
+   - Mitigation: use Siri as a distribution surface; protect NOBS differentiation in cross-platform home unification, user-owned compute, sourced research, and transparent routing.
+
+6. **Beta framework and model behavior changes**
+   - Mitigation: isolate Apple adapters, maintain portable contracts, and rerun prompt/evaluation suites against every major beta and final release.
+
 ---
 
 ## 13. Out of Scope (Current Delivery Window)
@@ -227,6 +272,7 @@ Before MVP release candidate:
 
 ## 15. Open Questions
 
-1. Final NOBScloud research-routing policy and model arbitration
-2. Timing and scope for autonomous overnight coding agent integration
-3. Exact iOS implementation sequencing after backend baseline completion
+1. Which Foundation Models dynamic profiles and provider hooks are available under production entitlements?
+2. Which NOBS actions map cleanly to Apple App Schema domains?
+3. What Research Library metadata is safe and useful to expose through Core Spotlight?
+4. Which media services can be represented through remote Now Playing sessions without misleading ownership or playback state?

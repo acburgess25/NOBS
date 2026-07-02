@@ -14,14 +14,16 @@ Primary design constraints:
 - Conversational interface over settings-heavy UX
 - Progressive capability unlocks by context and subscription
 
+WWDC26 changes the implementation order. See [`WWDC26_IMPACT.md`](WWDC26_IMPACT.md) for sources and architectural decisions.
+
 ---
 
 ## Phase 1 — Launch / MVP
 
 **Objective:** Deliver a useful daily assistant loop with local intelligence, actionability, and subscription gating.
 
-### 1) Foundation Models
-**Purpose:** Free-tier local inference and private baseline intelligence.
+### 1) Foundation Models routing layer
+**Purpose:** Free-tier local inference plus a common Apple-side adapter for local, Private Cloud Compute, Core AI, Tank, and server-provider routes.
 
 Use cases:
 - In-chat summarization
@@ -32,8 +34,10 @@ Acceptance criteria:
 - Local model path available offline
 - Sensitive context does not require cloud roundtrip
 - Clear fallback behavior when model unavailable
+- Route, reason, data categories, and privacy receipt are observable
+- Shared request contract remains portable to Windows/WSL2 Tank
 
-### 2) App Intents
+### 2) App Schemas + App Intents
 **Purpose:** Expose NOBS actions to Siri and system surfaces.
 
 Use cases:
@@ -43,8 +47,26 @@ Use cases:
 Acceptance criteria:
 - Core intents registered and discoverable
 - Intents resolve quickly and return user-safe messages
+- Confirmation, offline, and sensitive-input behavior defined
+- Adoption validated with AppIntentsTesting
 
-### 3) Shortcuts
+### 3) Core AI feasibility
+**Purpose:** Evaluate specialized local models that improve privacy, latency, or offline capability.
+
+Acceptance criteria:
+- one representative model imported and profiled
+- supported-device and memory constraints documented
+- fallback path tested
+
+### 4) Evaluations + agent security
+**Purpose:** Make privacy, honesty, routing, and tool safety release gates.
+
+Acceptance criteria:
+- deterministic evaluation fixtures checked into the repo
+- prompt-injection and sensitive-data cases covered
+- model/provider changes cannot ship without evaluation results
+
+### 5) Shortcuts
 **Purpose:** Enable automation workflows and user customization.
 
 Use cases:
@@ -55,7 +77,15 @@ Acceptance criteria:
 - Core NOBS intents callable in Shortcuts app
 - Permission and confirmation boundaries documented
 
-### 4) CloudKit
+### 6) Core Spotlight
+**Purpose:** Search safe Research Library summaries and deep-link into NOBS.
+
+Acceptance criteria:
+- mock sourced topic is searchable locally
+- protected source contents are excluded by default
+- delete and reindex behavior verified
+
+### 7) CloudKit
 **Purpose:** Sync lightweight user memory and preferences via iCloud.
 
 Use cases:
@@ -66,7 +96,7 @@ Acceptance criteria:
 - Sync conflict strategy defined
 - No third-party cloud dependency required for base memory sync
 
-### 5) EventKit + HealthKit
+### 8) EventKit + HealthKit
 **Purpose:** Context signals for proactive assistance.
 
 Use cases:
@@ -77,7 +107,15 @@ Acceptance criteria:
 - Granular user permission handling
 - Clearly explainable use of each signal
 
-### 6) StoreKit 2
+### 9) WidgetKit + Live Activities
+**Purpose:** Surface briefings and active workflows without turning notifications into another inbox.
+
+Acceptance criteria:
+- useful locked and unlocked states
+- privacy-safe redaction
+- Dynamic Type and reduced-motion verification
+
+### 10) StoreKit 2
 **Purpose:** Native subscription purchase and entitlement flow.
 
 Use cases:
@@ -88,7 +126,7 @@ Acceptance criteria:
 - Entitlement checks integrated with backend auth
 - Clear UX for free vs paid capabilities
 
-### 7) Focus Filters
+### 11) Focus Filters
 **Purpose:** Adaptive behavior based on user mode.
 
 Use cases:
@@ -108,6 +146,12 @@ Acceptance criteria:
 ### HomeKit
 - Contextual home automations
 - Occupancy/routine-aware suggestions
+- Apple Home endpoint for the Tank/Home Assistant translation layer
+
+### Now Playing + MusicKit
+- Represent supported Tank or household playback through remote media sessions
+- Continue music, podcasts, and briefings across Apple system surfaces
+- Evaluate Music Understanding without covert mood profiling
 
 ### WidgetKit
 - At-a-glance daily intelligence cards
@@ -177,7 +221,7 @@ One-swipe accessibility can materially increase daily usage.
 
 ## Differentiator to Protect
 
-**App Intents + Shortcuts + local context intelligence**
+**App Intents + user-owned compute + cross-platform home translation + sourced research**
 
 This combination is the moat: NOBS should feel like the operating system got smarter, not like users installed yet another chatbot.
 
