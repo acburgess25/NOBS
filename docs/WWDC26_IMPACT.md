@@ -1,7 +1,9 @@
 # WWDC26 Impact on NOBS
 
-**Status:** Architecture input  
-**Reviewed:** July 1, 2026  
+**Status:** Architecture input
+
+**Reviewed:** July 1, 2026
+
 **Source policy:** Apple announcements, developer documentation, release notes, and WWDC26 sessions only.
 
 ## Executive Decision
