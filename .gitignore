@@ -6,6 +6,8 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 nobs.db
+.build/
+design/qa/
 
 # Machine-local agent and editor state
 CLAUDE.local.md
@@ -15,4 +17,3 @@ CLAUDE.local.md
 .vscode/
 *.xcuserstate
 xcuserdata/
-
