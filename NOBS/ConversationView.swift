@@ -1,14 +1,33 @@
 import SwiftUI
 
+private enum ProcessingRoute: String {
+    case local = "Local"
+    case tank = "Tank"
+    case cloud = "NOBScloud"
+}
+
+private struct ConversationEntry: Identifiable {
+    enum Role {
+        case user
+        case assistant
+    }
+
+    let id = UUID()
+    let role: Role
+    let text: String
+    let route: ProcessingRoute?
+}
+
 struct ConversationView: View {
     private let accent = Color(red: 0.31, green: 0.43, blue: 0.20)
     private let canvas = Color(red: 0.975, green: 0.968, blue: 0.945)
 
     @State private var draft = ""
-    @State private var sentMessages: [String] = []
+    @State private var entries: [ConversationEntry] = []
     @State private var isListening = false
     @State private var showSynopsis = false
     @State private var showAddMenu = false
+    @State private var showProcessingDetails = false
 
     private let suggestions = [
         "Summarize my unread emails",
@@ -31,18 +50,25 @@ struct ConversationView: View {
                             userMessage("What’s on my agenda today?")
                             agenda
 
-                            ForEach(Array(sentMessages.enumerated()), id: \.offset) { index, message in
-                                userMessage(message)
-                                    .id(index)
+                            ForEach(entries) { entry in
+                                Group {
+                                    switch entry.role {
+                                    case .user:
+                                        userMessage(entry.text)
+                                    case .assistant:
+                                        assistantMessage(entry.text, route: entry.route ?? .local)
+                                    }
+                                }
+                                .id(entry.id)
                             }
                         }
                         .padding(.horizontal, 20)
                         .padding(.bottom, 18)
                     }
-                    .onChange(of: sentMessages.count) { _, _ in
-                        guard let last = sentMessages.indices.last else { return }
+                    .onChange(of: entries.count) { _, _ in
+                        guard let last = entries.last else { return }
                         withAnimation(.easeOut(duration: 0.25)) {
-                            proxy.scrollTo(last, anchor: .bottom)
+                            proxy.scrollTo(last.id, anchor: .bottom)
                         }
                     }
                 }
@@ -52,36 +78,47 @@ struct ConversationView: View {
             }
         }
         .confirmationDialog("Add context", isPresented: $showAddMenu) {
-            Button("Choose a photo") {}
-            Button("Attach a document") {}
-            Button("Share my location") {}
+            Button("Choose a photo") { explainComingSoon("Photo context") }
+            Button("Attach a document") { explainComingSoon("Document context") }
+            Button("Share my location") { explainComingSoon("Location sharing") }
             Button("Cancel", role: .cancel) {}
+        }
+        .alert("Processing locally", isPresented: $showProcessingDetails) {
+            Button("Done", role: .cancel) {}
+        } message: {
+            Text("This preview uses only on-device sample data. Nothing is sent to Tank or NOBScloud.")
         }
     }
 
     private var header: some View {
-        VStack(spacing: 14) {
+        VStack(spacing: 10) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("NOBS")
                         .font(.system(size: 30, weight: .regular, design: .rounded))
                         .foregroundStyle(Color(red: 0.08, green: 0.15, blue: 0.08))
 
-                    Label("Local · Private · Yours", systemImage: "circle.fill")
-                        .font(.system(size: 12, weight: .regular))
-                        .foregroundStyle(.secondary)
-                        .labelStyle(.titleAndIcon)
-                        .symbolRenderingMode(.monochrome)
+                    HStack(spacing: 7) {
+                        Image(systemName: "circle.fill")
+                            .font(.system(size: 7))
+                            .foregroundStyle(accent)
+                        Text("Local · Private · Yours")
+                            .foregroundStyle(.secondary)
+                    }
+                    .font(.system(size: 12, weight: .regular))
                 }
 
                 Spacer()
 
-                Label("Processing locally", systemImage: "checkmark.circle")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundStyle(accent)
-                    .padding(.horizontal, 11)
-                    .padding(.vertical, 7)
-                    .background(accent.opacity(0.10), in: RoundedRectangle(cornerRadius: 10))
+                Button { showProcessingDetails = true } label: {
+                    Label("Processing locally", systemImage: "checkmark.circle")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(accent)
+                        .padding(.horizontal, 11)
+                        .padding(.vertical, 7)
+                        .background(accent.opacity(0.10), in: RoundedRectangle(cornerRadius: 10))
+                }
+                .buttonStyle(.plain)
             }
 
             Divider().overlay(Color.black.opacity(0.10))
@@ -90,7 +127,7 @@ struct ConversationView: View {
     }
 
     private var introduction: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 8) {
             Text("Good morning, Alex.")
                 .font(.system(size: 21, weight: .medium, design: .serif))
                 .foregroundStyle(Color(red: 0.08, green: 0.12, blue: 0.08))
@@ -100,8 +137,8 @@ struct ConversationView: View {
         }
         .font(.system(size: 14, weight: .regular))
         .foregroundStyle(.secondary)
-        .lineSpacing(3)
-        .padding(.top, 18)
+        .lineSpacing(2)
+        .padding(.top, 11)
     }
 
     private var morningHighlight: some View {
@@ -113,7 +150,7 @@ struct ConversationView: View {
                     .fill(accent)
                     .frame(width: 2)
 
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: 9) {
                     Label("Morning highlight", systemImage: "sun.max")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundStyle(accent)
@@ -139,7 +176,7 @@ struct ConversationView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .padding(.top, 18)
+        .padding(.top, 11)
     }
 
     private var dayDivider: some View {
@@ -150,7 +187,7 @@ struct ConversationView: View {
                 .foregroundStyle(.tertiary)
             Rectangle().fill(Color.black.opacity(0.10)).frame(height: 1)
         }
-        .padding(.vertical, 18)
+        .padding(.vertical, 11)
     }
 
     private func userMessage(_ message: String) -> some View {
@@ -166,11 +203,28 @@ struct ConversationView: View {
                 .foregroundStyle(.tertiary)
         }
         .frame(maxWidth: .infinity, alignment: .trailing)
-        .padding(.bottom, 14)
+        .padding(.bottom, 8)
+    }
+
+    private func assistantMessage(_ message: String, route: ProcessingRoute) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(message)
+                .font(.system(size: 14))
+                .foregroundStyle(.primary)
+                .lineSpacing(3)
+
+            Label(route.rawValue, systemImage: route == .local ? "iphone" : "server.rack")
+                .font(.system(size: 11, weight: .medium))
+                .foregroundStyle(accent)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, 6)
+        .padding(.bottom, 18)
+        .transition(.opacity.combined(with: .move(edge: .bottom)))
     }
 
     private var agenda: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 8) {
             Text("Here’s your day at a glance.")
                 .font(.system(size: 14))
 
@@ -190,7 +244,7 @@ struct ConversationView: View {
                 .foregroundStyle(accent)
                 .frame(width: 82, alignment: .leading)
 
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: 1) {
                 Text(title).font(.system(size: 14, weight: .medium))
                 Text(detail).font(.system(size: 12)).foregroundStyle(.secondary)
             }
@@ -275,7 +329,71 @@ struct ConversationView: View {
     private func send(_ message: String) {
         let clean = message.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !clean.isEmpty else { return }
-        withAnimation(.easeOut) { sentMessages.append(clean) }
+        withAnimation(.easeOut) {
+            entries.append(ConversationEntry(role: .user, text: clean, route: nil))
+        }
+
+        let reply = response(for: clean)
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(350))
+            withAnimation(.easeOut) {
+                entries.append(reply)
+            }
+        }
+    }
+
+    private func response(for message: String) -> ConversationEntry {
+        let normalized = message.lowercased()
+
+        if normalized.contains("google") || normalized.contains("alexa") || normalized.contains("amazon") {
+            return ConversationEntry(
+                role: .assistant,
+                text: "Full Google Home and Alexa unification is coming soon. Today I can help you plan the routine and prepare its Apple Home version.",
+                route: .tank
+            )
+        }
+
+        if normalized.contains("email") {
+            return ConversationEntry(
+                role: .assistant,
+                text: "Email summaries are coming soon. I can help you define which senders and commitments should count as important without reading any mail yet.",
+                route: .local
+            )
+        }
+
+        if normalized.contains("note") {
+            return ConversationEntry(
+                role: .assistant,
+                text: "Notes access is coming soon. When enabled, I’ll ask before searching and show exactly which notes contributed to an answer.",
+                route: .local
+            )
+        }
+
+        if normalized.contains("tomorrow") || normalized.contains("calendar") {
+            return ConversationEntry(
+                role: .assistant,
+                text: "Calendar access isn’t connected in this preview. Coming soon, I’ll ask for EventKit permission in context and build a realistic plan from your actual schedule.",
+                route: .local
+            )
+        }
+
+        return ConversationEntry(
+            role: .assistant,
+            text: "I can work through that with you. This preview keeps the conversation local and uses sample context while the live model router is being built.",
+            route: .local
+        )
+    }
+
+    private func explainComingSoon(_ feature: String) {
+        withAnimation(.easeOut) {
+            entries.append(
+                ConversationEntry(
+                    role: .assistant,
+                    text: "\(feature) is coming soon. Nothing was shared. For now, you can describe the context in chat and I’ll keep it local.",
+                    route: .local
+                )
+            )
+        }
     }
 }
 
