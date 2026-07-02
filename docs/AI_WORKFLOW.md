@@ -1,0 +1,182 @@
+# NOBS Agent Workflow
+
+This is the canonical collaboration guide for every coding agent and every operating system. Tool-specific files must point here instead of copying these rules.
+
+## Start Here
+
+Before changing code:
+
+1. Read [`docs/PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md). It is the approved product source of truth.
+2. Read the relevant implementation document under `docs/`.
+3. Run `git status --short --branch` and `git pull --ff-only`.
+4. Inspect nearby code and tests before proposing a new pattern.
+5. State the intended files, validation, and branch before making broad changes.
+
+If a request conflicts with `PRODUCT_DECISIONS.md`, stop and ask whether the product decision should be superseded. Do not silently reinterpret it.
+
+## Repository Shape
+
+- `NOBS/`: iPhone SwiftUI application.
+- `NOBS.xcodeproj/`: Xcode project metadata.
+- `app/`: FastAPI backend and Tank-facing services.
+- `tests/`: backend tests.
+- `design/`: approved visual references.
+- `docs/`: product decisions, architecture, roadmap, and build specifications.
+
+The iPhone app is built on macOS with Xcode. Backend and Tank work must remain runnable from Windows/WSL2 and macOS where practical.
+
+## Shared Git Protocol
+
+GitHub is the synchronization layer between Codex, Claude Code, Antigravity, the Mac, and the Windows Tank.
+
+### Before work
+
+```bash
+git status --short --branch
+git fetch origin
+git pull --ff-only
+```
+
+Never begin by force-resetting, deleting, or overwriting another agent's uncommitted work.
+
+### Branch ownership
+
+- Use one branch per task: `codex/<task>`, `claude/<task>`, `antigravity/<task>`, or `human/<task>`.
+- Continue an existing branch only when the user explicitly wants the same body of work.
+- Prefer a separate Git worktree when two agents may run concurrently.
+- Never let two agents edit the same working tree at the same time.
+- Never force-push shared branches unless the user explicitly approves it.
+
+### Commits and handoff
+
+- Keep commits small, coherent, and tool-neutral.
+- Commit messages describe the outcome, not the agent that produced it.
+- Push before switching machines or agents.
+- Leave a concise PR comment or final message with branch, commit, checks, and remaining work.
+- Do not commit generated local memory, credentials, caches, IDE state, or machine-specific paths.
+
+### Safe integration
+
+- Pull with `--ff-only`; do not hide divergence with an automatic merge.
+- Rebase a private task branch only after checking that no other agent is using it.
+- Resolve conflicts from product truth and tests, not by choosing “ours” or “theirs” wholesale.
+- Merge through a pull request whenever practical.
+
+## Source-of-Truth Order
+
+When instructions disagree, use this order:
+
+1. The user's current explicit request.
+2. [`docs/PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md).
+3. Relevant architecture or build document under `docs/`.
+4. Existing tests and established implementation patterns.
+5. This workflow.
+6. Tool-specific adapter files.
+
+Tool-specific memory and chat history are hints, not shared project truth.
+
+## Product Rules That Must Survive Every Implementation
+
+- NOBS is local-first, privacy-first, and useful without a paid cloud plan.
+- Chat is the home of the product; settings and adaptation happen conversationally.
+- Do not claim an unfinished capability works. Explain that it is coming soon and offer the closest available action.
+- Passwords and financial accounts are off-limits.
+- Sensitive data use must be contextual, visible, and approved.
+- Processing must be identifiable as Local, Tank, or NOBScloud.
+- Automation must be visible, revocable, auditable, and reversible where possible.
+- Do not create lock-in, artificial hardware limits, surveillance, or data monetization.
+- Accessibility is adaptive product behavior, not a separate diminished mode.
+
+## Security and Privacy
+
+- Never commit `.env`, keys, tokens, certificates, personal data, production logs, or database files.
+- Use `.env.example` only for blank or clearly fake values.
+- Treat calendar, messages, contacts, health, location, home, research, and memory as sensitive.
+- Minimize collection and retention.
+- Do not transmit user data to a third party unless the feature and permission explicitly require it.
+- New integrations require declared permissions, network destinations, failure behavior, and tests.
+- High-risk home controls, purchases, external messages, deletion, admin access, and secret access require explicit safeguards.
+
+## Implementation Standards
+
+### Swift and SwiftUI
+
+- Use current Apple frameworks and Swift concurrency.
+- Prefer native SwiftUI components and SF Symbols.
+- Keep views small and extract stateful behavior into testable models or services.
+- Support Dynamic Type, VoiceOver, reduced motion, sufficient contrast, and non-color state indicators.
+- Keep preview/sample data free of real personal information.
+- Do not add a dependency when an Apple framework cleanly solves the problem.
+
+### Python and FastAPI
+
+- Require Python 3.11 or newer.
+- Keep configuration centralized in `app/config.py`.
+- Validate external input with typed models.
+- Keep routes thin; place business logic in testable modules.
+- Use explicit timeouts and bounded retries for network or model calls.
+- Log failures clearly without logging secrets or personal content.
+- Preserve deterministic health, auth, and entitlement behavior.
+
+### Cross-platform behavior
+
+- Use repository-relative paths in code and documentation.
+- Use UTF-8 and LF line endings; Git handles platform checkout behavior through `.gitattributes`.
+- Do not commit macOS-only user data, Xcode user schemes, Windows drive paths, or WSL-specific addresses as universal defaults.
+- Put environment differences behind configuration and document both macOS and Windows/WSL2 commands.
+
+## Validation
+
+Run the narrowest relevant checks before handing off.
+
+### Backend
+
+```bash
+python -m venv .venv
+python -m pip install -e ".[dev]"
+python -m pytest
+python -m ruff check .
+```
+
+On macOS, `python3` may be used instead of `python`. Python must be 3.11 or newer.
+
+### iOS
+
+Use Xcode 27 or newer on macOS. A command-line simulator build should use the installed Xcode path and an available iPhone simulator. Never claim the app builds based only on source inspection.
+
+Example:
+
+```bash
+DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer \
+  xcodebuild -project NOBS.xcodeproj -scheme NOBS \
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro' build
+```
+
+### Documentation-only changes
+
+```bash
+git diff --check
+```
+
+## Definition of Done
+
+A task is done only when:
+
+- requested behavior is implemented;
+- relevant checks pass or the exact blocker is recorded;
+- privacy, accessibility, offline, and failure states were considered;
+- documentation reflects durable architectural or product changes;
+- the branch is pushed when the user asks for cross-device handoff;
+- the handoff names the branch, commit, validation, and remaining risks.
+
+## Local Agent Files
+
+Personal or machine-local agent notes must not be committed. Use ignored files such as:
+
+- `CLAUDE.local.md`;
+- `.agents/local/`;
+- `.codex/local/`;
+- editor-specific workspace state.
+
+If a discovery should survive switching tools or computers, put it in `docs/`, a test, an issue, or a pull request—not in private agent memory.
+

@@ -7,3 +7,12 @@ __pycache__/
 .ruff_cache/
 nobs.db
 
+# Machine-local agent and editor state
+CLAUDE.local.md
+.agents/local/
+.agent/local/
+.codex/local/
+.vscode/
+*.xcuserstate
+xcuserdata/
+
