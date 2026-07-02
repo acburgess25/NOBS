@@ -98,6 +98,28 @@ See full details in:
 - Backend phased build spec: [`docs/NOBS_TANK_BUILD.md`](docs/NOBS_TANK_BUILD.md)
 - Initial issue backlog seed: [`docs/ISSUE_BACKLOG.md`](docs/ISSUE_BACKLOG.md)
 
+## Cross-Platform Development Setup
+
+NOBS uses one Python task runner on macOS, Windows, WSL2, and Linux.
+
+### macOS, WSL2, or Linux
+
+```bash
+./scripts/setup.sh
+python3 scripts/dev.py check
+python3 scripts/dev.py run
+```
+
+### Windows PowerShell
+
+```powershell
+.\scripts\setup.ps1
+py -3.11 scripts/dev.py check
+py -3.11 scripts/dev.py run
+```
+
+Python 3.11 or newer is required. The iPhone app still requires macOS and Xcode; shared services and contracts must remain platform-neutral.
+
 ## Repo Status
 
 This repository currently contains planning, architecture, and execution documentation. Code implementation is expected to proceed in phased delivery based on the specs above.

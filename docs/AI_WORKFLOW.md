@@ -25,6 +25,21 @@ If a request conflicts with `PRODUCT_DECISIONS.md`, stop and ask whether the pro
 
 The iPhone app is built on macOS with Xcode. Backend and Tank work must remain runnable from Windows/WSL2 and macOS where practical.
 
+## Cross-Platform Is a Hard Requirement
+
+Every feature must be designed for the complete NOBS system, not only the machine where it was written.
+
+- Shared protocols, schemas, storage formats, APIs, and backend logic must work across macOS, Windows/WSL2, and Linux.
+- The iPhone UI is intentionally Apple-native, but it must communicate through documented platform-neutral contracts.
+- Tank services must run on Windows/WSL2 and must not assume macOS paths or Apple-only libraries.
+- Developer setup, tests, linting, migrations, and operational commands need Windows and macOS paths.
+- Use `pathlib`, environment configuration, URL-based service discovery, and portable process APIs instead of hard-coded separators, drive letters, shell syntax, or hostnames.
+- A platform-specific implementation requires an explicit boundary, fallback behavior, and documentation. Do not let it leak into shared modules.
+- A feature is not complete when it works on only one required platform. If counterpart support is intentionally deferred, label it honestly as coming soon and record the gap.
+- New dependencies must support all platforms that execute the module. Platform-only dependencies belong behind an adapter.
+
+Pull requests that affect shared code must pass the backend CI matrix on macOS, Windows, and Linux.
+
 ## Shared Git Protocol
 
 GitHub is the synchronization layer between Codex, Claude Code, Antigravity, the Mac, and the Windows Tank.
@@ -132,13 +147,11 @@ Run the narrowest relevant checks before handing off.
 ### Backend
 
 ```bash
-python -m venv .venv
-python -m pip install -e ".[dev]"
-python -m pytest
-python -m ruff check .
+python scripts/dev.py setup
+python scripts/dev.py check
 ```
 
-On macOS, `python3` may be used instead of `python`. Python must be 3.11 or newer.
+On macOS, `python3` may be used instead of `python`. Python must be 3.11 or newer. The task runner resolves `.venv/bin` and `.venv/Scripts` automatically.
 
 ### iOS
 
@@ -179,4 +192,3 @@ Personal or machine-local agent notes must not be committed. Use ignored files s
 - editor-specific workspace state.
 
 If a discovery should survive switching tools or computers, put it in `docs/`, a test, an issue, or a pull request—not in private agent memory.
-

@@ -1,15 +1,13 @@
 .PHONY: install run test lint
 
 install:
-	python3 -m venv .venv
-	.venv/bin/pip install -e '.[dev]'
+	python3 scripts/dev.py setup
 
 run:
-	.venv/bin/uvicorn app.main:app --reload
+	python3 scripts/dev.py run
 
 test:
-	.venv/bin/pytest
+	python3 scripts/dev.py test
 
 lint:
-	.venv/bin/ruff check .
-
+	python3 scripts/dev.py lint
