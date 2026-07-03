@@ -1,10 +1,43 @@
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
+import secrets
 from typing import AsyncIterator
 
-from fastapi import FastAPI
+import httpx
+from fastapi import Depends, FastAPI, Header, HTTPException, status
+from pydantic import BaseModel, Field
 
-from app.config import get_settings
+from app.config import Settings, get_settings
+
+
+class ChatMessage(BaseModel):
+    role: str = Field(pattern="^(user|assistant)$")
+    content: str = Field(min_length=1, max_length=20_000)
+
+
+class ChatRequest(BaseModel):
+    messages: list[ChatMessage] = Field(min_length=1, max_length=40)
+
+
+class PrivacyReceipt(BaseModel):
+    used: list[str]
+    processed: str
+    shared: list[str]
+    changed: list[str]
+
+
+class ChatResponse(BaseModel):
+    message: str
+    route: str
+    privacy_receipt: PrivacyReceipt
+
+
+class OllamaMessage(BaseModel):
+    content: str
+
+
+class OllamaResponse(BaseModel):
+    message: OllamaMessage
 
 
 @asynccontextmanager
@@ -13,10 +46,10 @@ async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     yield
 
 
-def create_app() -> FastAPI:
-    settings = get_settings()
+def create_app(settings: Settings | None = None) -> FastAPI:
+    settings = settings or get_settings()
     app = FastAPI(
-        title="NOBScloud",
+        title="NOBS Tank API",
         version=settings.version,
         lifespan=lifespan,
     )
@@ -25,14 +58,100 @@ def create_app() -> FastAPI:
     async def health() -> dict[str, str]:
         return {
             "status": "ok",
-            "service": "nobs-cloud",
+            "service": "nobs-tank-api",
             "environment": settings.environment,
             "version": settings.version,
             "timestamp": datetime.now(UTC).isoformat(),
         }
 
+    async def require_device_token(
+        authorization: str | None = Header(default=None),
+    ) -> None:
+        configured_token = settings.device_token
+        if configured_token is None or not configured_token.get_secret_value():
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Tank device authentication is not configured",
+            )
+
+        scheme, _, supplied_token = (authorization or "").partition(" ")
+        if scheme.lower() != "bearer" or not secrets.compare_digest(
+            supplied_token,
+            configured_token.get_secret_value(),
+        ):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid device token",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+    @app.get(
+        "/ready",
+        tags=["operations"],
+        dependencies=[Depends(require_device_token)],
+    )
+    async def ready() -> dict[str, str]:
+        return {"status": "ready"}
+
+    @app.post(
+        "/chat",
+        response_model=ChatResponse,
+        tags=["assistant"],
+        dependencies=[Depends(require_device_token)],
+    )
+    async def chat(request: ChatRequest) -> ChatResponse:
+        system_message = {
+            "role": "system",
+            "content": (
+                "You are NOBS, a warm, concise, privacy-first personal assistant. "
+                "Reduce mental load, be honest about unavailable capabilities, and never claim "
+                "you changed external data. Keep answers brief unless the user asks for detail."
+            ),
+        }
+        payload = {
+            "model": settings.ollama_model,
+            "stream": False,
+            "think": False,
+            "messages": [
+                system_message,
+                *(message.model_dump() for message in request.messages),
+            ],
+        }
+
+        try:
+            async with httpx.AsyncClient(
+                timeout=settings.ollama_timeout_seconds,
+                transport=getattr(app.state, "ollama_transport", None),
+            ) as client:
+                response = await client.post(f"{settings.ollama_base_url}/api/chat", json=payload)
+                response.raise_for_status()
+        except (httpx.TimeoutException, httpx.ConnectError) as error:
+            raise HTTPException(status_code=503, detail="Tank model is unavailable") from error
+        except httpx.HTTPStatusError as error:
+            raise HTTPException(status_code=502, detail="Tank model returned an error") from error
+
+        try:
+            message = OllamaResponse.model_validate_json(response.content).message.content.strip()
+        except ValueError as error:
+            raise HTTPException(
+                status_code=502,
+                detail="Tank model returned an invalid response",
+            ) from error
+        if not message:
+            raise HTTPException(status_code=502, detail="Tank model returned an empty response")
+
+        return ChatResponse(
+            message=message,
+            route="Tank",
+            privacy_receipt=PrivacyReceipt(
+                used=["conversation messages sent with this request"],
+                processed="Tank on your private network",
+                shared=[],
+                changed=[],
+            ),
+        )
+
     return app
 
 
 app = create_app()
-

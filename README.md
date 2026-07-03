@@ -1,113 +1,46 @@
 # NOBS
 
-**Privacy-first local AI for regular people — built for the Apple ecosystem.**
+**Your technology. Finally working for you.**
 
-NOBS is an Apple-native assistant platform designed to run on your hardware first, keep your personal context private, and provide a proactive, conversation-first experience that feels like iMessage with real intelligence.
+NOBS is a local-first, privacy-first personal assistant for the Apple ecosystem. It is designed to reduce mental load while keeping everyday intelligence on the user's iPhone or private Tank hardware. Optional NOBScloud processing is a future capability, not a requirement.
 
-## Why NOBS
+## What works today
 
-Most assistants are cloud-first and opaque. NOBS is built around:
+This repository contains an early end-to-end prototype:
 
-- **Local inference by default** (Apple Foundation Models for free tier)
-- **Privacy-first architecture** (user context stays with the user)
-- **Conversation-first UX** (the chat is the app)
-- **Practical automation** across Apple frameworks and user context
-- **Trust through transparency**
+- a SwiftUI iPhone/iPad app with conversational onboarding and chat at the center;
+- an on-device Today view that reads Calendar data only after contextual permission;
+- visible Local or Tank processing labels and per-response privacy receipts;
+- secure Tank token storage in the iOS Keychain;
+- an authenticated FastAPI chat endpoint backed by Ollama on Tank;
+- honest local fallback when Tank is unavailable;
+- placeholder views that clearly label unfinished Memory, Home, and automation capabilities;
+- cross-platform backend setup and automated API tests.
 
-## Core Product Vision
+This is a prototype, not a production release. Memory, smart-home control, NOBScloud, account sync, subscriptions, and most proactive automation remain planned.
 
-NOBS positions itself as **“the Apple ecosystem made actually smart for regular users.”**
+## Repository map
 
-### UX principle: The Chat IS the App
-
-No complex menus. No traditional settings pages. Configuration and personalization happen through natural conversation.
-
-Planned implementation:
-- Single iMessage-style chat interface (SwiftUI, ExyteChat planned)
-- In-chat settings and adaptation
-- Proactive messaging based on context and patterns
-
-### Context-aware behavior tiers
-
-NOBS adapts to location, power state, schedule, and server availability:
-
-| State | Behavior |
+| Path | Purpose |
 |---|---|
-| Away + on battery | Lightweight local mode, low resource use, high-signal prompts |
-| Away + plugged in | More background prep for upcoming events |
-| Home + on Wi‑Fi | Home-aware mode with more relaxed, ambient assistance |
-| Home + plugged + tank online | Full-power mode, deep analysis and automation |
+| `NOBS/` | SwiftUI application |
+| `app/` | FastAPI Tank API and Ollama bridge |
+| `tests/` | Backend contract and failure-path tests |
+| `deploy/tank/` | Tank service definitions |
+| `design/` | Approved visual references |
+| `docs/` | Product truth, architecture, research, and operating guides |
+| `website/` | Public project website |
 
-Primary context signals:
-- CoreLocation
-- EventKit
-- Charging state
-- Tank online/offline availability
+## Run the backend
 
-## Monetization
+Python 3.11 or newer is required.
 
-### Free tier
-- On-device inference with Apple Foundation Models
-- Private, local-first experience
-
-### Paid tier: NOBScloud
-- Hosted LLM consultation path for heavier tasks
-- Privacy-preserving architecture inspired by Apple Private Cloud Compute
-
-Billing and auth stack:
-- StoreKit 2 subscriptions
-- Sign in with Apple
-- RevenueCat webhook-based subscription state
-
-## Architecture Snapshot
-
-### Current backend direction (NOBScloud on Tank)
-- FastAPI backend
-- SQLite for initial state and subscription flags
-- Ollama bridge for local model execution (WSL2 ↔ Windows host)
-- Sign in with Apple JWT verification
-- RevenueCat webhook ingestion
-- Cloudflare Tunnel exposure only after local verification
-
-### Explicit non-goals for current backend phase
-- Final research routing logic implementation (stub only)
-- iOS app implementation
-- OpenHands 24/7 agent deployment
-- HomeKit/smart-home integration implementation
-
-## Apple Integration Roadmap
-
-### Phase 1 (Launch / MVP)
-Foundation Models → App Intents → Shortcuts → CloudKit → EventKit + HealthKit → StoreKit 2 → Focus Filters
-
-### Phase 2 (Growth)
-HomeKit → WidgetKit → Live Activities → DeviceActivity → CoreLocation → WatchKit
-
-### Phase 3 (Full Vision)
-Private Cloud Compute alignment → macOS agent → visionOS → Create ML personalization → full continuity features
-
-See full details in:
-- [`docs/NOBS_Apple_Integration_Map.md`](docs/NOBS_Apple_Integration_Map.md)
-
-## Core Documents
-
-- Approved product decisions: [`docs/PRODUCT_DECISIONS.md`](docs/PRODUCT_DECISIONS.md)
-- Shared Codex / Claude Code / Antigravity workflow: [`docs/AI_WORKFLOW.md`](docs/AI_WORKFLOW.md)
-- WWDC26 architecture impact and technical priorities: [`docs/WWDC26_IMPACT.md`](docs/WWDC26_IMPACT.md)
-- Product + architecture map: [`docs/PRD.md`](docs/PRD.md)
-- Apple framework integration plan: [`docs/NOBS_Apple_Integration_Map.md`](docs/NOBS_Apple_Integration_Map.md)
-- Backend phased build spec: [`docs/NOBS_TANK_BUILD.md`](docs/NOBS_TANK_BUILD.md)
-- Initial issue backlog seed: [`docs/ISSUE_BACKLOG.md`](docs/ISSUE_BACKLOG.md)
-
-## Cross-Platform Development Setup
-
-NOBS uses one Python task runner on macOS, Windows, WSL2, and Linux.
-
-### macOS, WSL2, or Linux
+### macOS, Linux, or WSL2
 
 ```bash
 ./scripts/setup.sh
 python3 scripts/dev.py check
+cp .env.example .env
 python3 scripts/dev.py run
 ```
 
@@ -116,16 +49,36 @@ python3 scripts/dev.py run
 ```powershell
 .\scripts\setup.ps1
 py -3.11 scripts/dev.py check
+Copy-Item .env.example .env
 py -3.11 scripts/dev.py run
 ```
 
-Python 3.11 or newer is required. The iPhone app still requires macOS and Xcode; shared services and contracts must remain platform-neutral.
+Set a strong `NOBS_DEVICE_TOKEN` in `.env` before using `/ready` or `/chat`. Ollama defaults to `http://127.0.0.1:11434` with `qwen3:8b`; both values are configurable. Never commit `.env`.
 
-## Repo Status
+Useful commands:
 
-This repository currently contains planning, architecture, and execution documentation. Code implementation is expected to proceed in phased delivery based on the specs above.
+```bash
+python3 scripts/dev.py check  # tests and lint
+python3 scripts/dev.py test
+python3 scripts/dev.py lint
+python3 scripts/dev.py run
+```
 
-## Guiding Principle
+## Run the Apple app
 
-**Meet users where they are.**
-NOBS should work with existing hardware and real life constraints, not require users to become power users.
+Open `NOBS.xcodeproj` in Xcode 27 or newer and run the `NOBS` scheme on an iOS 27 simulator or device. In the app's Privacy view, enter the Tank URL and the same device token configured on the server.
+
+- Simulator default: `http://127.0.0.1:8000`
+- Device default: `http://tank.local:8000`
+
+The device must be able to reach Tank on the private network. Local HTTP is permitted for this prototype; production remote access must use a private tunnel and authenticated HTTPS rather than an exposed home port.
+
+## Product and contributor truth
+
+- [Approved product decisions](docs/PRODUCT_DECISIONS.md)
+- [Shared agent and contributor workflow](docs/AI_WORKFLOW.md)
+- [Product requirements](docs/PRD.md)
+- [Tank build and operations guide](docs/NOBS_TANK_BUILD.md)
+- [Implementation backlog](docs/ISSUE_BACKLOG.md)
+
+When documents disagree, `docs/PRODUCT_DECISIONS.md` is the product source of truth. Planned capabilities must not be presented as shipped.

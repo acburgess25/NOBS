@@ -9,7 +9,6 @@ def test_health_returns_service_metadata() -> None:
     assert response.status_code == 200
     payload = response.json()
     assert payload["status"] == "ok"
-    assert payload["service"] == "nobs-cloud"
+    assert payload["service"] == "nobs-tank-api"
     assert payload["version"]
     assert payload["timestamp"].endswith("+00:00")
-

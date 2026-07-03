@@ -1,4 +1,4 @@
-# NOBS Tank Build (NOBScloud Backend)
+# NOBS Tank Build
 
 Phased implementation plan for a safe, verifiable backend build on Tank.
 
@@ -6,11 +6,11 @@ Phased implementation plan for a safe, verifiable backend build on Tank.
 
 ## Build Objective
 
-Deliver a production-minded backend skeleton for NOBScloud with:
-- auth foundations
-- subscription gating
-- local inference bridge validation
-- operational deployment path
+Deliver a production-minded private API on Tank with:
+- authenticated device access;
+- a verified local Ollama inference path;
+- explicit failure behavior and privacy receipts;
+- an operational systemd deployment path.
 
 The plan prioritizes **fail-fast validation**, **traceability**, and **safe unattended execution**.
 
@@ -25,9 +25,29 @@ The plan prioritizes **fail-fast validation**, **traceability**, and **safe unat
 - **Historical note:** the original plan assumed Windows 11 with WSL2 and Ollama on the Windows host; implementation must follow the current Linux host while preserving cross-platform development support
 
 ### Operational model
-- “Work mode” / “gaming mode” toggle
-- Backend service should be easy to start/stop
-- Logs should be explicit and actionable
+- Tank is dedicated NOBS infrastructure, not a gaming machine.
+- The API and Ollama run as local services.
+- Logs must be explicit and actionable without recording conversation content or secrets.
+
+## Current implementation status
+
+Implemented in this repository:
+
+- centralized environment configuration in `app/config.py`;
+- deterministic public `GET /health`;
+- device-token-protected `GET /ready` and `POST /chat`;
+- bounded Ollama requests with safe connection, timeout, HTTP, malformed-response, and empty-response failures;
+- Local/Tank processing labels and privacy receipts in the iOS client;
+- a systemd user service template at `deploy/tank/nobs-api.service`;
+- backend tests and lint through `python scripts/dev.py check`.
+
+Still planned:
+
+- persistent application data and migrations;
+- per-device identity and token rotation;
+- Sign in with Apple and household profiles;
+- subscription/entitlement support for optional NOBScloud features;
+- production-grade observability, backup, and remote access.
 
 ---
 
@@ -77,11 +97,11 @@ Acceptance criteria:
 
 ---
 
-## Phase 4 — Ollama Bridge (Critical Path)
+## Phase 4 — Ollama Bridge (implemented prototype)
 
 Implement:
-- network bridge from WSL2 backend to Windows-hosted Ollama
-- startup and runtime checks for model availability
+- local network bridge from the Tank API to Ollama
+- authenticated readiness and runtime checks
 - clear error handling for host resolution/network failures
 
 Acceptance criteria:
@@ -135,12 +155,12 @@ Acceptance criteria:
 
 ---
 
-## Phase 8 — Service Mode in WSL2
+## Phase 8 — Tank service mode
 
 Implement:
 - `systemd` service unit and docs
 - operational commands (start/stop/status/logs)
-- game/work mode procedures
+- dedicated-service start, stop, restart, and log procedures
 
 Acceptance criteria:
 - service survives reboot or is clearly documented otherwise
@@ -160,10 +180,10 @@ Acceptance criteria:
 
 ---
 
-## Explicitly Out of Scope (Current Pass)
+## Explicitly Out of Scope (Current Backend Pass)
 
 - final `/research` routing design (stub only)
-- iOS SwiftUI app implementation
+- additional iOS product features beyond the current vertical slice
 - OpenHands 24/7 coding agent setup
 - HomeKit integration implementation
 

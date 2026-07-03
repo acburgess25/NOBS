@@ -1,2 +1,1 @@
-"""NOBScloud backend package."""
-
+"""Private Tank API services for NOBS."""

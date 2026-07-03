@@ -1,0 +1,18 @@
+[Unit]
+Description=NOBS private Tank API
+After=network-online.target ollama.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/nobs
+Environment=NOBS_ENVIRONMENT=tank
+Environment=NOBS_OLLAMA_BASE_URL=http://127.0.0.1:11434
+Environment=NOBS_OLLAMA_MODEL=qwen3:8b
+EnvironmentFile=%h/.config/nobs/nobs-api.env
+ExecStart=%h/nobs/.venv/bin/uvicorn app.main:app --host 0.0.0.0 --port 8000
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=default.target
