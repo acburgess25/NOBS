@@ -1,5 +1,7 @@
 import httpx
 from fastapi.testclient import TestClient
+from pathlib import Path
+import tempfile
 
 from app.config import Settings
 from app.main import create_app
@@ -7,8 +9,15 @@ from app.main import create_app
 TOKEN = "test-device-token"
 
 
-def client(transport: httpx.BaseTransport | None = None) -> TestClient:
-    settings = Settings(device_token=TOKEN)
+def client(
+    transport: httpx.BaseTransport | None = None,
+    workspace: Path | None = None,
+) -> TestClient:
+    settings = Settings(
+        device_token=TOKEN,
+        agent_database_path=Path(":memory:"),
+        agent_workspace_path=workspace or Path(tempfile.mkdtemp()),
+    )
     app = create_app(settings)
     if transport is not None:
         app.state.ollama_transport = transport

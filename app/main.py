@@ -7,6 +7,16 @@ import httpx
 from fastapi import Depends, FastAPI, Header, HTTPException, status
 from pydantic import BaseModel, Field
 
+from app.agent import (
+    AgentModelError,
+    AgentTaskRequest,
+    AgentTaskResponse,
+    ApprovalDecision,
+    ApprovalView,
+    TankAgent,
+)
+from app.agent_store import AgentStore
+from app.agent_tools import ToolRegistry
 from app.config import Settings, get_settings
 
 
@@ -53,6 +63,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         version=settings.version,
         lifespan=lifespan,
     )
+    app.state.agent_store = AgentStore(settings.agent_database_path)
+    app.state.agent_tools = ToolRegistry(settings.agent_workspace_path)
 
     @app.get("/health", tags=["operations"])
     async def health() -> dict[str, str]:
@@ -150,6 +162,99 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 changed=[],
             ),
         )
+
+    @app.post(
+        "/agent/tasks",
+        response_model=AgentTaskResponse,
+        tags=["agent"],
+        dependencies=[Depends(require_device_token)],
+    )
+    async def run_agent_task(request: AgentTaskRequest) -> AgentTaskResponse:
+        agent = TankAgent(
+            settings=settings,
+            store=app.state.agent_store,
+            tools=app.state.agent_tools,
+            transport=getattr(app.state, "ollama_transport", None),
+        )
+        try:
+            return await agent.run(request)
+        except AgentModelError as error:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Tank agent model is unavailable",
+            ) from error
+
+    @app.get(
+        "/agent/approvals",
+        response_model=list[ApprovalView],
+        tags=["agent"],
+        dependencies=[Depends(require_device_token)],
+    )
+    async def list_agent_approvals(approval_status: str = "pending") -> list[ApprovalView]:
+        return [
+            ApprovalView.model_validate(item)
+            for item in app.state.agent_store.list_approvals(approval_status)
+        ]
+
+    @app.post(
+        "/agent/approvals/{approval_id}",
+        response_model=ApprovalView,
+        tags=["agent"],
+        dependencies=[Depends(require_device_token)],
+    )
+    async def decide_agent_approval(
+        approval_id: str,
+        decision: ApprovalDecision,
+    ) -> ApprovalView:
+        try:
+            approval = app.state.agent_store.get_approval(approval_id)
+        except KeyError as error:
+            raise HTTPException(status_code=404, detail="Approval not found") from error
+
+        if decision.decision == "deny":
+            try:
+                denied = app.state.agent_store.decide_approval(approval_id, "denied")
+            except ValueError as error:
+                raise HTTPException(status_code=409, detail=str(error)) from error
+            app.state.agent_store.record_event(
+                approval["run_id"],
+                "approval_denied",
+                {"approval_id": approval_id, "tool": approval["tool_name"]},
+            )
+            return ApprovalView.model_validate(denied)
+
+        try:
+            claimed = app.state.agent_store.claim_approval(approval_id)
+        except ValueError as error:
+            raise HTTPException(status_code=409, detail=str(error)) from error
+
+        tool = app.state.agent_tools.get(claimed["tool_name"])
+        if tool is None or tool.risk != claimed["risk"]:
+            failed = app.state.agent_store.finish_approval(
+                approval_id,
+                "failed",
+                {"error": "Approved tool is no longer available with the same risk"},
+            )
+            return ApprovalView.model_validate(failed)
+
+        try:
+            result = app.state.agent_tools.execute(tool.name, claimed["arguments"])
+            final_status = "approved"
+        except (OSError, ValueError) as error:
+            result = {"error": str(error)}
+            final_status = "failed"
+        finished = app.state.agent_store.finish_approval(approval_id, final_status, result)
+        app.state.agent_store.record_event(
+            claimed["run_id"],
+            "approval_executed",
+            {
+                "approval_id": approval_id,
+                "tool": tool.name,
+                "status": final_status,
+                "result": result,
+            },
+        )
+        return ApprovalView.model_validate(finished)
 
     return app
 

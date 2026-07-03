@@ -40,6 +40,7 @@ Implemented in this repository:
 - Local/Tank processing labels and privacy receipts in the iOS client;
 - a systemd user service template at `deploy/tank/nobs-api.service`;
 - backend tests and lint through `python scripts/dev.py check`.
+- a bounded Ollama tool loop with local audit history and approval-gated changes.
 
 Still planned:
 

@@ -1,7 +1,8 @@
 from functools import lru_cache
+from pathlib import Path
 
-from pydantic_settings import BaseSettings, SettingsConfigDict
 from pydantic import Field, SecretStr
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
@@ -20,6 +21,9 @@ class Settings(BaseSettings):
     ollama_model: str = "qwen3:8b"
     ollama_timeout_seconds: float = Field(default=45.0, gt=0, le=300)
     device_token: SecretStr | None = None
+    agent_database_path: Path = Path("data/nobs-agent.db")
+    agent_workspace_path: Path = Path("data/agent-workspace")
+    agent_max_steps: int = Field(default=4, ge=1, le=8)
 
 
 @lru_cache

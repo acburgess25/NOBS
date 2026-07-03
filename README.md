@@ -16,6 +16,7 @@ This repository contains an early end-to-end prototype:
 - honest local fallback when Tank is unavailable;
 - placeholder views that clearly label unfinished Memory, Home, and automation capabilities;
 - cross-platform backend setup and automated API tests.
+- an approval-gated Tank agent core with separated Personal, Business, and Shared contexts.
 
 This is a prototype, not a production release. Memory, smart-home control, NOBScloud, account sync, subscriptions, and most proactive automation remain planned.
 
@@ -79,6 +80,7 @@ The device must be able to reach Tank on the private network. Local HTTP is perm
 - [Shared agent and contributor workflow](docs/AI_WORKFLOW.md)
 - [Product requirements](docs/PRD.md)
 - [Tank build and operations guide](docs/NOBS_TANK_BUILD.md)
+- [Tank agent architecture and approval policy](docs/TANK_AGENT_CORE.md)
 - [Implementation backlog](docs/ISSUE_BACKLOG.md)
 
 When documents disagree, `docs/PRODUCT_DECISIONS.md` is the product source of truth. Planned capabilities must not be presented as shipped.
