@@ -9,6 +9,10 @@ nobs.db
 .build/
 design/qa/
 
+# Website dependencies and generated build output
+website/node_modules/
+website/dist/
+
 # Machine-local agent and editor state
 CLAUDE.local.md
 .agents/local/
