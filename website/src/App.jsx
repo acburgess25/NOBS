@@ -1,20 +1,20 @@
 import { useEffect, useState } from "react";
-import { ArrowRight, Check, Cloud, Code, Copy, GithubLogo, HardDrives, List, LockKey, X } from "@phosphor-icons/react";
+import { ArrowRight, Check, Cloud, DeviceMobile, Copy, GithubLogo, HardDrives, List, LockKey, Monitor, X } from "@phosphor-icons/react";
 
 const githubUrl = "https://github.com/acburgess25/NOBS";
 const navItems = [["Vision", "vision"], ["Work so far", "work"], ["Architecture", "architecture"], ["Roadmap", "roadmap"]];
 const milestones = [
-  { label: "iPhone prototype", detail: "SwiftUI conversation experience and day-at-a-glance preview.", icon: Code },
-  { label: "Private Tank backend", detail: "FastAPI service baseline with deterministic health checks.", icon: HardDrives },
-  { label: "Local-first contract", detail: "Portable routing model for Local, Tank, and optional NOBScloud processing.", icon: LockKey },
-  { label: "Product foundation", detail: "Approved product decisions, architecture map, and execution backlog.", icon: Check },
+  { label: "iPhone app (SwiftUI)", detail: "Authenticated chat with visible Local/Tank routing, day-at-a-glance, and privacy receipts.", icon: DeviceMobile },
+  { label: "Tank agent core", detail: "A local model with allowlisted tools. Nothing state-changing runs without explicit approval.", icon: HardDrives },
+  { label: "Room-safe dashboard", detail: "Always-on status display for a shared screen—live on Tank today, private details stay on the phone.", icon: Monitor },
+  { label: "Local-first contract", detail: "Token-authenticated boundary between devices. Anonymous requests are rejected, keys live in the Keychain.", icon: LockKey },
 ];
 const roadmap = [
-  ["Make the conversation real", "Connect the interface to on-device models and preserve clear processing receipts."],
-  ["Understand the day", "Add calendar, reminders, and Focus context with progressive permission prompts."],
-  ["Connect the private Tank", "Build authenticated local-network routing with graceful offline behavior."],
-  ["Earn trust through action", "Introduce reversible suggestions, approvals, and a visible activity history."],
-  ["Grow without lock-in", "Add optional cloud capacity and integrations while keeping useful local features free."],
+  ["Make the conversation real", "The iPhone app talks to a local model on Tank with clear processing receipts—no cloud in the loop.", "shipped"],
+  ["Connect the private Tank", "Authenticated local-network routing with honest offline fallback when Tank is unreachable.", "shipped"],
+  ["Earn trust through action", "The agent core proposes, you approve. Approvals queue is live; the in-app review screen is being built now.", "in progress"],
+  ["Understand the day", "A scheduled daily briefing from calendar and reminders, with progressive permission prompts.", "next"],
+  ["Grow without lock-in", "Optional cloud capacity and integrations while useful local features stay free.", "later"],
 ];
 
 function goTo(id, done) {
@@ -38,8 +38,17 @@ export function App() {
     return () => observer.disconnect();
   }, []);
 
+  useEffect(() => {
+    const targets = document.querySelectorAll(".section:not(.hero)");
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => entry.isIntersecting && entry.target.classList.add("in-view"));
+    }, { rootMargin: "0px 0px -12%" });
+    targets.forEach((target) => observer.observe(target));
+    return () => observer.disconnect();
+  }, []);
+
   const copyHealth = async () => {
-    await navigator.clipboard?.writeText("GET /health  200 OK");
+    await navigator.clipboard?.writeText("curl -fsS http://tank.local:8000/health");
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1600);
   };
@@ -87,7 +96,7 @@ export function App() {
         <section className="architecture section" id="architecture">
           <div className="section-intro"><p className="eyebrow">Architecture</p><h2>Local, by design.</h2><p>NOBS is built around a simple principle: your data stays with you. More processing is available only when you choose it.</p></div>
           <div className="system-map">
-            <article><div className="system-icon"><Code /></div><h3>Local <span>(You)</span></h3><p>Conversation, planning, and permitted context on your Apple devices.</p><small>Preferred by default</small></article>
+            <article><div className="system-icon"><DeviceMobile /></div><h3>Local <span>(You)</span></h3><p>Conversation, planning, and permitted context on your Apple devices.</p><small>Preferred by default</small></article>
             <div className="connector"><span /><LockKey /></div>
             <article><div className="system-icon"><HardDrives /></div><h3>Tank <span>(Private)</span></h3><p>Your own server for heavier models, research, and household services.</p><small>Your network</small></article>
             <div className="connector"><span /><LockKey /></div>
@@ -100,17 +109,20 @@ export function App() {
           <div className="section-heading"><div><p className="eyebrow">Work so far</p><h2>What exists today</h2></div><p>Real progress, plain language, no vaporware.</p></div>
           <div className="milestone-grid">{milestones.map(({ label, detail, icon: Icon }) => <article className="milestone" key={label}><Icon /><div><h3>{label}</h3><p>{detail}</p></div></article>)}</div>
           <button className="health-card" onClick={copyHealth} aria-live="polite">
-            <span className="health-title">Tank FastAPI <i>development</i></span><span className="health-status"><b /> Healthy</span>
-            <code>GET&nbsp;&nbsp; /health&nbsp;&nbsp;&nbsp;&nbsp; 200 OK</code><span className="copy-label">{copied ? <Check /> : <Copy />} {copied ? "Copied" : "Copy health check"}</span>
+            <span className="health-title">Tank API <i>live</i></span><span className="health-status"><b /> Healthy</span>
+            <code>{"GET   /health              200 OK\nPOST  /chat     (no token) 401\nPOST  /chat     (with key) 200 OK"}</code>
+            <span className="copy-label">{copied ? <Check /> : <Copy />} {copied ? "Copied" : "Copy health check"}</span>
           </button>
         </section>
 
         <section className="roadmap section" id="roadmap">
           <div className="section-heading"><div><p className="eyebrow">Roadmap</p><h2>Where it goes next</h2></div><p>No fixed dates. Steady, honest progress.</p></div>
-          <div className="roadmap-list">{roadmap.map(([title, copy], index) => {
+          <div className="roadmap-list">{roadmap.map(([title, copy, status], index) => {
             const open = openRoadmap === index;
             return <button className={open ? "roadmap-item open" : "roadmap-item"} onClick={() => setOpenRoadmap(open ? -1 : index)} aria-expanded={open} key={title}>
-              <span className="step">0{index + 1}</span><span className="roadmap-copy"><strong>{title}</strong>{open && <span>{copy}</span>}</span><span className="toggle">{open ? "−" : "+"}</span>
+              <span className="step">{status === "shipped" ? <Check weight="bold" /> : `0${index + 1}`}</span>
+              <span className="roadmap-copy"><strong>{title} <em className={`status-tag ${status.replace(" ", "-")}`}>{status}</em></strong>{open && <span>{copy}</span>}</span>
+              <span className="toggle">{open ? "−" : "+"}</span>
             </button>;
           })}</div>
         </section>
