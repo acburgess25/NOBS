@@ -2,6 +2,8 @@
 
 This backlog is organized into epics and implementation-ready tasks with concise acceptance criteria.
 
+For current implementation state and the recommended next vertical slice, read [`CURRENT_STATE.md`](CURRENT_STATE.md). Older WSL2, gaming-mode, billing, and NOBScloud items below are historical planning unless reaffirmed by the approved product decisions and current state.
+
 ---
 
 ## Recommended Labels
@@ -360,6 +362,66 @@ Acceptance criteria:
 - beta assumptions rechecked against final SDKs
 - prompts and evaluations rerun against the final Apple model
 - entitlement and regional availability changes documented
+
+---
+
+## Epic 10 — Private Tank Agent
+
+### 39. [DONE] Establish approval-gated local tool loop
+**Labels:** backend, security, privacy, mvp, phase-1
+
+Acceptance criteria:
+- Ollama selects only allowlisted tools
+- read-only tools may execute automatically
+- state changes queue exact arguments for approval
+- denial has no side effects and approval cannot be replayed
+- Personal, Business, and Shared contexts are explicit
+- local audit records cover tool and approval outcomes
+
+### 40. Add persistent schedules behind the approval policy
+**Labels:** backend, security, mvp, phase-1
+
+Acceptance criteria:
+- schedules survive service restarts
+- missed-run and concurrency behavior is deterministic
+- schedules cannot elevate tool risk or bypass approval
+- schedule changes are auditable and resource-bounded
+
+### 41. Build iOS Activity and Approval UI
+**Labels:** ios, security, accessibility, mvp, phase-1
+
+Acceptance criteria:
+- proposals show tool, context, arguments, risk, and reason
+- approve and deny use authenticated Tank routes
+- decided actions cannot be submitted twice
+- loading, offline, error, VoiceOver, and Dynamic Type states are covered
+
+### 42. Define daily briefing contracts
+**Labels:** backend, ios, privacy, mvp, phase-1
+
+Acceptance criteria:
+- Personal, Business, and Shared sections remain distinct
+- only approved calendar/reminder fields are transmitted
+- sources, route, stale state, and denied sources are visible
+- raw sensitive inputs have an explicit retention policy
+
+### 43. Add first calendar and reminders read tools
+**Labels:** backend, ios, privacy, mvp, phase-1
+
+Acceptance criteria:
+- permission is contextual and revocable
+- Tank receives only minimum approved briefing data
+- arguments and responses are bounded
+- fixtures contain no real personal data
+
+### 44. Evaluate MCP adapters under the NOBS tool policy
+**Labels:** backend, security, research, phase-2
+
+Acceptance criteria:
+- source, license, permissions, destinations, and maintenance are reviewed
+- each operation receives an independent risk classification
+- arbitrary MCP tools are not auto-imported
+- injection and token-handling tests pass before real credentials are used
 
 ---
 

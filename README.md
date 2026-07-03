@@ -78,6 +78,7 @@ The device must be able to reach Tank on the private network. Local HTTP is perm
 
 - [Approved product decisions](docs/PRODUCT_DECISIONS.md)
 - [Shared agent and contributor workflow](docs/AI_WORKFLOW.md)
+- [Current implementation state and next handoff](docs/CURRENT_STATE.md)
 - [Product requirements](docs/PRD.md)
 - [Tank build and operations guide](docs/NOBS_TANK_BUILD.md)
 - [Tank agent architecture and approval policy](docs/TANK_AGENT_CORE.md)

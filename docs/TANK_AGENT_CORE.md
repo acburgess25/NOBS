@@ -24,6 +24,19 @@ The first implementation establishes the trust boundary needed for future person
 
 There is deliberately no general-purpose shell, arbitrary URL fetcher, package installer, credential reader, message sender, deletion tool, or unrestricted filesystem tool.
 
+## Code map
+
+| File | Responsibility |
+|---|---|
+| `app/agent.py` | Typed contracts, bounded Ollama loop, context prompt, and orchestration. |
+| `app/agent_tools.py` | Tool registry, risks, schemas, path boundaries, and handlers. |
+| `app/agent_store.py` | SQLite runs, approvals, audit events, atomic claims, and results. |
+| `app/main.py` | Authenticated routes and approval execution boundary. |
+| `app/config.py` | Database, workspace, model, timeout, and step-limit configuration. |
+| `tests/test_agent.py` | Autonomy, approval, denial, authentication, and replay tests. |
+
+The model-facing loop and execution boundary are deliberately separate. `TankAgent` may request a tool, but only the registry can execute it and only the approval route can release a state-changing proposal.
+
 ## API
 
 All agent routes require the existing Tank device bearer token.
@@ -94,3 +107,29 @@ Add integrations one at a time behind this boundary:
 6. reviewed MCP adapters with least-privilege scopes.
 
 Every integration must declare its data source, context, permissions, network destinations, retention, failure behavior, and tests before it can join the tool registry.
+
+## How to add a tool
+
+1. Write one bounded handler in `app/agent_tools.py`. Accept finite arguments rather than commands or arbitrary URLs.
+2. Constrain filesystem roots, record limits, time windows, response sizes, and network destinations in code.
+3. Assign the risk before adding the tool to the registry.
+4. Add a JSON schema that rejects extra properties and caps user-controlled text.
+5. Test success, invalid arguments, scope escape, denial, replay, and dependency failure as applicable.
+6. Document permissions, data flow, retention, revocation, and offline behavior.
+7. Run `python3 scripts/dev.py check` before a live Tank test.
+8. Live-test with fake or low-risk data first.
+
+Do not expose an SDK client wholesale. Wrap only the smallest operations NOBS needs as separately reviewable tools.
+
+## Deployment handoff
+
+The repository contains deployable source; the live Tank directory may not be a Git checkout. Before deployment:
+
+1. verify the service working directory;
+2. preserve `~/.config/nobs/nobs-api.env` and local `data/` content;
+3. copy source without copying `.env`, databases, or credentials;
+4. restart `nobs-api.service`;
+5. verify `/health`, authenticated `/ready`, one read-only task, and one denied change proposal;
+6. record the branch, commit, checks, and live-only gaps in the handoff.
+
+Never use `rsync --delete` against the Tank project root because local agent data and environment state are not repository artifacts.

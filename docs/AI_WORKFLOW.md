@@ -7,10 +7,11 @@ This is the canonical collaboration guide for every coding agent and every opera
 Before changing code:
 
 1. Read [`docs/PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md). It is the approved product source of truth.
-2. Read the relevant implementation document under `docs/`.
-3. Run `git status --short --branch` and `git pull --ff-only`.
-4. Inspect nearby code and tests before proposing a new pattern.
-5. State the intended files, validation, and branch before making broad changes.
+2. Read [`docs/CURRENT_STATE.md`](CURRENT_STATE.md) for the implemented-versus-planned boundary.
+3. Read the relevant implementation document under `docs/`.
+4. Run `git status --short --branch` and `git pull --ff-only`.
+5. Inspect nearby code and tests before proposing a new pattern.
+6. State the intended files, validation, and branch before making broad changes.
 
 If a request conflicts with `PRODUCT_DECISIONS.md`, stop and ask whether the product decision should be superseded. Do not silently reinterpret it.
 
@@ -22,6 +23,14 @@ If a request conflicts with `PRODUCT_DECISIONS.md`, stop and ask whether the pro
 - `tests/`: backend tests.
 - `design/`: approved visual references.
 - `docs/`: product decisions, architecture, roadmap, and build specifications.
+
+### Work routing
+
+- Tank agent, tools, approvals, or autonomy: read [`docs/TANK_AGENT_CORE.md`](TANK_AGENT_CORE.md), then inspect `app/agent.py`, `app/agent_tools.py`, `app/agent_store.py`, and `tests/test_agent.py`.
+- Tank API, Ollama, authentication, or deployment: read [`docs/NOBS_TANK_BUILD.md`](NOBS_TANK_BUILD.md), then inspect `app/main.py`, `app/config.py`, and `deploy/tank/`.
+- iPhone experience: inspect `NOBS/AppModel.swift`, `NOBS/ConversationView.swift`, and the API contracts they call.
+- Website: follow `website/AGENTS.md` and the approved reference under `design/`.
+- Product direction: update `docs/PRODUCT_DECISIONS.md` only when the decision owner explicitly supersedes an approved decision.
 
 The iPhone app is built on macOS with Xcode. Backend and Tank work must remain runnable from Windows/WSL2 and macOS where practical.
 
@@ -133,6 +142,19 @@ Tool-specific memory and chat history are hints, not shared project truth.
 - Log failures clearly without logging secrets or personal content.
 - Preserve deterministic health, auth, and entitlement behavior.
 
+### Tank agent and tool extensions
+
+- The local model may propose an action; it never authorizes the action.
+- Register concrete tools in `app/agent_tools.py`. Do not give the model an arbitrary shell, unrestricted filesystem access, credential access, or an open-ended URL fetcher.
+- Classify every tool as read-only, change, sensitive, or critical before exposing it to the model.
+- Read-only tools may run automatically only when their output and scope are bounded.
+- State changes require a stored approval containing the exact tool name and arguments. Do not regenerate arguments after approval.
+- Approval execution must be atomic, non-replayable, auditable, and restricted to the same tool risk that was approved.
+- Keep Personal, Business, and Shared context explicit in schemas, storage, prompts, and tests. Never infer that cross-context sharing is allowed.
+- Every integration must document data source, requested permissions, network destinations, retention, failure behavior, and revocation.
+- Scheduled work uses the same tool registry and approval policy; a scheduler must never become a bypass around consent.
+- Add denial, replay, path-boundary, malformed-model-output, and unavailable-dependency tests for every new tool family.
+
 ### Cross-platform behavior
 
 - Use repository-relative paths in code and documentation.
@@ -152,6 +174,8 @@ python scripts/dev.py check
 ```
 
 On macOS, `python3` may be used instead of `python`. Python must be 3.11 or newer. The task runner resolves `.venv/bin` and `.venv/Scripts` automatically.
+
+For Tank agent changes, required cases include automatic read-only execution, queued state changes, denial without side effects, and non-replayable approval. Live Ollama testing is additional evidence; it does not replace deterministic tests.
 
 ### iOS
 
@@ -179,6 +203,7 @@ A task is done only when:
 - relevant checks pass or the exact blocker is recorded;
 - privacy, accessibility, offline, and failure states were considered;
 - documentation reflects durable architectural or product changes;
+- `docs/CURRENT_STATE.md` reflects meaningful capability or next-step changes;
 - the branch is pushed when the user asks for cross-device handoff;
 - the handoff names the branch, commit, validation, and remaining risks.
 
