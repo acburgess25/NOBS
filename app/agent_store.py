@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 import json
 from pathlib import Path
 import sqlite3
@@ -204,6 +204,31 @@ class AgentStore:
         if cursor.rowcount != 1:
             raise ValueError("Approval is not being executed")
         return self.get_approval(approval_id)
+
+    def dashboard_metrics(self) -> dict[str, Any]:
+        cutoff = (datetime.now(UTC) - timedelta(hours=24)).isoformat()
+        with self._lock:
+            connection = self._connect()
+            pending = connection.execute(
+                "SELECT COUNT(*) FROM approvals WHERE status = 'pending'"
+            ).fetchone()[0]
+            runs_24h = connection.execute(
+                "SELECT COUNT(*) FROM agent_runs WHERE created_at >= ?",
+                (cutoff,),
+            ).fetchone()[0]
+            completed_24h = connection.execute(
+                "SELECT COUNT(*) FROM agent_runs WHERE created_at >= ? AND status = 'completed'",
+                (cutoff,),
+            ).fetchone()[0]
+            last_event = connection.execute(
+                "SELECT created_at FROM audit_events ORDER BY created_at DESC LIMIT 1"
+            ).fetchone()
+        return {
+            "pending_approvals": pending,
+            "runs_24h": runs_24h,
+            "completed_24h": completed_24h,
+            "last_activity_at": last_event[0] if last_event else None,
+        }
 
     @staticmethod
     def _approval_dict(row: sqlite3.Row) -> dict[str, Any]:

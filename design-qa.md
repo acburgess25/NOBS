@@ -46,3 +46,51 @@ No actionable P0, P1, or P2 mismatches remain.
 - [x] Desktop and mobile visual QA
 
 final result: passed
+
+---
+
+# NOBS Tank Dashboard Design QA
+
+- **Source visual truth:** `design/nobs-option-3-reference.png`
+- **Implementation screenshots:** `outputs/dashboard-qa/dashboard-light.png`, `outputs/dashboard-qa/dashboard-dark.png`, and `outputs/dashboard-qa/dashboard-mobile.png`
+- **Combined comparison evidence:** `outputs/dashboard-qa/comparison-full.png` and `outputs/dashboard-qa/comparison-focus.png`
+- **Viewport:** 1440 × 900 connected display; 390 × 844 responsive check
+- **State:** local API active, local-development Ollama unavailable alert, zero approvals, Light/Dark/Auto controls
+
+## Findings
+
+No actionable P0, P1, or P2 mismatches remain.
+
+- **Fonts and typography:** Georgia and the native UI stack preserve the source's editorial display/body contrast while remaining fully offline. Hierarchy, wrapping, and small-label tracking remain legible in both themes.
+- **Spacing and layout rhythm:** The 16:9 composition fits header, primary alert, four metrics, two detail panels, and footer without scrolling. Mobile collapses into a clear vertical status feed.
+- **Colors and visual tokens:** Light mode carries the approved warm cream, forest, and sage palette. Dark mode uses a deep green-black canvas with muted sage and warm white rather than mechanically inverting colors. Alert state is labeled in text and color.
+- **Image quality and assets:** The operations dashboard requires no decorative or product imagery. No placeholder images, custom SVGs, emoji, or fake asset drawings are used.
+- **Copy and content:** Every visible value is operational and room-safe. The page explicitly says that conversations and private event details are excluded.
+- **Interaction and accessibility:** Light, Dark, and Auto controls work and expose pressed state; system theme changes are respected; focus indication, semantic regions, reduced-motion handling, reconnect copy, and responsive behavior are present.
+
+## Patches made during QA
+
+- Reduced vertical padding, card heights, and panel rhythm so a complete 16:9 dashboard fits at 1440 × 900.
+- Verified Light and Dark selection and persistent theme state.
+- Verified the 390-pixel responsive layout.
+- Added one-pixel slow layout shifting for burn-in reduction.
+
+## Full-view and focused comparison
+
+The source is a portrait conversational screen, while the implementation is a landscape operational surface. `comparison-full.png` evaluates shared visual language and information hierarchy; `comparison-focus.png` checks the masthead, editorial typography, cream/sage tokens, controls, and primary contextual panel at readable scale.
+
+## Follow-up polish
+
+- [P3] Recheck text scale and overscan on the exact HDMI panel after its browser is installed.
+- [P3] Consider a user-controlled high-contrast theme after physical-display testing.
+
+## Implementation checklist
+
+- [x] Live room-safe status contract
+- [x] Responsive 16:9 dashboard
+- [x] Light, Dark, and Auto themes
+- [x] Reconnect and alert states
+- [x] Burn-in-conscious movement
+- [x] Desktop and mobile visual QA
+
+final result: passed

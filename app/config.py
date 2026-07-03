@@ -24,6 +24,7 @@ class Settings(BaseSettings):
     agent_database_path: Path = Path("data/nobs-agent.db")
     agent_workspace_path: Path = Path("data/agent-workspace")
     agent_max_steps: int = Field(default=4, ge=1, le=8)
+    dashboard_name: str = Field(default="Tank", min_length=1, max_length=40)
 
 
 @lru_cache

@@ -109,6 +109,15 @@ class ToolRegistry:
             raise KeyError(name)
         return tool.handler(arguments)
 
+    def workspace_counts(self) -> dict[str, int]:
+        counts: dict[str, int] = {}
+        for context in ("personal", "business", "shared"):
+            path = self._context_path(context)
+            counts[context] = (
+                sum(1 for item in path.rglob("*") if item.is_file()) if path.exists() else 0
+            )
+        return counts
+
     def _get_tank_status(self, _: dict[str, Any]) -> dict[str, Any]:
         usage = shutil.disk_usage(self.workspace.parent if self.workspace.parent.exists() else Path.cwd())
         load = os.getloadavg()[0] if hasattr(os, "getloadavg") else None

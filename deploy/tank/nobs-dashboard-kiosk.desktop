@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=NOBS Tank Dashboard
+Comment=Open the room-safe NOBS status display
+Exec=sh -lc '$HOME/nobs/scripts/start-dashboard-kiosk.sh'
+Terminal=false
+X-GNOME-Autostart-enabled=true

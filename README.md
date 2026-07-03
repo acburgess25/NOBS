@@ -17,6 +17,7 @@ This repository contains an early end-to-end prototype:
 - placeholder views that clearly label unfinished Memory, Home, and automation capabilities;
 - cross-platform backend setup and automated API tests.
 - an approval-gated Tank agent core with separated Personal, Business, and Shared contexts.
+- a room-safe Tank dashboard with live health, approvals, activity, and light/dark themes.
 
 This is a prototype, not a production release. Memory, smart-home control, NOBScloud, account sync, subscriptions, and most proactive automation remain planned.
 
@@ -82,6 +83,7 @@ The device must be able to reach Tank on the private network. Local HTTP is perm
 - [Product requirements](docs/PRD.md)
 - [Tank build and operations guide](docs/NOBS_TANK_BUILD.md)
 - [Tank agent architecture and approval policy](docs/TANK_AGENT_CORE.md)
+- [Tank connected-screen dashboard](docs/TANK_DASHBOARD.md)
 - [Implementation backlog](docs/ISSUE_BACKLOG.md)
 
 When documents disagree, `docs/PRODUCT_DECISIONS.md` is the product source of truth. Planned capabilities must not be presented as shipped.

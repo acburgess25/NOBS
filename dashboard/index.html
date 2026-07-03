@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f3f0e7" />
+    <meta name="color-scheme" content="light dark" />
+    <title>NOBS Tank Dashboard</title>
+    <link rel="stylesheet" href="/dashboard/assets/dashboard.css" />
+  </head>
+  <body>
+    <main class="dashboard" aria-live="polite">
+      <header class="topbar">
+        <div class="identity">
+          <p class="kicker">NOBS private operations</p>
+          <h1><span id="display-name">Tank</span> is working.</h1>
+          <p id="privacy-copy" class="privacy-copy">Room-safe summary only.</p>
+        </div>
+        <div class="header-tools">
+          <div class="theme-control" role="group" aria-label="Color theme">
+            <button type="button" data-theme-choice="light">Light</button>
+            <button type="button" data-theme-choice="dark">Dark</button>
+            <button type="button" data-theme-choice="auto">Auto</button>
+          </div>
+          <div class="clock" aria-label="Current time">
+            <strong id="clock-time">--:--</strong>
+            <span id="clock-date">Loading</span>
+          </div>
+        </div>
+      </header>
+
+      <section class="attention-panel" aria-labelledby="attention-heading">
+        <div>
+          <p class="section-label">Needs attention</p>
+          <h2 id="attention-heading">Checking Tank…</h2>
+        </div>
+        <p id="attention-detail">The dashboard is gathering a private health summary.</p>
+      </section>
+
+      <section class="metric-grid" aria-label="Tank status">
+        <article class="metric-card service-card">
+          <p class="section-label">Core services</p>
+          <div class="service-row"><span>Tank API</span><strong id="api-state">Checking</strong></div>
+          <div class="service-row"><span>Ollama</span><strong id="ollama-state">Checking</strong></div>
+          <p class="card-foot" id="model-name">Local model</p>
+        </article>
+
+        <article class="metric-card">
+          <p class="section-label">Uptime</p>
+          <strong class="metric-value" id="uptime">--</strong>
+          <p class="metric-copy">Continuous private service</p>
+        </article>
+
+        <article class="metric-card">
+          <p class="section-label">Storage</p>
+          <strong class="metric-value" id="disk-free">--</strong>
+          <p class="metric-copy" id="disk-used">Checking capacity</p>
+        </article>
+
+        <article class="metric-card approval-card">
+          <p class="section-label">Approvals</p>
+          <strong class="metric-value" id="pending-approvals">--</strong>
+          <p class="metric-copy">Waiting for your private review</p>
+        </article>
+      </section>
+
+      <section class="lower-grid">
+        <article class="activity-panel">
+          <div class="panel-heading">
+            <div><p class="section-label">Agent activity</p><h2>What Tank has handled</h2></div>
+            <span>Last 24 hours</span>
+          </div>
+          <div class="activity-values">
+            <div><strong id="runs-count">--</strong><span>Agent runs</span></div>
+            <div><strong id="completed-count">--</strong><span>Completed safely</span></div>
+            <div><strong id="load-value">--</strong><span>System load</span></div>
+          </div>
+        </article>
+
+        <article class="workspace-panel">
+          <div class="panel-heading">
+            <div><p class="section-label">Context boundaries</p><h2>Private workspaces</h2></div>
+          </div>
+          <div class="workspace-list">
+            <div><span>Personal</span><strong id="personal-count">0 items</strong></div>
+            <div><span>Business</span><strong id="business-count">0 items</strong></div>
+            <div><span>Shared</span><strong id="shared-count">0 items</strong></div>
+          </div>
+        </article>
+      </section>
+
+      <footer>
+        <span id="connection-state">Connecting to Tank</span>
+        <span>Refreshes every 15 seconds</span>
+        <span id="last-refresh">Not refreshed yet</span>
+      </footer>
+    </main>
+    <script src="/dashboard/assets/dashboard.js" defer></script>
+  </body>
+</html>

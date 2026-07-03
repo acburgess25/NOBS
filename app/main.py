@@ -1,10 +1,14 @@
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 import secrets
+from pathlib import Path
+import time
 from typing import AsyncIterator
 
 import httpx
 from fastapi import Depends, FastAPI, Header, HTTPException, status
+from fastapi.responses import RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from app.agent import (
@@ -18,6 +22,7 @@ from app.agent import (
 from app.agent_store import AgentStore
 from app.agent_tools import ToolRegistry
 from app.config import Settings, get_settings
+from app.dashboard import build_dashboard_status
 
 
 class ChatMessage(BaseModel):
@@ -65,6 +70,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.state.agent_store = AgentStore(settings.agent_database_path)
     app.state.agent_tools = ToolRegistry(settings.agent_workspace_path)
+    app.state.process_started_at = time.time()
+    dashboard_directory = Path(__file__).resolve().parents[1] / "dashboard"
+    app.mount(
+        "/dashboard/assets",
+        StaticFiles(directory=dashboard_directory),
+        name="dashboard-assets",
+    )
 
     @app.get("/health", tags=["operations"])
     async def health() -> dict[str, str]:
@@ -75,6 +87,20 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "version": settings.version,
             "timestamp": datetime.now(UTC).isoformat(),
         }
+
+    @app.get("/dashboard", include_in_schema=False)
+    async def dashboard_redirect() -> RedirectResponse:
+        return RedirectResponse(url="/dashboard/assets/index.html")
+
+    @app.get("/dashboard/status", tags=["operations"])
+    async def dashboard_status() -> dict[str, object]:
+        return await build_dashboard_status(
+            settings,
+            app.state.agent_store,
+            app.state.agent_tools,
+            app.state.process_started_at,
+            getattr(app.state, "ollama_transport", None),
+        )
 
     async def require_device_token(
         authorization: str | None = Header(default=None),

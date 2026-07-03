@@ -34,6 +34,14 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 - Approved Personal Workshop visual direction under `design/`.
 - Website content has not yet been updated to describe the working Tank agent core.
 
+### Connected-screen dashboard
+
+- Tank-hosted, room-safe dashboard at `/dashboard` with 15-second refresh.
+- Light, Dark, and system-following Auto themes.
+- API, Ollama, uptime, load, storage, agent activity, approval count, and workspace counts.
+- Responsive 16:9 and narrow-screen layouts with connection-loss behavior.
+- Kiosk launcher and graphical-session autostart entry under `scripts/` and `deploy/tank/`.
+
 ## Not working yet
 
 - No persistent autonomous scheduler or recurring morning/evening jobs.
@@ -43,6 +51,7 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 - No Sign in with Apple, household identity, subscription, or NOBScloud implementation.
 - No arbitrary MCP server is trusted or installed by the NOBS agent.
 - LAN access to Tank still requires confirming mDNS and a narrow firewall rule on the live server.
+- Tank has no kiosk browser installed yet; automatic HDMI display launch requires an interactive sudo installation and graphical session.
 
 ## Recommended next vertical slice
 
