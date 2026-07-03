@@ -18,6 +18,14 @@ private struct ConversationEntry: Identifiable {
     let route: ProcessingRoute?
 }
 
+private enum DayPlanState {
+    case ready
+    case analyzing
+    case proposed
+    case accepted
+    case rejected
+}
+
 struct ConversationView: View {
     private let accent = Color(red: 0.31, green: 0.43, blue: 0.20)
     private let canvas = Color(red: 0.975, green: 0.968, blue: 0.945)
@@ -28,6 +36,8 @@ struct ConversationView: View {
     @State private var showSynopsis = false
     @State private var showAddMenu = false
     @State private var showProcessingDetails = false
+    @State private var showPlanPrivacyReceipt = false
+    @State private var dayPlanState: DayPlanState = .ready
 
     private let suggestions = [
         "Summarize my unread emails",
@@ -76,6 +86,7 @@ struct ConversationView: View {
                 suggestionStrip
                 composer
             }
+            .frame(maxWidth: 720)
         }
         .confirmationDialog("Add context", isPresented: $showAddMenu) {
             Button("Choose a photo") { explainComingSoon("Photo context") }
@@ -87,6 +98,11 @@ struct ConversationView: View {
             Button("Done", role: .cancel) {}
         } message: {
             Text("This preview uses only on-device sample data. Nothing is sent to Tank or NOBScloud.")
+        }
+        .alert("Privacy receipt", isPresented: $showPlanPrivacyReceipt) {
+            Button("Done", role: .cancel) {}
+        } message: {
+            Text("Used: five sample calendar events and one sample priority. Processed: Local on this iPhone preview. Shared: nothing. Changed: nothing unless you approve the sample plan.")
         }
     }
 
@@ -228,26 +244,179 @@ struct ConversationView: View {
             Text("Here’s your day at a glance.")
                 .font(.system(size: 14))
 
+            HStack(spacing: 7) {
+                Image(systemName: "exclamationmark.circle.fill")
+                Text("30-minute overlap before your client call")
+            }
+            .font(.system(size: 12, weight: .semibold))
+            .foregroundStyle(Color.orange)
+
+            planAction
+
+            if dayPlanState != .ready {
+                planResult
+            }
+
             agendaRow(time: "10:00 AM", title: "Design sync", detail: "1h · Video call")
             agendaRow(time: "11:30 AM", title: "Project review", detail: "45m · Conference room")
             agendaRow(time: "1:00 PM", title: "Lunch", detail: "1h · Free")
-            agendaRow(time: "2:30 PM", title: "Client update", detail: "30m · Video call")
+            agendaRow(time: "2:15 PM", title: "Client preparation", detail: "45m · Must finish before call", isConflict: true)
+            agendaRow(time: "2:30 PM", title: "Client update", detail: "30m · Video call", isConflict: true)
             agendaRow(time: "3:15 PM", title: "Focus time", detail: "1h 30m · Deep work")
         }
         .padding(.horizontal, 6)
     }
 
-    private func agendaRow(time: String, title: String, detail: String) -> some View {
+    private func agendaRow(time: String, title: String, detail: String, isConflict: Bool = false) -> some View {
         HStack(alignment: .top, spacing: 18) {
             Text(time)
                 .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(accent)
+                .foregroundStyle(isConflict ? Color.orange : accent)
                 .frame(width: 82, alignment: .leading)
 
             VStack(alignment: .leading, spacing: 1) {
-                Text(title).font(.system(size: 14, weight: .medium))
+                HStack(spacing: 5) {
+                    Text(title).font(.system(size: 14, weight: .medium))
+                    if isConflict {
+                        Image(systemName: "exclamationmark.circle.fill")
+                            .font(.system(size: 11))
+                            .foregroundStyle(Color.orange)
+                            .accessibilityLabel("Schedule conflict")
+                    }
+                }
                 Text(detail).font(.system(size: 12)).foregroundStyle(.secondary)
             }
+        }
+    }
+
+    private var planAction: some View {
+        Button(action: analyzeDay) {
+            HStack(spacing: 9) {
+                Image(systemName: dayPlanState == .analyzing ? "hourglass" : "wand.and.stars")
+                Text(dayPlanState == .ready ? "Make this day realistic" : "Review the conflict")
+                Spacer()
+                Image(systemName: "arrow.right")
+            }
+            .font(.system(size: 13, weight: .semibold))
+            .foregroundStyle(.white)
+            .padding(.horizontal, 14)
+            .frame(height: 44)
+            .background(accent, in: RoundedRectangle(cornerRadius: 12))
+        }
+        .buttonStyle(.plain)
+        .disabled(dayPlanState == .analyzing)
+        .accessibilityHint("Analyzes the sample schedule locally and proposes a reversible plan")
+        .padding(.top, 8)
+    }
+
+    @ViewBuilder
+    private var planResult: some View {
+        if dayPlanState == .analyzing {
+            HStack(spacing: 10) {
+                ProgressView().tint(accent)
+                Text("Checking conflicts, priorities, and transition time…")
+                    .font(.system(size: 13))
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.vertical, 14)
+        } else {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(alignment: .top, spacing: 10) {
+                    Image(systemName: dayPlanState == .accepted ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                        .foregroundStyle(dayPlanState == .accepted ? accent : Color.orange)
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(dayPlanState == .accepted ? "Plan approved" : "This afternoon is impossible as written")
+                            .font(.system(size: 14, weight: .semibold))
+                        Text(planExplanation)
+                            .font(.system(size: 13))
+                            .foregroundStyle(.secondary)
+                            .lineSpacing(2)
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: 9) {
+                    proposedAgendaRow(time: "1:45 PM", title: "Client preparation", change: "Start 30m earlier")
+                    proposedAgendaRow(time: "2:30 PM", title: "Client update", change: "Keep fixed")
+                    proposedAgendaRow(time: "3:15 PM", title: "Focus time", change: "Keep protected")
+                }
+                .padding(12)
+                .background(Color.white.opacity(0.55), in: RoundedRectangle(cornerRadius: 12))
+
+                if dayPlanState == .proposed {
+                    HStack(spacing: 8) {
+                        Button("Use this plan") {
+                            withAnimation(.easeOut) { dayPlanState = .accepted }
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(accent)
+
+                        Button("Keep original") {
+                            withAnimation(.easeOut) { dayPlanState = .rejected }
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(accent)
+                    }
+                } else if dayPlanState == .rejected {
+                    Text("Nothing changed. The original sample schedule is still in place.")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(.secondary)
+                } else if dayPlanState == .accepted {
+                    Text("Sample plan updated. Undo is available in Activity.")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(accent)
+                }
+
+                Button {
+                    showPlanPrivacyReceipt = true
+                } label: {
+                    Label("View privacy receipt", systemImage: "hand.raised")
+                        .font(.system(size: 12, weight: .medium))
+                }
+                .buttonStyle(.plain)
+                .foregroundStyle(accent)
+            }
+            .padding(14)
+            .background(accent.opacity(0.08), in: RoundedRectangle(cornerRadius: 16))
+            .overlay(
+                RoundedRectangle(cornerRadius: 16)
+                    .stroke(accent.opacity(0.18), lineWidth: 1)
+            )
+            .padding(.top, 6)
+        }
+    }
+
+    private var planExplanation: String {
+        switch dayPlanState {
+        case .accepted:
+            return "Client preparation now finishes before the call, and your focus block stays protected."
+        case .rejected:
+            return "Preparation overlaps the client call by 30 minutes. I left everything unchanged."
+        default:
+            return "Client preparation overlaps the client call by 30 minutes. Starting preparation at 1:45 PM resolves it without moving a fixed meeting."
+        }
+    }
+
+    private func proposedAgendaRow(time: String, title: String, change: String) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 10) {
+            Text(time)
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(accent)
+                .frame(width: 62, alignment: .leading)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(title).font(.system(size: 13, weight: .medium))
+                Text(change).font(.system(size: 11)).foregroundStyle(.secondary)
+            }
+        }
+    }
+
+    private func analyzeDay() {
+        guard dayPlanState != .analyzing else { return }
+        withAnimation(.easeOut) { dayPlanState = .analyzing }
+
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(550))
+            withAnimation(.easeOut) { dayPlanState = .proposed }
         }
     }
 

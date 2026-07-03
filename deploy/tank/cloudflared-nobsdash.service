@@ -1,0 +1,18 @@
+[Unit]
+Description=Cloudflare Tunnel for nobsdash.com
+After=network-online.target nobsdash.service
+Wants=network-online.target
+Requires=nobsdash.service
+
+[Service]
+Type=simple
+ExecStart=/home/alex/.local/bin/cloudflared tunnel --no-autoupdate --config /home/alex/.config/nobs/cloudflared-nobsdash.yml run
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+
+[Install]
+WantedBy=default.target

@@ -1,31 +1,48 @@
-# NOBS Initial Conversation Design QA
+# NOBS Portfolio Design QA
 
-## Evidence
+- **Source visual truth:** `design/nobs-portfolio-workshop-reference.png`
+- **Implementation screenshots:** `website/qa-hero.png`, `website/qa-architecture.png`, `website/qa-work.png`, `website/qa-roadmap.png`, and `website/qa-mobile.png`
+- **Combined comparison evidence:** `website/qa-comparison.png`
+- **Viewports:** 1440 × 1024 desktop and 390 × 844 mobile
+**State:** default hero; architecture; work-so-far; first roadmap item expanded; mobile default and menu-open states
 
-- Source of visual truth: `/Users/ab/Documents/NOBS/design/nobs-option-3-reference.png`
-- Implementation capture: `/Users/ab/Documents/NOBS/design/qa/nobs-implementation-v4.png`
-- Side-by-side comparison: `/Users/ab/Documents/NOBS/design/qa/nobs-comparison-v4.png`
-- Viewport: iPhone 17 Pro simulator on iOS 27, normalized to 390 x 844 for comparison
-- State: initial light-mode conversation using the local sample agenda
+## Findings
 
-The full-screen comparison is sufficient for both layout and detail review because all typography, controls, dividers, agenda rows, suggestion chips, and composer elements remain legible at the normalized viewport.
+No actionable P0, P1, or P2 mismatches remain.
 
-## Review
+- **Fonts and typography:** Newsreader reproduces the editorial display character of the visual target; DM Sans provides a restrained, readable UI/body face. Display scale, optical contrast, line height, and mobile wrapping preserve the reference hierarchy.
+- **Spacing and layout rhythm:** The desktop hero retains the reference's asymmetric copy/product composition, large quiet margins, thin rules, and artifact-like code panel. Longer content is intentionally separated into interactive page sections instead of compressing all progress into one static grid. Mobile collapses cleanly without horizontal overflow.
+- **Colors and visual tokens:** Cream, deep forest, sage, muted gray-green, and lightly tinted section surfaces closely match the source. State indicators retain non-color labels.
+- **Image quality and asset fidelity:** The approved NOBS app screenshot is used directly and remains sharp and legible. Phosphor icons replace interface glyphs; no placeholder art, emoji, or handcrafted SVG assets are present.
+- **Copy and content:** The implementation keeps the personal build-in-public framing, names Alexander Burgess, distinguishes Local/Tank/NOBScloud, and labels unfinished work honestly. Claims are grounded in the current repository.
+- **Interaction and accessibility:** Desktop and mobile navigation work, the menu exposes correct expanded state, roadmap controls expose `aria-expanded`, focus states are visible, the health artifact supplies feedback, semantic headings are ordered, and reduced-motion preferences are respected.
 
-- Typography: editorial serif greeting, rounded NOBS wordmark, body hierarchy, metadata, and green emphasis match the reference intent.
-- Spacing and layout: the header, introduction, highlight, divider, message, complete five-item agenda, suggestion strip, and composer fit without overlap or hidden content.
-- Color: warm canvas, dark evergreen text, sage accents, translucent message bubble, and low-contrast rules remain faithful to the approved direction.
-- Controls: the processing badge, synopsis affordance, suggestion chips, add button, voice button, and send button use native controls with appropriate visual states.
-- Copy: the approved sample conversation is preserved. Interactive preview responses clearly identify unavailable integrations as coming soon and never claim access that is not implemented.
-- Device chrome: the simulator's status bar and Dynamic Island differ from the generated concept image; this is expected platform chrome, not an app discrepancy.
+## Patches made during QA
 
-## Corrections Applied
+- Replaced an unavailable icon export with the matching Phosphor `HardDrives` icon.
+- Added the pnpm workspace build allowlist needed for Vite's esbuild binary.
+- Removed global smooth-scroll behavior that interfered with deterministic capture while retaining explicit smooth navigation.
+- Verified mobile navigation closes after selecting Architecture.
+- Verified the roadmap accordion opens the selected step.
 
-- Rebalanced type sizes and vertical rhythm from the first implementation pass.
-- Restored the sage local-status indicator and made processing details inspectable.
-- Tightened the introduction, highlight, divider, user-message, and agenda spacing so all five agenda items remain visible above the composer.
-- Added honest local, Tank, and NOBScloud route metadata for preview responses.
+## Full-view and focused comparison
 
-No P0, P1, or P2 visual discrepancies remain in the tested state.
+`website/qa-comparison.png` places the source visual and all four implemented desktop regions in the same comparison canvas. Focused captures were required because the reference compresses a complete page into one tall board while the implementation gives each interactive section a full viewport of breathing room.
+
+## Follow-up polish
+
+- [P3] Add a custom social-sharing image and favicon before public deployment.
+- [P3] Consider self-hosting the two Google fonts before production to remove a third-party font request.
+
+## Implementation checklist
+
+- [x] Faithful responsive hero
+- [x] Approved product screenshot
+- [x] Interactive desktop and mobile navigation
+- [x] Responsive system architecture
+- [x] Evidence-backed progress section
+- [x] Expandable roadmap
+- [x] Production build
+- [x] Desktop and mobile visual QA
 
 final result: passed

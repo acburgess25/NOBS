@@ -19,10 +19,10 @@ The plan prioritizes **fail-fast validation**, **traceability**, and **safe unat
 ## Environment Model
 
 ### Host topology
-- **Host OS:** Windows 11
-- **Linux runtime:** WSL2
-- **Local inference:** Ollama on Windows host (for direct GPU access)
-- **Backend runtime:** FastAPI in WSL2
+- **Current host OS:** Ubuntu Linux on Tank
+- **Backend runtime:** FastAPI on Tank
+- **Public portfolio:** static origin on `127.0.0.1` through Cloudflare Tunnel
+- **Historical note:** the original plan assumed Windows 11 with WSL2 and Ollama on the Windows host; implementation must follow the current Linux host while preserving cross-platform development support
 
 ### Operational model
 - “Work mode” / “gaming mode” toggle
