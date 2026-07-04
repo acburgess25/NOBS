@@ -82,7 +82,7 @@ h2 { margin-bottom: 0; font-size: clamp(25px, 2.2vw, 40px); }
 .attention-panel[data-level="urgent"] { border-color: var(--urgent); }
 .attention-panel[data-level="urgent"] .section-label { color: var(--urgent); }
 .attention-panel > p { margin: 0; max-width: 720px; color: var(--muted); font-size: clamp(16px, 1.4vw, 22px); line-height: 1.55; }
-.metric-grid { display: grid; grid-template-columns: 1.25fr repeat(3, 1fr); gap: 18px; }
+.metric-grid { display: grid; grid-template-columns: 1.25fr repeat(4, 1fr); gap: 18px; }
 .metric-card, .activity-panel, .workspace-panel {
   background: var(--surface);
   border: 1px solid var(--line);

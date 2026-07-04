@@ -415,6 +415,8 @@ private struct ActivityView: View {
 
 private struct PrivacyView: View {
     @ObservedObject var model: AppModel
+    @State private var isScanningQR = false
+
     var body: some View {
         List {
             Section("Processing now") {
@@ -429,8 +431,19 @@ private struct PrivacyView: View {
                 SecureField("Device token", text: $model.tankToken)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
-                Button(model.tankAvailable ? "Save and check again" : "Save and check connection") {
-                    Task { await model.saveTankConnection() }
+                HStack {
+                    Button(model.tankAvailable ? "Save and check again" : "Save and check connection") {
+                        Task { await model.saveTankConnection() }
+                    }
+                    .buttonStyle(.bordered)
+                    
+                    Spacer()
+                    
+                    Button(action: { isScanningQR = true }) {
+                        Label("Scan QR", systemImage: "qrcode.viewfinder")
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(Color(red: 0.31, green: 0.43, blue: 0.20))
                 }
                 Label(
                     model.tankAvailable ? "Connected on your private network" : "Not connected; local fallback is active",
@@ -445,6 +458,35 @@ private struct PrivacyView: View {
             }
         }
         .scrollContentBackground(.hidden)
+        .sheet(isPresented: $isScanningQR) {
+            NavigationStack {
+                ScannerView(
+                    onScan: handleScan,
+                    onCancel: { isScanningQR = false }
+                )
+                .ignoresSafeArea()
+                .navigationTitle("Scan Tank QR")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") { isScanningQR = false }
+                    }
+                }
+            }
+        }
+    }
+
+    private func handleScan(payload: String) {
+        guard let url = URL(string: payload),
+              let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return }
+        if let tankURL = components.queryItems?.first(where: { $0.name == "url" })?.value {
+            model.tankAddress = tankURL
+        }
+        if let token = components.queryItems?.first(where: { $0.name == "token" })?.value {
+            model.tankToken = token
+        }
+        isScanningQR = false
+        Task { await model.saveTankConnection() }
     }
 }
 
