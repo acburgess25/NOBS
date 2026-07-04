@@ -5,6 +5,7 @@ import json
 import secrets
 from pathlib import Path
 import time
+import asyncio
 from typing import AsyncIterator, Literal
 
 import httpx
@@ -26,6 +27,7 @@ from app.agent_tools import ToolRegistry
 from app.config import Settings, get_settings
 from app.dashboard import build_dashboard_status
 from app.home_assistant import HomeAssistantClient
+from app.scheduler import run_scheduler
 
 
 class ChatMessage(BaseModel):
@@ -108,10 +110,40 @@ class ProposalDecision(BaseModel):
     decision: Literal["approve", "dismiss"]
 
 
+class ScheduleView(BaseModel):
+    id: str
+    time_of_day: str
+    status: str
+    created_at: str
+
+
+class CreateScheduleRequest(BaseModel):
+    time_of_day: str = Field(pattern="^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$")
+
+
+class UpdateScheduleRequest(BaseModel):
+    status: Literal["active", "paused", "revoked"]
+
+
+class SyncCalendarRequest(BaseModel):
+    events: list[BriefingCalendarItem]
+
+
+class SyncRemindersRequest(BaseModel):
+    reminders: list[BriefingReminderItem]
+
+
 @asynccontextmanager
-async def lifespan(_: FastAPI) -> AsyncIterator[None]:
-    get_settings()
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    settings = get_settings()
+    task = asyncio.create_task(run_scheduler(
+        settings,
+        app.state.agent_store,
+        app.state.agent_tools,
+        getattr(app.state, "ollama_transport", None),
+    ))
     yield
+    task.cancel()
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -457,6 +489,63 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             raise HTTPException(status_code=404, detail="Proposal not found") from error
         except ValueError as error:
             raise HTTPException(status_code=409, detail=str(error)) from error
+
+    @app.post(
+        "/schedules",
+        response_model=ScheduleView,
+        tags=["schedules"],
+        dependencies=[Depends(require_device_token)],
+    )
+    async def create_schedule(request: CreateScheduleRequest) -> ScheduleView:
+        schedule = app.state.agent_store.create_briefing_schedule(request.time_of_day)
+        return ScheduleView.model_validate(schedule)
+
+    @app.get(
+        "/schedules",
+        response_model=list[ScheduleView],
+        tags=["schedules"],
+        dependencies=[Depends(require_device_token)],
+    )
+    async def list_schedules() -> list[ScheduleView]:
+        return [
+            ScheduleView.model_validate(item)
+            for item in app.state.agent_store.list_briefing_schedules()
+        ]
+
+    @app.patch(
+        "/schedules/{schedule_id}",
+        response_model=ScheduleView,
+        tags=["schedules"],
+        dependencies=[Depends(require_device_token)],
+    )
+    async def update_schedule(schedule_id: str, request: UpdateScheduleRequest) -> ScheduleView:
+        try:
+            schedule = app.state.agent_store.update_briefing_schedule(schedule_id, request.status)
+            return ScheduleView.model_validate(schedule)
+        except KeyError as error:
+            raise HTTPException(status_code=404, detail="Schedule not found") from error
+        except ValueError as error:
+            raise HTTPException(status_code=409, detail=str(error)) from error
+
+    @app.post(
+        "/sync/calendar",
+        tags=["sync"],
+        dependencies=[Depends(require_device_token)],
+    )
+    async def sync_calendar(request: SyncCalendarRequest) -> dict[str, str]:
+        events = [item.model_dump(mode="json") for item in request.events]
+        app.state.agent_store.sync_calendar(events)
+        return {"status": "ok"}
+
+    @app.post(
+        "/sync/reminders",
+        tags=["sync"],
+        dependencies=[Depends(require_device_token)],
+    )
+    async def sync_reminders(request: SyncRemindersRequest) -> dict[str, str]:
+        reminders = [item.model_dump(mode="json") for item in request.reminders]
+        app.state.agent_store.sync_reminders(reminders)
+        return {"status": "ok"}
 
     return app
 

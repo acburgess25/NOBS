@@ -74,6 +74,25 @@ class AgentStore:
                     created_at TEXT NOT NULL,
                     decided_at TEXT
                 );
+                CREATE TABLE IF NOT EXISTS briefing_schedules (
+                    id TEXT PRIMARY KEY,
+                    time_of_day TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    created_at TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS calendar_events (
+                    id TEXT PRIMARY KEY,
+                    title TEXT NOT NULL,
+                    start TEXT NOT NULL,
+                    context TEXT NOT NULL,
+                    created_at TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS reminders (
+                    id TEXT PRIMARY KEY,
+                    title TEXT NOT NULL,
+                    context TEXT NOT NULL,
+                    created_at TEXT NOT NULL
+                );
                 """
             )
         return self._connection
@@ -320,6 +339,88 @@ class AgentStore:
         if cursor.rowcount != 1:
             raise ValueError("Proposal is missing or already decided")
         return self.get_proposal(proposal_id)
+
+    def create_briefing_schedule(self, time_of_day: str) -> dict[str, Any]:
+        schedule_id = str(uuid4())
+        created_at = _now()
+        with self._lock:
+            connection = self._connect()
+            connection.execute(
+                "INSERT INTO briefing_schedules VALUES (?, ?, ?, ?)",
+                (schedule_id, time_of_day, "active", created_at),
+            )
+            connection.commit()
+        return self.get_briefing_schedule(schedule_id)
+
+    def get_briefing_schedule(self, schedule_id: str) -> dict[str, Any]:
+        with self._lock:
+            row = self._connect().execute(
+                "SELECT * FROM briefing_schedules WHERE id = ?",
+                (schedule_id,),
+            ).fetchone()
+        if row is None:
+            raise KeyError(schedule_id)
+        return dict(row)
+
+    def list_briefing_schedules(self, status: str | None = None) -> list[dict[str, Any]]:
+        with self._lock:
+            connection = self._connect()
+            if status is None:
+                rows = connection.execute("SELECT * FROM briefing_schedules ORDER BY created_at DESC").fetchall()
+            else:
+                rows = connection.execute(
+                    "SELECT * FROM briefing_schedules WHERE status = ? ORDER BY created_at DESC",
+                    (status,),
+                ).fetchall()
+        return [dict(row) for row in rows]
+
+    def update_briefing_schedule(self, schedule_id: str, status: str) -> dict[str, Any]:
+        if status not in {"active", "paused", "revoked"}:
+            raise ValueError("Status must be active, paused, or revoked")
+        with self._lock:
+            connection = self._connect()
+            cursor = connection.execute(
+                "UPDATE briefing_schedules SET status = ? WHERE id = ?",
+                (status, schedule_id),
+            )
+            connection.commit()
+        if cursor.rowcount != 1:
+            raise ValueError("Schedule is missing")
+        return self.get_briefing_schedule(schedule_id)
+
+    def sync_calendar(self, events: list[dict[str, str]]) -> None:
+        created_at = _now()
+        with self._lock:
+            connection = self._connect()
+            connection.execute("DELETE FROM calendar_events")
+            for event in events:
+                connection.execute(
+                    "INSERT INTO calendar_events VALUES (?, ?, ?, ?, ?)",
+                    (str(uuid4()), event["title"], event["start"], event["context"], created_at),
+                )
+            connection.commit()
+
+    def list_calendar_events(self) -> list[dict[str, Any]]:
+        with self._lock:
+            rows = self._connect().execute("SELECT * FROM calendar_events").fetchall()
+        return [dict(row) for row in rows]
+
+    def sync_reminders(self, reminders: list[dict[str, str]]) -> None:
+        created_at = _now()
+        with self._lock:
+            connection = self._connect()
+            connection.execute("DELETE FROM reminders")
+            for reminder in reminders:
+                connection.execute(
+                    "INSERT INTO reminders VALUES (?, ?, ?, ?)",
+                    (str(uuid4()), reminder["title"], reminder["context"], created_at),
+                )
+            connection.commit()
+
+    def list_reminders(self) -> list[dict[str, Any]]:
+        with self._lock:
+            rows = self._connect().execute("SELECT * FROM reminders").fetchall()
+        return [dict(row) for row in rows]
 
     @staticmethod
     def _proposal_dict(row: sqlite3.Row) -> dict[str, Any]:
