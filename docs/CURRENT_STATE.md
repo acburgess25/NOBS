@@ -14,6 +14,9 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 - Configurable Tank address and Keychain-backed device token.
 - Authenticated Tank chat with visible Local/Tank routing and privacy receipts.
 - Honest local fallback when Tank is unavailable.
+- Today can create a three-part Personal, Business, and Shared morning briefing
+  from visible EventKit event titles and times, with a Tank privacy receipt.
+- Activity lists pending Tank changes and provides explicit Approve and Deny actions.
 - iOS 27 simulator build verified with Xcode 27 beta.
 
 ### Tank API and agent
@@ -27,6 +30,8 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 - Atomic, non-replayable approval execution and local audit events.
 - Current tools: Tank status, bounded workspace listing, and approval-gated Markdown note creation.
 - Deterministic tests plus live Tank verification for read-only execution and denied changes.
+- Device-authenticated daily briefing generation with validated contexts, a
+  privacy receipt, and latest-per-date SQLite persistence.
 
 ### Website
 
@@ -58,24 +63,22 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 ## Not working yet
 
 - No persistent autonomous scheduler or recurring morning/evening jobs.
-- No iOS approval queue or Activity UI connected to `/agent/approvals`.
 - No real calendar, reminders, email, messages, business-document, or web-research tool connected to Tank.
 - No approved long-term memory workflow.
 - No Sign in with Apple, household identity, subscription, or NOBScloud implementation.
 - No arbitrary MCP server is trusted or installed by the NOBS agent.
 - mDNS (`tank.local`) does not resolve from the LAN; clients use 192.168.0.59 directly.
-- The daily briefing slice is specced but not started: see [`BRIEFING_SLICE_SPEC.md`](BRIEFING_SLICE_SPEC.md).
+- The briefing API and iOS UI are locally verified but not yet deployed and live-checked on Tank.
 
 ## Recommended next vertical slice
 
-Build a **scheduled daily briefing with visible approvals**:
+Deploy and live-check the briefing slice on Tank, then add **persistent briefing schedules**:
 
-1. Add persistent schedules without bypassing the tool-risk policy.
-2. Add an iOS Activity/Approval client for listing, approving, and denying Tank proposals.
-3. Define a minimal briefing-input contract from iPhone to Tank.
-4. Start with user-selected calendar/reminder summaries and minimize raw sensitive data.
-5. Produce separate Personal and Business sections plus an explicitly Shared summary.
-6. Record sources, processing route, suggestions, and approval outcomes.
+1. Deploy the authenticated briefing routes and verify them with fake items.
+2. Add persistent schedules without bypassing the tool-risk policy.
+3. Let the user review, pause, and revoke each schedule from Activity.
+4. Add a minimal Reminders input adapter with the same visible-data boundary.
+5. Record schedule runs, sources, processing route, and approval outcomes.
 
 Do not connect email, messages, health, location, purchases, deletion, or account administration until the approval UI and revocation path are usable.
 

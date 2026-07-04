@@ -1,6 +1,6 @@
 # Daily briefing slice — implementation spec
 
-Status: specced July 3, 2026, not started. This is the next vertical slice from
+Status: implemented and locally verified July 3, 2026. This vertical slice from
 [`CURRENT_STATE.md`](CURRENT_STATE.md), scoped for immediate implementation.
 
 ## Backend (Tank FastAPI)
@@ -62,6 +62,16 @@ Build verification: `DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Develop
 
 Persistent scheduler, push notifications, email/messages sources, memory. Do
 not send raw event notes or attendees to Tank — titles, times, and contexts only.
+
+## Implementation result
+
+- Authenticated `POST /briefing` and `GET /briefing/latest` are implemented with
+  validated Personal, Business, and Shared contexts and SQLite persistence.
+- Today shows the exact calendar events before sending only titles, times, and
+  inferred calendar context to Tank; notes, attendees, and locations are excluded.
+- Activity lists pending approvals and supports explicit approve or deny actions.
+- Backend tests and the iOS 27 simulator build pass. Live Tank deployment remains
+  a separate operational step.
 
 ## Verification checklist
 

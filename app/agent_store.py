@@ -60,6 +60,11 @@ class AgentStore:
                     detail_json TEXT NOT NULL,
                     created_at TEXT NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS briefings (
+                    date TEXT PRIMARY KEY,
+                    content_json TEXT NOT NULL,
+                    generated_at TEXT NOT NULL
+                );
                 """
             )
         return self._connection
@@ -229,6 +234,29 @@ class AgentStore:
             "completed_24h": completed_24h,
             "last_activity_at": last_event[0] if last_event else None,
         }
+
+    def save_briefing(self, date: str, content: dict[str, Any]) -> dict[str, Any]:
+        generated_at = str(content["generated_at"])
+        with self._lock:
+            connection = self._connect()
+            connection.execute(
+                """
+                INSERT INTO briefings (date, content_json, generated_at) VALUES (?, ?, ?)
+                ON CONFLICT(date) DO UPDATE SET
+                    content_json = excluded.content_json,
+                    generated_at = excluded.generated_at
+                """,
+                (date, json.dumps(content), generated_at),
+            )
+            connection.commit()
+        return content
+
+    def latest_briefing(self) -> dict[str, Any] | None:
+        with self._lock:
+            row = self._connect().execute(
+                "SELECT content_json FROM briefings ORDER BY generated_at DESC LIMIT 1"
+            ).fetchone()
+        return json.loads(row["content_json"]) if row else None
 
     @staticmethod
     def _approval_dict(row: sqlite3.Row) -> dict[str, Any]:

@@ -61,6 +61,35 @@ struct DayEvent: Identifiable, Hashable {
     var overlapsNext: Bool = false
 }
 
+struct DailyBriefing: Codable {
+    let date: String
+    let personal: String
+    let business: String
+    let shared: String
+    let generatedAt: String
+    let route: ProcessingRoute
+    let privacyReceipt: PrivacyReceipt
+
+    enum CodingKeys: String, CodingKey {
+        case date, personal, business, shared, route
+        case generatedAt = "generated_at"
+        case privacyReceipt = "privacy_receipt"
+    }
+}
+
+struct PendingApproval: Identifiable, Codable {
+    let id: String
+    let toolName: String
+    let risk: String
+    let reason: String
+    let status: String
+
+    enum CodingKeys: String, CodingKey {
+        case id, risk, reason, status
+        case toolName = "tool_name"
+    }
+}
+
 enum AppSection: String, CaseIterable, Identifiable {
     case chat = "Chat"
     case today = "Today"
@@ -94,6 +123,10 @@ final class AppModel: ObservableObject {
     @Published var tankAvailable = false
     @Published var lastError: String?
     @Published var activity: [String] = []
+    @Published var briefing: DailyBriefing?
+    @Published var approvals: [PendingApproval] = []
+    @Published var isGeneratingBriefing = false
+    @Published var isLoadingApprovals = false
     @Published var tankAddress = TankConfiguration.savedAddress
     @Published var tankToken = TankConfiguration.savedToken
 
@@ -104,11 +137,12 @@ final class AppModel: ObservableObject {
 
     func start() async {
         async let health: Void = refreshTankStatus()
+        async let approvals: Void = loadApprovals()
         if calendarStatus == .fullAccess || calendarStatus == .authorized {
             async let events: Void = loadToday()
-            _ = await (health, events)
+            _ = await (health, approvals, events)
         } else {
-            await health
+            _ = await (health, approvals)
         }
     }
 
@@ -196,6 +230,49 @@ final class AppModel: ObservableObject {
         }
 
         entries.append(localResponse(for: clean))
+    }
+
+    func generateBriefing() async {
+        guard tankAvailable, !isGeneratingBriefing else {
+            lastError = "Tank is offline, so your calendar stayed on this iPhone. Reconnect Tank to create the briefing."
+            return
+        }
+        isGeneratingBriefing = true
+        defer { isGeneratingBriefing = false }
+        do {
+            briefing = try await tank.createBriefing(events: events)
+            activity.insert(
+                "Tank created a briefing from \(events.count) visible calendar events",
+                at: 0
+            )
+        } catch {
+            tankAvailable = false
+            lastError = "Tank could not create the briefing. Your calendar remains available locally."
+        }
+    }
+
+    func loadApprovals() async {
+        guard TankConfiguration.currentToken != nil else { return }
+        isLoadingApprovals = true
+        defer { isLoadingApprovals = false }
+        do {
+            approvals = try await tank.approvals()
+        } catch {
+            approvals = []
+        }
+    }
+
+    func decideApproval(_ approval: PendingApproval, decision: String) async {
+        do {
+            _ = try await tank.decideApproval(id: approval.id, decision: decision)
+            activity.insert(
+                "\(decision == "approve" ? "Approved" : "Denied") \(approval.toolName)",
+                at: 0
+            )
+            await loadApprovals()
+        } catch {
+            lastError = "Tank could not update that approval. It may already have been decided."
+        }
     }
 
     private func localResponse(for text: String) -> ConversationEntry {
@@ -303,6 +380,74 @@ private actor TankClient {
         }
         return try JSONDecoder().decode(TankChatResponse.self, from: data)
     }
+
+    func createBriefing(events: [DayEvent]) async throws -> DailyBriefing {
+        var request = try authorizedRequest(path: "briefing", method: "POST")
+        let time = DateFormatter()
+        time.locale = Locale(identifier: "en_US_POSIX")
+        time.dateFormat = "HH:mm"
+        let day = DateFormatter()
+        day.locale = Locale(identifier: "en_US_POSIX")
+        day.dateFormat = "yyyy-MM-dd"
+        request.httpBody = try JSONEncoder().encode(
+            TankBriefingRequest(
+                date: day.string(from: Date()),
+                calendar: events.map {
+                    TankBriefingCalendarItem(
+                        title: $0.title,
+                        start: time.string(from: $0.start),
+                        context: Self.context(for: $0.calendarName)
+                    )
+                },
+                reminders: []
+            )
+        )
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard (response as? HTTPURLResponse)?.statusCode == 200 else {
+            throw URLError(.badServerResponse)
+        }
+        return try JSONDecoder().decode(DailyBriefing.self, from: data)
+    }
+
+    func approvals() async throws -> [PendingApproval] {
+        let request = try authorizedRequest(path: "agent/approvals", method: "GET")
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard (response as? HTTPURLResponse)?.statusCode == 200 else {
+            throw URLError(.badServerResponse)
+        }
+        return try JSONDecoder().decode([PendingApproval].self, from: data)
+    }
+
+    func decideApproval(id: String, decision: String) async throws -> PendingApproval {
+        var request = try authorizedRequest(path: "agent/approvals/\(id)", method: "POST")
+        request.httpBody = try JSONEncoder().encode(ApprovalDecisionRequest(decision: decision))
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard (response as? HTTPURLResponse)?.statusCode == 200 else {
+            throw URLError(.badServerResponse)
+        }
+        return try JSONDecoder().decode(PendingApproval.self, from: data)
+    }
+
+    private func authorizedRequest(path: String, method: String) throws -> URLRequest {
+        guard let baseURL = TankConfiguration.currentURL,
+              let token = TankConfiguration.currentToken,
+              !token.isEmpty else {
+            throw URLError(.userAuthenticationRequired)
+        }
+        var request = URLRequest(url: baseURL.appending(path: path))
+        request.httpMethod = method
+        request.timeoutInterval = 50
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        return request
+    }
+
+    private static func context(for calendarName: String) -> String {
+        let name = calendarName.lowercased()
+        if name.contains("work") || name.contains("business") { return "business" }
+        if name.contains("family") || name.contains("shared") { return "shared" }
+        return "personal"
+    }
 }
 
 private enum TankConfiguration {
@@ -384,4 +529,25 @@ private struct TankChatResponse: Codable {
     }
 
     var receipt: PrivacyReceipt { privacyReceipt }
+}
+
+private struct TankBriefingRequest: Codable {
+    let date: String
+    let calendar: [TankBriefingCalendarItem]
+    let reminders: [TankBriefingReminderItem]
+}
+
+private struct TankBriefingCalendarItem: Codable {
+    let title: String
+    let start: String
+    let context: String
+}
+
+private struct TankBriefingReminderItem: Codable {
+    let title: String
+    let context: String
+}
+
+private struct ApprovalDecisionRequest: Codable {
+    let decision: String
 }

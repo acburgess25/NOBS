@@ -1,5 +1,7 @@
 from contextlib import asynccontextmanager
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
+from enum import Enum
+import json
 import secrets
 from pathlib import Path
 import time
@@ -53,6 +55,42 @@ class OllamaMessage(BaseModel):
 
 class OllamaResponse(BaseModel):
     message: OllamaMessage
+
+
+class BriefingContext(str, Enum):
+    personal = "personal"
+    business = "business"
+    shared = "shared"
+
+
+class BriefingCalendarItem(BaseModel):
+    title: str = Field(min_length=1, max_length=500)
+    start: str = Field(min_length=1, max_length=50)
+    context: BriefingContext
+
+
+class BriefingReminderItem(BaseModel):
+    title: str = Field(min_length=1, max_length=500)
+    context: BriefingContext
+
+
+class BriefingRequest(BaseModel):
+    date: date
+    calendar: list[BriefingCalendarItem] = Field(max_length=100)
+    reminders: list[BriefingReminderItem] = Field(max_length=100)
+
+
+class BriefingSections(BaseModel):
+    personal: str
+    business: str
+    shared: str
+
+
+class BriefingResponse(BriefingSections):
+    date: date
+    generated_at: datetime
+    route: str
+    privacy_receipt: PrivacyReceipt
 
 
 @asynccontextmanager
@@ -188,6 +226,89 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 changed=[],
             ),
         )
+
+    @app.post(
+        "/briefing",
+        response_model=BriefingResponse,
+        tags=["assistant"],
+        dependencies=[Depends(require_device_token)],
+    )
+    async def create_briefing(request: BriefingRequest) -> BriefingResponse:
+        source = request.model_dump(mode="json")
+        payload = {
+            "model": settings.ollama_model,
+            "stream": False,
+            "think": False,
+            "format": "json",
+            "messages": [
+                {
+                    "role": "system",
+                    "content": (
+                        "You are NOBS, a warm, concise, privacy-first personal assistant. "
+                        "Create a realistic daily briefing using ONLY the supplied calendar and "
+                        "reminder items. Never invent events, tasks, or context. Return only a JSON "
+                        "object with string fields personal, business, and shared. Keep all three "
+                        "sections clearly separate; use a brief 'Nothing scheduled' sentence when "
+                        "a section has no items."
+                    ),
+                },
+                {"role": "user", "content": json.dumps(source)},
+            ],
+        }
+        try:
+            async with httpx.AsyncClient(
+                timeout=settings.ollama_timeout_seconds,
+                transport=getattr(app.state, "ollama_transport", None),
+            ) as client:
+                response = await client.post(f"{settings.ollama_base_url}/api/chat", json=payload)
+                response.raise_for_status()
+        except (httpx.TimeoutException, httpx.ConnectError) as error:
+            raise HTTPException(status_code=503, detail="Tank model is unavailable") from error
+        except httpx.HTTPStatusError as error:
+            raise HTTPException(status_code=502, detail="Tank model returned an error") from error
+
+        try:
+            model_content = OllamaResponse.model_validate_json(response.content).message.content
+            sections = BriefingSections.model_validate_json(model_content)
+        except ValueError as error:
+            raise HTTPException(
+                status_code=502,
+                detail="Tank model returned an invalid briefing",
+            ) from error
+
+        result = BriefingResponse(
+            date=request.date,
+            personal=sections.personal,
+            business=sections.business,
+            shared=sections.shared,
+            generated_at=datetime.now(UTC),
+            route="Tank",
+            privacy_receipt=PrivacyReceipt(
+                used=[
+                    f"{len(request.calendar)} calendar items",
+                    f"{len(request.reminders)} reminder items",
+                ],
+                processed="Tank on your private network",
+                shared=[],
+                changed=[],
+            ),
+        )
+        app.state.agent_store.save_briefing(
+            request.date.isoformat(), result.model_dump(mode="json")
+        )
+        return result
+
+    @app.get(
+        "/briefing/latest",
+        response_model=BriefingResponse,
+        tags=["assistant"],
+        dependencies=[Depends(require_device_token)],
+    )
+    async def latest_briefing() -> BriefingResponse:
+        briefing = app.state.agent_store.latest_briefing()
+        if briefing is None:
+            raise HTTPException(status_code=404, detail="No briefing is available")
+        return BriefingResponse.model_validate(briefing)
 
     @app.post(
         "/agent/tasks",

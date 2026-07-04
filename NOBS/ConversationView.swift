@@ -42,9 +42,9 @@ struct ConversationView: View {
             Group {
                 switch model.section {
                 case .chat: chat
-                case .today: TodayView(model: model)
+                case .today: TodayView(model: model) { selectedReceipt = $0 }
                 case .memory: ComingSoonView(title: "Memory", symbol: "brain", detail: "Approved memories will appear here with their source and deletion controls.")
-                case .activity: ActivityView(items: model.activity)
+                case .activity: ActivityView(model: model)
                 case .home: ComingSoonView(title: "Home", symbol: "house", detail: "Unified Apple Home, Google, and Alexa control is coming soon. No devices are connected yet.")
                 case .privacy: PrivacyView(model: model)
                 }
@@ -270,6 +270,7 @@ private struct OnboardingView: View {
 
 private struct TodayView: View {
     @ObservedObject var model: AppModel
+    let onShowReceipt: (PrivacyReceipt) -> Void
     private let accent = Color(red: 0.31, green: 0.43, blue: 0.20)
 
     var body: some View {
@@ -277,6 +278,7 @@ private struct TodayView: View {
             VStack(alignment: .leading, spacing: 18) {
                 Text("A realistic day, not another list.")
                     .font(.system(size: 30, design: .serif))
+                briefingCard
                 switch model.calendarStatus {
                 case .fullAccess, .authorized:
                     if model.isLoadingCalendar {
@@ -307,6 +309,45 @@ private struct TodayView: View {
         }
     }
 
+    private var briefingCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label("Morning briefing", systemImage: "sunrise")
+                .font(.headline)
+            if let briefing = model.briefing {
+                briefingSection("Personal", text: briefing.personal)
+                briefingSection("Business", text: briefing.business)
+                briefingSection("Shared", text: briefing.shared)
+                Button("Privacy receipt") { onShowReceipt(briefing.privacyReceipt) }
+                    .font(.caption.weight(.semibold))
+            } else {
+                Text("Send only the titles, times, and calendar context shown below to your Tank. Notes, attendees, and locations stay off the request.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                Button {
+                    Task { await model.generateBriefing() }
+                } label: {
+                    if model.isGeneratingBriefing {
+                        ProgressView()
+                    } else {
+                        Text("Create from \(model.events.count) visible event\(model.events.count == 1 ? "" : "s")")
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(accent)
+                .disabled(model.isGeneratingBriefing || !model.tankAvailable)
+            }
+        }
+        .padding(18)
+        .background(accent.opacity(0.09), in: RoundedRectangle(cornerRadius: 16))
+    }
+
+    private func briefingSection(_ title: String, text: String) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(title).font(.caption.weight(.bold)).foregroundStyle(accent)
+            Text(text).font(.subheadline)
+        }
+    }
+
     private func eventRow(_ event: DayEvent) -> some View {
         HStack(alignment: .top, spacing: 14) {
             Text(event.start, format: .dateTime.hour().minute())
@@ -331,18 +372,44 @@ private struct TodayView: View {
 }
 
 private struct ActivityView: View {
-    let items: [String]
+    @ObservedObject var model: AppModel
     var body: some View {
         List {
-            if items.isEmpty {
-                ContentUnavailableView("No activity yet", systemImage: "clock.arrow.circlepath", description: Text("Connections and approved actions will appear here."))
-            } else {
-                ForEach(Array(items.enumerated()), id: \.offset) { _, item in
-                    Label(item, systemImage: "checkmark.circle")
+            Section("Waiting for approval") {
+                if model.isLoadingApprovals {
+                    ProgressView("Checking Tank…")
+                } else if model.approvals.isEmpty {
+                    ContentUnavailableView("Nothing waiting", systemImage: "checkmark.shield", description: Text(model.tankAvailable ? "Tank has no pending changes." : "Tank is offline. No approval was changed."))
+                } else {
+                    ForEach(model.approvals) { approval in
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(approval.toolName).font(.headline)
+                            Text(approval.reason).font(.subheadline).foregroundStyle(.secondary)
+                            Text(approval.risk.capitalized).font(.caption.weight(.semibold))
+                            HStack {
+                                Button("Approve") { Task { await model.decideApproval(approval, decision: "approve") } }
+                                    .buttonStyle(.borderedProminent)
+                                Button("Deny", role: .destructive) { Task { await model.decideApproval(approval, decision: "deny") } }
+                                    .buttonStyle(.bordered)
+                            }
+                        }
+                        .padding(.vertical, 6)
+                    }
+                }
+                Button("Refresh approvals") { Task { await model.loadApprovals() } }
+            }
+            Section("Recent on this device") {
+                if model.activity.isEmpty {
+                    Text("No activity yet").foregroundStyle(.secondary)
+                } else {
+                    ForEach(Array(model.activity.enumerated()), id: \.offset) { _, item in
+                        Label(item, systemImage: "checkmark.circle")
+                    }
                 }
             }
         }
         .scrollContentBackground(.hidden)
+        .task { await model.loadApprovals() }
     }
 }
 
