@@ -5,7 +5,7 @@ import json
 import secrets
 from pathlib import Path
 import time
-from typing import AsyncIterator
+from typing import AsyncIterator, Literal
 
 import httpx
 from fastapi import Depends, FastAPI, Header, HTTPException, status
@@ -94,6 +94,20 @@ class BriefingResponse(BriefingSections):
     privacy_receipt: PrivacyReceipt
 
 
+class ProposalView(BaseModel):
+    id: str
+    title: str
+    description: str
+    proposal_type: str
+    status: str
+    created_at: str
+    decided_at: str | None
+
+
+class ProposalDecision(BaseModel):
+    decision: Literal["approve", "dismiss"]
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI) -> AsyncIterator[None]:
     get_settings()
@@ -116,6 +130,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         settings.agent_workspace_path,
         settings.agent_project_path,
         app.state.home_assistant,
+        app.state.agent_store,
     )
     app.state.process_started_at = time.time()
     dashboard_directory = Path(__file__).resolve().parents[1] / "dashboard"
@@ -411,6 +426,37 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             },
         )
         return ApprovalView.model_validate(finished)
+
+    @app.get(
+        "/agent/proposals",
+        response_model=list[ProposalView],
+        tags=["agent"],
+        dependencies=[Depends(require_device_token)],
+    )
+    async def list_agent_proposals(proposal_status: str | None = None) -> list[ProposalView]:
+        return [
+            ProposalView.model_validate(item)
+            for item in app.state.agent_store.list_proposals(proposal_status)
+        ]
+
+    @app.post(
+        "/agent/proposals/{proposal_id}/decide",
+        response_model=ProposalView,
+        tags=["agent"],
+        dependencies=[Depends(require_device_token)],
+    )
+    async def decide_agent_proposal(
+        proposal_id: str,
+        decision: ProposalDecision,
+    ) -> ProposalView:
+        db_decision = "approved" if decision.decision == "approve" else "dismissed"
+        try:
+            finished = app.state.agent_store.decide_proposal(proposal_id, db_decision)
+            return ProposalView.model_validate(finished)
+        except KeyError as error:
+            raise HTTPException(status_code=404, detail="Proposal not found") from error
+        except ValueError as error:
+            raise HTTPException(status_code=409, detail=str(error)) from error
 
     return app
 

@@ -65,6 +65,15 @@ class AgentStore:
                     content_json TEXT NOT NULL,
                     generated_at TEXT NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS proposals (
+                    id TEXT PRIMARY KEY,
+                    title TEXT NOT NULL,
+                    description TEXT NOT NULL,
+                    proposal_type TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    decided_at TEXT
+                );
                 """
             )
         return self._connection
@@ -257,6 +266,72 @@ class AgentStore:
                 "SELECT content_json FROM briefings ORDER BY generated_at DESC LIMIT 1"
             ).fetchone()
         return json.loads(row["content_json"]) if row else None
+
+    def create_proposal(self, title: str, description: str, proposal_type: str) -> dict[str, Any]:
+        proposal_id = str(uuid4())
+        created_at = _now()
+        with self._lock:
+            connection = self._connect()
+            connection.execute(
+                "INSERT INTO proposals VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (proposal_id, title, description, proposal_type, "pending", created_at, None),
+            )
+            connection.commit()
+        return self.get_proposal(proposal_id)
+
+    def get_proposal(self, proposal_id: str) -> dict[str, Any]:
+        with self._lock:
+            row = self._connect().execute(
+                "SELECT * FROM proposals WHERE id = ?",
+                (proposal_id,),
+            ).fetchone()
+        if row is None:
+            raise KeyError(proposal_id)
+        return self._proposal_dict(row)
+
+    def list_proposals(self, status: str | None = None) -> list[dict[str, Any]]:
+        with self._lock:
+            connection = self._connect()
+            if status is None:
+                rows = connection.execute(
+                    "SELECT * FROM proposals ORDER BY created_at DESC"
+                ).fetchall()
+            else:
+                rows = connection.execute(
+                    "SELECT * FROM proposals WHERE status = ? ORDER BY created_at DESC",
+                    (status,),
+                ).fetchall()
+        return [self._proposal_dict(row) for row in rows]
+
+    def decide_proposal(self, proposal_id: str, decision: str) -> dict[str, Any]:
+        if decision not in {"approved", "dismissed"}:
+            raise ValueError("Decision must be approved or dismissed")
+        with self._lock:
+            connection = self._connect()
+            cursor = connection.execute(
+                """
+                UPDATE proposals
+                SET status = ?, decided_at = ?
+                WHERE id = ? AND status = 'pending'
+                """,
+                (decision, _now(), proposal_id),
+            )
+            connection.commit()
+        if cursor.rowcount != 1:
+            raise ValueError("Proposal is missing or already decided")
+        return self.get_proposal(proposal_id)
+
+    @staticmethod
+    def _proposal_dict(row: sqlite3.Row) -> dict[str, Any]:
+        return {
+            "id": row["id"],
+            "title": row["title"],
+            "description": row["description"],
+            "proposal_type": row["proposal_type"],
+            "status": row["status"],
+            "created_at": row["created_at"],
+            "decided_at": row["decided_at"],
+        }
 
     @staticmethod
     def _approval_dict(row: sqlite3.Row) -> dict[str, Any]:

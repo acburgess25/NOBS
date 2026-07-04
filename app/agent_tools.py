@@ -10,6 +10,7 @@ import shutil
 from typing import Any, Callable
 
 from app.home_assistant import HomeAssistantClient
+from app.agent_store import AgentStore
 
 
 class ToolRisk(StrEnum):
@@ -73,10 +74,12 @@ class ToolRegistry:
         workspace: Path,
         project: Path | None = None,
         home_assistant: HomeAssistantClient | None = None,
+        store: AgentStore | None = None,
     ) -> None:
         self.workspace = workspace.resolve()
         self.project = (project or Path.cwd()).resolve()
         self.home_assistant = home_assistant
+        self.store = store
         self._tools = {
             tool.name: tool
             for tool in (
@@ -240,6 +243,26 @@ class ToolRegistry:
                         "additionalProperties": False,
                     },
                     handler=self._control_secure_home_device,
+                ),
+                ToolDefinition(
+                    name="propose_idea",
+                    description=(
+                        "Propose a conceptual recommendation or optimization idea (like a new routine "
+                        "or a device integration suggestion) to the user. This publishes the idea for "
+                        "user review and does not execute any state change immediately."
+                    ),
+                    risk=ToolRisk.READ_ONLY,
+                    parameters={
+                        "type": "object",
+                        "required": ["title", "description", "proposal_type"],
+                        "properties": {
+                            "title": {"type": "string", "minLength": 1, "maxLength": 120},
+                            "description": {"type": "string", "minLength": 1, "maxLength": 2000},
+                            "proposal_type": {"type": "string", "enum": ["routine", "integration", "optimization"]},
+                        },
+                        "additionalProperties": False,
+                    },
+                    handler=self._propose_idea,
                 ),
             )
         }
@@ -535,6 +558,26 @@ class ToolRegistry:
             return {"status": "success", "result": res}
         except Exception as e:
             return {"error": f"Failed to control secure device: {str(e)}"}
+
+    def _propose_idea(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        self._require_argument_keys(arguments, {"title", "description", "proposal_type"})
+        title = str(arguments.get("title", "")).strip()
+        description = str(arguments.get("description", "")).strip()
+        proposal_type = str(arguments.get("proposal_type", "")).strip()
+
+        if not title or not description or not proposal_type:
+            raise ValueError("title, description, and proposal_type are required")
+        if proposal_type not in {"routine", "integration", "optimization"}:
+            raise ValueError("proposal_type must be one of: routine, integration, optimization")
+
+        if not self.store:
+            return {"error": "Agent store is not available to save proposals."}
+
+        try:
+            prop = self.store.create_proposal(title, description, proposal_type)
+            return {"status": "success", "proposal_id": prop["id"]}
+        except Exception as e:
+            return {"error": f"Failed to save proposal: {str(e)}"}
 
     @staticmethod
     def _require_argument_keys(arguments: dict[str, Any], allowed: set[str]) -> None:
