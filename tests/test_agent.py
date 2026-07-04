@@ -50,6 +50,109 @@ def test_agent_executes_read_only_tool_without_approval(tmp_path: Path) -> None:
     assert payload["tool_results"][0]["tool"] == "get_tank_status"
 
 
+def test_developer_mode_uses_coder_model_and_project_tools(tmp_path: Path) -> None:
+    project = tmp_path / "project"
+    project.mkdir()
+    (project / "README.md").write_text("# NOBS\n", encoding="utf-8")
+    calls = 0
+
+    def ollama_response(request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        payload = json.loads(request.content)
+        assert payload["model"] == "qwen2.5-coder:14b"
+        tool_names = {item["function"]["name"] for item in payload["tools"]}
+        if calls == 1:
+            assert "read_project_file" in tool_names
+            assert "Developer mode" in payload["messages"][0]["content"]
+            return httpx.Response(
+                200,
+                json={
+                    "message": {
+                        "tool_calls": [
+                            {
+                                "function": {
+                                    "name": "read_project_file",
+                                    "arguments": {"path": "README.md"},
+                                }
+                            }
+                        ]
+                    }
+                },
+            )
+        assert payload["messages"][-1]["role"] == "tool"
+        return httpx.Response(
+            200,
+            json={"message": {"content": "The project is documented in README.md."}},
+        )
+
+    response = client(
+        httpx.MockTransport(ollama_response),
+        tmp_path / "workspace",
+        project,
+    ).post(
+        "/agent/tasks",
+        json={"objective": "Inspect the project", "mode": "developer"},
+        headers=auth(),
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "completed"
+    assert response.json()["tool_results"] == [
+        {
+            "tool": "read_project_file",
+            "result": {
+                "path": "README.md",
+                "content": "# NOBS\n",
+                "truncated": False,
+            },
+        }
+    ]
+
+
+def test_assistant_mode_cannot_execute_unadvertised_project_tool(tmp_path: Path) -> None:
+    calls = 0
+
+    def ollama_response(request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        payload = json.loads(request.content)
+        assert payload["model"] == "qwen3:8b"
+        assert all(
+            item["function"]["name"] != "read_project_file"
+            for item in payload["tools"]
+        )
+        if calls == 1:
+            return httpx.Response(
+                200,
+                json={
+                    "message": {
+                        "tool_calls": [
+                            {
+                                "function": {
+                                    "name": "read_project_file",
+                                    "arguments": {"path": "README.md"},
+                                }
+                            }
+                        ]
+                    }
+                },
+            )
+        assert json.loads(payload["messages"][-1]["content"]) == {
+            "error": "Unknown or unavailable tool"
+        }
+        return httpx.Response(200, json={"message": {"content": "Unavailable."}})
+
+    response = client(httpx.MockTransport(ollama_response), tmp_path).post(
+        "/agent/tasks",
+        json={"objective": "Read the project"},
+        headers=auth(),
+    )
+
+    assert response.status_code == 200
+    assert response.json()["tool_results"] == []
+
+
 def test_agent_queues_change_until_user_approves(tmp_path: Path) -> None:
     calls = 0
 

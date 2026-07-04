@@ -12,11 +12,13 @@ TOKEN = "test-device-token"
 def client(
     transport: httpx.BaseTransport | None = None,
     workspace: Path | None = None,
+    project: Path | None = None,
 ) -> TestClient:
     settings = Settings(
         device_token=TOKEN,
         agent_database_path=Path(":memory:"),
         agent_workspace_path=workspace or Path(tempfile.mkdtemp()),
+        agent_project_path=project or Path.cwd(),
     )
     app = create_app(settings)
     if transport is not None:

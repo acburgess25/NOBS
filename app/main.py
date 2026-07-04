@@ -107,7 +107,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         lifespan=lifespan,
     )
     app.state.agent_store = AgentStore(settings.agent_database_path)
-    app.state.agent_tools = ToolRegistry(settings.agent_workspace_path)
+    app.state.agent_tools = ToolRegistry(
+        settings.agent_workspace_path,
+        settings.agent_project_path,
+    )
     app.state.process_started_at = time.time()
     dashboard_directory = Path(__file__).resolve().parents[1] / "dashboard"
     app.mount(

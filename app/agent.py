@@ -14,6 +14,7 @@ from app.config import Settings
 class AgentTaskRequest(BaseModel):
     objective: str = Field(min_length=1, max_length=10_000)
     context: Literal["personal", "business", "shared"] = "personal"
+    mode: Literal["assistant", "developer"] = "assistant"
 
 
 class ApprovalView(BaseModel):
@@ -81,14 +82,25 @@ class TankAgent:
     async def run(self, request: AgentTaskRequest) -> AgentTaskResponse:
         run_id = self.store.create_run(request.objective, request.context)
         messages: list[dict[str, Any]] = [
-            {"role": "system", "content": self._system_prompt(request.context)},
+            {
+                "role": "system",
+                "content": self._system_prompt(request.context, request.mode),
+            },
             {"role": "user", "content": request.objective},
         ]
         approvals: list[dict[str, Any]] = []
         tool_results: list[dict[str, Any]] = []
 
         for _ in range(self.settings.agent_max_steps):
-            response = await self._chat(messages, tools=[] if approvals else self.tools.schemas)
+            response = await self._chat(
+                messages,
+                tools=[] if approvals else self.tools.schemas_for_mode(request.mode),
+                model=(
+                    self.settings.coding_model
+                    if request.mode == "developer"
+                    else self.settings.ollama_model
+                ),
+            )
             message = response.message
             messages.append(message.model_dump(exclude_none=True))
             if not message.tool_calls:
@@ -104,7 +116,7 @@ class TankAgent:
 
             for call in message.tool_calls:
                 tool = self.tools.get(call.function.name)
-                if tool is None:
+                if tool is None or not self.tools.is_available(call.function.name, request.mode):
                     result = {"error": "Unknown or unavailable tool"}
                 elif tool.risk is ToolRisk.READ_ONLY:
                     try:
@@ -152,9 +164,10 @@ class TankAgent:
         self,
         messages: list[dict[str, Any]],
         tools: list[dict[str, Any]],
+        model: str,
     ) -> OllamaAgentResponse:
         payload = {
-            "model": self.settings.ollama_model,
+            "model": model,
             "stream": False,
             "think": False,
             "messages": messages,
@@ -175,14 +188,21 @@ class TankAgent:
             raise AgentModelError("Tank model could not complete the agent step") from error
 
     @staticmethod
-    def _system_prompt(context: str) -> str:
-        return (
+    def _system_prompt(context: str, mode: str) -> str:
+        prompt = (
             "You are the NOBS agent running privately on Tank. You are in a bounded tool loop. "
             f"The active context is {context}. Never mix personal and business context unless the "
             "active context is shared. Use only the supplied tools. Read-only tools may run now. "
             "Any tool that changes state will be queued for explicit user approval. Never claim a "
             "queued action happened. Briefly explain what you learned or what approval is needed."
         )
+        if mode == "developer":
+            prompt += (
+                " Developer mode may inspect only the configured NOBS project through bounded "
+                "read-only tools. Cite relevant project-relative file paths. It cannot edit files, "
+                "run commands or tests, read secrets, or access the network. Never claim that it did."
+            )
+        return prompt
 
     @staticmethod
     def _fallback_message(approvals: list[dict[str, Any]]) -> str:
