@@ -9,6 +9,8 @@ import re
 import shutil
 from typing import Any, Callable
 
+from app.home_assistant import HomeAssistantClient
+
 
 class ToolRisk(StrEnum):
     READ_ONLY = "read_only"
@@ -66,9 +68,15 @@ class ToolRegistry:
     )
     _TEXT_FILENAMES = frozenset({"Dockerfile", "Gemfile", "Makefile"})
 
-    def __init__(self, workspace: Path, project: Path | None = None) -> None:
+    def __init__(
+        self,
+        workspace: Path,
+        project: Path | None = None,
+        home_assistant: HomeAssistantClient | None = None,
+    ) -> None:
         self.workspace = workspace.resolve()
         self.project = (project or Path.cwd()).resolve()
+        self.home_assistant = home_assistant
         self._tools = {
             tool.name: tool
             for tool in (
@@ -158,6 +166,80 @@ class ToolRegistry:
                         "additionalProperties": False,
                     },
                     handler=self._search_project_text,
+                ),
+                ToolDefinition(
+                    name="read_workspace_file",
+                    description=(
+                        "Read a Markdown note or file from the private NOBS agent workspace. "
+                        "This cannot read outside that workspace."
+                    ),
+                    risk=ToolRisk.READ_ONLY,
+                    parameters={
+                        "type": "object",
+                        "required": ["context", "path"],
+                        "properties": {
+                            "context": self._context_schema(),
+                            "path": {"type": "string", "minLength": 1, "maxLength": 300},
+                        },
+                        "additionalProperties": False,
+                    },
+                    handler=self._read_workspace_file,
+                ),
+                ToolDefinition(
+                    name="list_home_devices",
+                    description=(
+                        "List available smart home devices, their domains, names, and current states. "
+                        "Optionally filters by domain (e.g. light, switch, climate, lock)."
+                    ),
+                    risk=ToolRisk.READ_ONLY,
+                    parameters={
+                        "type": "object",
+                        "properties": {
+                            "domain": {"type": "string", "maxLength": 50},
+                        },
+                        "additionalProperties": False,
+                    },
+                    handler=self._list_home_devices,
+                ),
+                ToolDefinition(
+                    name="control_home_device",
+                    description=(
+                        "Control a non-secure smart home device (e.g., light, switch, climate, media_player). "
+                        "This tool is prohibited from controlling secure domains like lock, alarm_control_panel, or cover. "
+                        "This changes local home state and requires approval."
+                    ),
+                    risk=ToolRisk.CHANGE,
+                    parameters={
+                        "type": "object",
+                        "required": ["entity_id", "service"],
+                        "properties": {
+                            "entity_id": {"type": "string", "minLength": 1, "maxLength": 100},
+                            "service": {"type": "string", "minLength": 1, "maxLength": 50},
+                            "service_data": {"type": "object"},
+                        },
+                        "additionalProperties": False,
+                    },
+                    handler=self._control_home_device,
+                ),
+                ToolDefinition(
+                    name="control_secure_home_device",
+                    description=(
+                        "Control a secure smart home device (e.g., lock, alarm_control_panel, cover). "
+                        "This tool is restricted only to secure domains and carries a higher risk. "
+                        "This changes local home state and requires approval."
+                    ),
+                    risk=ToolRisk.SENSITIVE,
+                    parameters={
+                        "type": "object",
+                        "required": ["entity_id", "service"],
+                        "properties": {
+                            "entity_id": {"type": "string", "minLength": 1, "maxLength": 100},
+                            "service": {"type": "string", "minLength": 1, "maxLength": 50},
+                            "service_data": {"type": "object"},
+                        },
+                        "additionalProperties": False,
+                    },
+                    handler=self._control_secure_home_device,
                 ),
             )
         }
@@ -375,6 +457,84 @@ class ToolRegistry:
                     if len(matches) >= 100:
                         return {"query": query, "matches": matches, "truncated": True}
         return {"query": query, "matches": matches, "truncated": False}
+
+    def _read_workspace_file(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        self._require_argument_keys(arguments, {"context", "path"})
+        context = str(arguments.get("context", ""))
+        path_str = str(arguments.get("path", ""))
+        if not path_str:
+            raise ValueError("Path is required")
+        context_path = self._context_path(context)
+        destination = (context_path / path_str).resolve()
+        if context_path not in destination.parents and destination != context_path:
+            raise ValueError("Path escapes context workspace")
+        if not destination.exists() or not destination.is_file():
+            raise FileNotFoundError("Workspace file does not exist")
+        content = destination.read_text(encoding="utf-8", errors="ignore")
+        truncated = len(content) > 50_000
+        return {
+            "context": context,
+            "path": path_str,
+            "content": content[:50_000],
+            "truncated": truncated,
+        }
+
+    def _list_home_devices(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        self._require_argument_keys(arguments, {"domain"})
+        if not self.home_assistant or not self.home_assistant.is_configured:
+            return {
+                "error": "Home Assistant integration is not configured. Ask the user to set NOBS_HOMEASSISTANT_URL and NOBS_HOMEASSISTANT_TOKEN in their environment."
+            }
+        domain = arguments.get("domain")
+        try:
+            devices = self.home_assistant.list_devices(domain)
+            return {"devices": devices[:100], "truncated": len(devices) > 100}
+        except Exception as e:
+            return {"error": f"Failed to list devices from Home Assistant: {str(e)}"}
+
+    def _control_home_device(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        self._require_argument_keys(arguments, {"entity_id", "service", "service_data"})
+        entity_id = str(arguments.get("entity_id", ""))
+        service = str(arguments.get("service", ""))
+        service_data = arguments.get("service_data", {})
+        if not entity_id or not service:
+            raise ValueError("entity_id and service are required")
+        domain = entity_id.split(".")[0] if "." in entity_id else ""
+        if domain in {"lock", "alarm_control_panel", "cover"}:
+            raise ValueError("This tool is not permitted to control secure devices. Use control_secure_home_device instead.")
+        if not self.home_assistant or not self.home_assistant.is_configured:
+            return {
+                "error": "Home Assistant integration is not configured. Ask the user to set NOBS_HOMEASSISTANT_URL and NOBS_HOMEASSISTANT_TOKEN in their environment."
+            }
+        try:
+            data = dict(service_data) if isinstance(service_data, dict) else {}
+            data["entity_id"] = entity_id
+            res = self.home_assistant.call_service(domain, service, data)
+            return {"status": "success", "result": res}
+        except Exception as e:
+            return {"error": f"Failed to control device: {str(e)}"}
+
+    def _control_secure_home_device(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        self._require_argument_keys(arguments, {"entity_id", "service", "service_data"})
+        entity_id = str(arguments.get("entity_id", ""))
+        service = str(arguments.get("service", ""))
+        service_data = arguments.get("service_data", {})
+        if not entity_id or not service:
+            raise ValueError("entity_id and service are required")
+        domain = entity_id.split(".")[0] if "." in entity_id else ""
+        if domain not in {"lock", "alarm_control_panel", "cover"}:
+            raise ValueError("This tool is only permitted to control secure devices (lock, alarm_control_panel, cover). Use control_home_device for other domains.")
+        if not self.home_assistant or not self.home_assistant.is_configured:
+            return {
+                "error": "Home Assistant integration is not configured. Ask the user to set NOBS_HOMEASSISTANT_URL and NOBS_HOMEASSISTANT_TOKEN in their environment."
+            }
+        try:
+            data = dict(service_data) if isinstance(service_data, dict) else {}
+            data["entity_id"] = entity_id
+            res = self.home_assistant.call_service(domain, service, data)
+            return {"status": "success", "result": res}
+        except Exception as e:
+            return {"error": f"Failed to control secure device: {str(e)}"}
 
     @staticmethod
     def _require_argument_keys(arguments: dict[str, Any], allowed: set[str]) -> None:

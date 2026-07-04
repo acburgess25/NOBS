@@ -25,6 +25,7 @@ from app.agent_store import AgentStore
 from app.agent_tools import ToolRegistry
 from app.config import Settings, get_settings
 from app.dashboard import build_dashboard_status
+from app.home_assistant import HomeAssistantClient
 
 
 class ChatMessage(BaseModel):
@@ -107,9 +108,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         lifespan=lifespan,
     )
     app.state.agent_store = AgentStore(settings.agent_database_path)
+    app.state.home_assistant = HomeAssistantClient(
+        settings.homeassistant_url,
+        settings.homeassistant_token,
+    )
     app.state.agent_tools = ToolRegistry(
         settings.agent_workspace_path,
         settings.agent_project_path,
+        app.state.home_assistant,
     )
     app.state.process_started_at = time.time()
     dashboard_directory = Path(__file__).resolve().parents[1] / "dashboard"

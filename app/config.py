@@ -27,6 +27,8 @@ class Settings(BaseSettings):
     agent_project_path: Path = Path(".")
     agent_max_steps: int = Field(default=4, ge=1, le=8)
     dashboard_name: str = Field(default="Tank", min_length=1, max_length=40)
+    homeassistant_url: str = Field(default="")
+    homeassistant_token: SecretStr | None = Field(default=None)
 
 
 @lru_cache
