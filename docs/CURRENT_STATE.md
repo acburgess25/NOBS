@@ -68,17 +68,17 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 - No Sign in with Apple, household identity, subscription, or NOBScloud implementation.
 - No arbitrary MCP server is trusted or installed by the NOBS agent.
 - mDNS (`tank.local`) does not resolve from the LAN; clients use 192.168.0.59 directly.
-- The briefing API and iOS UI are locally verified but not yet deployed and live-checked on Tank.
+- The briefing API is deployed and live-verified on Tank. The iOS UI is simulator-built;
+  physical iPhone validation remains pending.
 
 ## Recommended next vertical slice
 
-Deploy and live-check the briefing slice on Tank, then add **persistent briefing schedules**:
+Add **persistent briefing schedules**:
 
-1. Deploy the authenticated briefing routes and verify them with fake items.
-2. Add persistent schedules without bypassing the tool-risk policy.
-3. Let the user review, pause, and revoke each schedule from Activity.
-4. Add a minimal Reminders input adapter with the same visible-data boundary.
-5. Record schedule runs, sources, processing route, and approval outcomes.
+1. Add persistent schedules without bypassing the tool-risk policy.
+2. Let the user review, pause, and revoke each schedule from Activity.
+3. Add a minimal Reminders input adapter with the same visible-data boundary.
+4. Record schedule runs, sources, processing route, and approval outcomes.
 
 Do not connect email, messages, health, location, purchases, deletion, or account administration until the approval UI and revocation path are usable.
 

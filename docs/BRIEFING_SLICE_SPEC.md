@@ -1,6 +1,6 @@
 # Daily briefing slice — implementation spec
 
-Status: implemented and locally verified July 3, 2026. This vertical slice from
+Status: implemented, deployed, and live-verified on Tank July 3, 2026. This vertical slice from
 [`CURRENT_STATE.md`](CURRENT_STATE.md), scoped for immediate implementation.
 
 ## Backend (Tank FastAPI)
@@ -70,8 +70,9 @@ not send raw event notes or attendees to Tank — titles, times, and contexts on
 - Today shows the exact calendar events before sending only titles, times, and
   inferred calendar context to Tank; notes, attendees, and locations are excluded.
 - Activity lists pending approvals and supports explicit approve or deny actions.
-- Backend tests and the iOS 27 simulator build pass. Live Tank deployment remains
-  a separate operational step.
+- Backend tests and the iOS 27 simulator build pass. The Tank deployment was
+  live-verified with fake Personal and Business items, anonymous rejection, latest
+  retrieval, and unchanged dashboard run metrics; the fake record was removed afterward.
 
 ## Verification checklist
 
