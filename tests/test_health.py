@@ -1,5 +1,6 @@
 import httpx
 from fastapi.testclient import TestClient
+import subprocess  # Import subprocess module
 
 from app.config import Settings
 from app.main import create_app
@@ -51,3 +52,37 @@ def test_dashboard_status_is_room_safe(tmp_path) -> None:
     assert payload["workspaces"] == {"personal": 0, "business": 0, "shared": 0}
     assert "conversations" in payload["privacy"].lower()
     assert "messages" not in payload
+
+
+def test_dashboard_status_includes_gpu_when_available(monkeypatch) -> None:
+    def mock_subprocess_run(*args, **kwargs):
+        return subprocess.CompletedProcess(args=args, returncode=0, stdout="37, 4096, 12288, 51\n")
+
+    monkeypatch.setattr(subprocess, "run", mock_subprocess_run)
+
+    app = create_app(Settings())
+    response = TestClient(app).get("/dashboard/status")
+
+    assert response.status_code == 200
+    payload = response.json()
+    gpu_status = payload.get("gpu")
+    assert gpu_status is not None
+    assert gpu_status["utilization_percent"] == 37
+    assert gpu_status["memory_used_mb"] == 4096
+    assert gpu_status["memory_total_mb"] == 12288
+    assert gpu_status["temperature_c"] == 51
+
+
+def test_dashboard_status_gpu_none_when_unavailable(monkeypatch) -> None:
+    def mock_subprocess_run(*args, **kwargs):
+        raise FileNotFoundError
+
+    monkeypatch.setattr(subprocess, "run", mock_subprocess_run)
+
+    app = create_app(Settings())
+    response = TestClient(app).get("/dashboard/status")
+
+    assert response.status_code == 200
+    payload = response.json()
+    gpu_status = payload.get("gpu")
+    assert gpu_status is None

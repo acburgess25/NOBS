@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from datetime import UTC, datetime
 import os
-from pathlib import Path
+import subprocess
+from datetime import UTC, datetime
 import shutil
 import time
 from typing import Any
+from pathlib import Path
 
 import httpx
 
@@ -61,6 +62,7 @@ async def build_dashboard_status(
             }
         )
 
+    gpu_status = _gpu_status()
     return {
         "generated_at": datetime.now(UTC).isoformat(),
         "display_name": settings.dashboard_name,
@@ -73,6 +75,7 @@ async def build_dashboard_status(
         "workspaces": workspaces,
         "attention": attention,
         "privacy": "Room-safe summary only. No conversations or private event details are shown.",
+        "gpu": gpu_status,
     }
 
 
@@ -110,3 +113,29 @@ async def _ollama_status(
         return {"status": "online" if available else "model_missing", "model": wanted}
     except (httpx.HTTPError, ValueError):
         return {"status": "offline", "model": settings.ollama_model}
+
+
+def _gpu_status() -> dict[str, int] | None:
+    try:
+        result = subprocess.run(
+            ["nvidia-smi", "--query-gpu=utilization.gpu,memory.used,memory.total,temperature.gpu", "--format=csv,noheader,nounits"],
+            timeout=2,
+            capture_output=True,
+            text=True
+        )
+        if result.returncode != 0:
+            return None
+
+        values = result.stdout.strip().split(", ")
+        if len(values) != 4:
+            return None
+
+        utilization_percent, memory_used_mb, memory_total_mb, temperature_c = map(int, values)
+        return {
+            "utilization_percent": utilization_percent,
+            "memory_used_mb": memory_used_mb,
+            "memory_total_mb": memory_total_mb,
+            "temperature_c": temperature_c
+        }
+    except (OSError, subprocess.SubprocessError, ValueError):
+        return None

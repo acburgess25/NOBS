@@ -93,6 +93,8 @@ h2 { margin-bottom: 0; font-size: clamp(25px, 2.2vw, 40px); }
 .metric-value { margin-top: auto; font: 400 clamp(34px, 3.2vw, 56px)/1 Georgia, serif; }
 .metric-copy, .card-foot { margin: 11px 0 0; font-size: 13px; }
 .service-row { display: flex; justify-content: space-between; gap: 20px; padding: 13px 0; border-bottom: 1px solid var(--line); }
+.gpu-row { display: flex; justify-content: space-between; gap: 20px; padding: 8px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+.gpu-row:last-child { border-bottom: 0; }
 .service-row strong { color: var(--sage); font-size: 13px; text-transform: capitalize; }
 .lower-grid { display: grid; grid-template-columns: 1.45fr 1fr; gap: 18px; min-height: 210px; }
 .activity-panel, .workspace-panel { padding: clamp(22px, 2vw, 32px); }

@@ -66,6 +66,17 @@ async function refresh() {
     setText("attention-detail", attention.detail);
     connection.textContent = "Live from Tank";
     setText("last-refresh", `Updated ${new Date(data.generated_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit" })}`);
+
+    const gpu = data.gpu;
+    if (gpu) {
+      setText("gpu-utilization", `${gpu.utilization_percent}%`);
+      setText("gpu-memory", `${(gpu.memory_used_mb / 1024).toFixed(1)} / ${(gpu.memory_total_mb / 1024).toFixed(1)} GB`);
+      setText("gpu-temperature", `${gpu.temperature_c}°C`);
+    } else {
+      setText("gpu-utilization", "—");
+      setText("gpu-memory", "— / — GB");
+      setText("gpu-temperature", "—°C");
+    }
   } catch {
     document.querySelector(".attention-panel").dataset.level = "urgent";
     setText("attention-heading", "Dashboard connection lost");
