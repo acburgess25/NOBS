@@ -21,8 +21,25 @@ The first implementation establishes the trust boundary needed for future person
 | `get_tank_status` | Read only | Reports basic host load and free storage. |
 | `list_workspace_files` | Read only | Lists files in one approved context directory. |
 | `write_workspace_note` | Change | Proposes a Markdown note and waits for approval. |
+| `list_project_files` | Read only | (Developer Mode) Lists bounded source and doc files under the configured NOBS project. |
+| `read_project_file` | Read only | (Developer Mode) Reads a bounded UTF-8 source or doc file from the configured project. |
+| `search_project_text` | Read only | (Developer Mode) Searches for literal text fragment in bounded source/doc files. |
 
 There is deliberately no general-purpose shell, arbitrary URL fetcher, package installer, credential reader, message sender, deletion tool, or unrestricted filesystem tool.
+
+## Developer Mode
+
+Developer Mode can be activated by specifying `"mode": "developer"` in the agent task request. 
+
+### Scope and Honest Boundaries
+
+- **Model**: Uses `qwen2.5-coder:14b` instead of `qwen3:8b`.
+- **Purpose**: Allows inspecting the codebase and documentation to help answer questions or plan work.
+- **Strict Boundaries**: 
+  - It is **read-only**: it cannot edit or create files in the project directory, run tests, execute terminal commands, or access the network/internet.
+  - **No Symlink or Traversal Escape**: All paths are resolved and validated against the configured project root. If a file or symlink points outside the project, execution fails.
+  - **Exclusions**: Hidden files/folders (starting with `.`), database files, secrets (such as `.env`), and data folders (such as `data/`) are blocked.
+  - **No Codex Parity**: It is an exploratory/inspection tool only; it does not have the full self-editing, testing, or browsing capability of the parent Codex/Antigravity environments.
 
 ## Code map
 

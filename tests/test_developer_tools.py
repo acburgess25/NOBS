@@ -65,12 +65,17 @@ def test_project_tools_reject_path_escape_symlink_and_extra_arguments(tmp_path: 
     tools, project = registry(tmp_path)
     outside = tmp_path / "outside.md"
     outside.write_text("do not read", encoding="utf-8")
-    (project / "outside-link.md").symlink_to(outside)
+    try:
+        (project / "outside-link.md").symlink_to(outside)
+        has_symlinks = True
+    except OSError:
+        has_symlinks = False
 
     with pytest.raises(ValueError, match="escapes configured project"):
         tools.execute("read_project_file", {"path": "../outside.md"})
-    with pytest.raises(ValueError, match="escapes configured project"):
-        tools.execute("read_project_file", {"path": "outside-link.md"})
+    if has_symlinks:
+        with pytest.raises(ValueError, match="escapes configured project"):
+            tools.execute("read_project_file", {"path": "outside-link.md"})
     with pytest.raises(ValueError, match="unsupported fields"):
         tools.execute("list_project_files", {"unexpected": True})
 

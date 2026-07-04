@@ -1,6 +1,6 @@
 # NOBS Current State
 
-**Last updated:** July 3, 2026
+**Last updated:** July 3, 2026 (Developer Mode added)
 **Purpose:** Tool-neutral handoff for any contributor entering without prior chat history.
 
 This records implementation state, not product direction. [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md) remains the approved product source of truth. Verify the branch, tests, and live services before treating deployment facts as current.
@@ -23,12 +23,13 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 
 - FastAPI service with public `/health` and device-token-protected `/ready`, `/chat`, and `/agent/*` routes.
 - Local Ollama `qwen3:8b` chat and tool-calling path with bounded steps.
+- Safe Developer Mode using `qwen2.5-coder:14b` with bounded read-only project listing, file reading, and searching (verified secure against traversal, symlink escapes, hidden files, and secrets).
 - Explicit Personal, Business, and Shared contexts.
 - Allowlisted tools only; no arbitrary shell or unrestricted filesystem access.
 - Automatic read-only execution.
 - SQLite-backed approval queue for state-changing tools.
 - Atomic, non-replayable approval execution and local audit events.
-- Current tools: Tank status, bounded workspace listing, and approval-gated Markdown note creation.
+- Current tools: Tank status, bounded workspace listing, approval-gated Markdown note creation, plus developer-mode project listing, project file reading, and project text search.
 - Deterministic tests plus live Tank verification for read-only execution and denied changes.
 - Device-authenticated daily briefing generation with validated contexts, a
   privacy receipt, and latest-per-date SQLite persistence.

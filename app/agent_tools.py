@@ -296,11 +296,21 @@ class ToolRegistry:
         if not root.exists():
             return []
         files: list[Path] = []
-        for item in sorted(root.rglob("*")):
-            if self._is_project_text_file(item):
-                files.append(item.resolve())
-                if len(files) >= 1_000:
-                    break
+        for dirpath, dirnames, filenames in os.walk(root):
+            # Prune directories starting with "." or in blocked parts in-place
+            dirnames[:] = [
+                d for d in dirnames
+                if not (d.startswith(".") or d in self._BLOCKED_PROJECT_PARTS)
+            ]
+            for filename in filenames:
+                item = Path(dirpath) / filename
+                if self._is_project_text_file(item):
+                    files.append(item.resolve())
+                    if len(files) >= 1_000:
+                        break
+            if len(files) >= 1_000:
+                break
+        files.sort()
         return files
 
     def _list_project_files(self, arguments: dict[str, Any]) -> dict[str, Any]:

@@ -311,3 +311,55 @@ def test_approval_cannot_be_executed_twice(tmp_path: Path) -> None:
 
     assert test_client.post(endpoint, json={"decision": "approve"}, headers=auth()).status_code == 200
     assert test_client.post(endpoint, json={"decision": "approve"}, headers=auth()).status_code == 409
+
+
+def test_agent_parses_json_tool_call_from_content(tmp_path: Path) -> None:
+    project = tmp_path / "project"
+    project.mkdir()
+    (project / "README.md").write_text("# NOBS\n", encoding="utf-8")
+    calls = 0
+
+    def ollama_response(request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        payload = json.loads(request.content)
+        assert payload["model"] == "qwen2.5-coder:14b"
+        if calls == 1:
+            # Model returns tool call inside the "content" text rather than "tool_calls"
+            return httpx.Response(
+                200,
+                json={
+                    "message": {
+                        "role": "assistant",
+                        "content": '{\n  "name": "read_project_file",\n  "arguments": {\n    "path": "README.md"\n  }\n}',
+                        "tool_calls": []
+                    }
+                },
+            )
+        return httpx.Response(
+            200,
+            json={"message": {"role": "assistant", "content": "Done."}},
+        )
+
+    response = client(
+        httpx.MockTransport(ollama_response),
+        tmp_path / "workspace",
+        project,
+    ).post(
+        "/agent/tasks",
+        json={"objective": "Inspect project", "mode": "developer"},
+        headers=auth(),
+    )
+
+    assert response.status_code == 200
+    assert response.json()["status"] == "completed"
+    assert response.json()["tool_results"] == [
+        {
+            "tool": "read_project_file",
+            "result": {
+                "path": "README.md",
+                "content": "# NOBS\n",
+                "truncated": False,
+            },
+        }
+    ]

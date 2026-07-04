@@ -102,6 +102,18 @@ class TankAgent:
                 ),
             )
             message = response.message
+            if not message.tool_calls and message.content:
+                parsed = self._parse_json_tool_call(message.content)
+                if parsed:
+                    message.tool_calls = [
+                        OllamaToolCall(
+                            type="function",
+                            function=OllamaToolFunction(
+                                name=parsed["name"],
+                                arguments=parsed["arguments"],
+                            ),
+                        )
+                    ]
             messages.append(message.model_dump(exclude_none=True))
             if not message.tool_calls:
                 status = "awaiting_approval" if approvals else "completed"
@@ -209,3 +221,21 @@ class TankAgent:
         if approvals:
             return "I prepared an action and am waiting for your approval before changing anything."
         return "I stopped after reaching the safe step limit without changing anything."
+
+    @staticmethod
+    def _parse_json_tool_call(content: str) -> dict[str, Any] | None:
+        content = content.strip()
+        if content.startswith("```"):
+            lines = content.splitlines()
+            if len(lines) >= 2 and lines[-1].startswith("```"):
+                content = "\n".join(lines[1:-1]).strip()
+        try:
+            data = json.loads(content)
+            if isinstance(data, dict) and "name" in data:
+                args = data.get("arguments", {})
+                if not isinstance(args, dict):
+                    args = {}
+                return {"name": str(data["name"]), "arguments": args}
+        except json.JSONDecodeError:
+            pass
+        return None
