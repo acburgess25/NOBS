@@ -48,8 +48,41 @@ async def run_scheduler(
         except Exception as e:
             logger.error(f"Scheduler error: {e}")
 
+        # Try to trigger autonomous idea generation if idle
+        try:
+            # Randomly trigger an autonomous thought process every so often (simulated here by checking seconds)
+            # For demonstration, we'll run it immediately if no proposals exist
+            pending_proposals = [p for p in store.list_proposals() if p["status"] == "pending"]
+            if not pending_proposals and int(datetime.now().timestamp()) % 60 < 15:
+                # Only trigger once every minute max
+                logger.info("Triggering autonomous agent to propose an idea.")
+                asyncio.create_task(trigger_autonomous_idea(settings, store, tools, transport))
+        except Exception as e:
+            pass
+
         # Sleep for a bit before checking again
         await asyncio.sleep(15)
+
+async def trigger_autonomous_idea(settings: Settings, store: AgentStore, tools: ToolRegistry, transport: Any):
+    # Create an agent run
+    run_id = store.create_run(
+        objective="Analyze current home or system state and propose a helpful routine or optimization.",
+        context="personal"
+    )
+    
+    agent = TankAgent(settings=settings, tools=tools, store=store, transport=transport)
+    request = AgentTaskRequest(
+        run_id=run_id,
+        objective="You are NOBS. Come up with a single, highly useful smart home routine or system optimization idea that would benefit the user. Use the `propose_idea` tool to submit it for approval. Do not do anything else.",
+        context="personal"
+    )
+    
+    try:
+        await agent.run(request)
+    except Exception as e:
+        store.record_event(run_id, "error", {"error": str(e)})
+        store.update_run(run_id, "failed")
+
 
 async def trigger_briefing_generation(
     settings: Settings,

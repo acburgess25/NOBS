@@ -167,6 +167,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = K853LKQLAS;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = NOBS/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = NOBS;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsLocalNetworking = YES;
@@ -192,6 +193,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = K853LKQLAS;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = NOBS/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = NOBS;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsLocalNetworking = YES;

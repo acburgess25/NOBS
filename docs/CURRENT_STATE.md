@@ -40,11 +40,14 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 - Approved Personal Workshop visual direction under `design/`.
 - Content updated July 3 to describe the shipped agent core, dashboard, and security boundary; roadmap items carry shipped/in-progress status. Deployed live to nobsdash.com.
 
+- Persistent background scheduler implemented, managing autonomous jobs, recurring schedules, and proactive idea generation.
+- Basic API routes for synchronizing calendar and reminders (`/sync/calendar`, `/sync/reminders`) and managing briefing schedules (`/schedules`).
+
 ### Connected-screen dashboard
 
 - Tank-hosted, room-safe dashboard at `/dashboard` with 15-second refresh.
 - Light, Dark, and system-following Auto themes.
-- API, Ollama, uptime, load, storage, agent activity, approval count, workspace counts, and GPU stats (utilization, VRAM, temperature via nvidia-smi with graceful fallback).
+- API, Ollama, uptime, load, storage, agent activity, approval/proposal counts, workspace counts, and GPU stats.
 - Responsive 16:9 and narrow-screen layouts with connection-loss behavior.
 - LIVE on Tank's HDMI display: GNOME minimal desktop + Firefox kiosk autostart, auto-login, survives reboot. GUI session is on tty2 (Ctrl+Alt+F2); text console on tty3.
 
@@ -63,23 +66,21 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 
 ## Not working yet
 
-- No persistent autonomous scheduler or recurring morning/evening jobs.
-- No real calendar, reminders, email, messages, business-document, or web-research tool connected to Tank.
 - No approved long-term memory workflow.
 - No Sign in with Apple, household identity, subscription, or NOBScloud implementation.
 - No arbitrary MCP server is trusted or installed by the NOBS agent.
 - mDNS (`tank.local`) does not resolve from the LAN; clients use 192.168.0.59 directly.
 - The briefing API is deployed and live-verified on Tank. The iOS UI is simulator-built;
   physical iPhone validation remains pending.
+- iOS app does not yet push local calendars and reminders to the Tank API.
 
 ## Recommended next vertical slice
 
-Add **persistent briefing schedules**:
+Add **iOS Client Data Synchronization**:
 
-1. Add persistent schedules without bypassing the tool-risk policy.
-2. Let the user review, pause, and revoke each schedule from Activity.
-3. Add a minimal Reminders input adapter with the same visible-data boundary.
-4. Record schedule runs, sources, processing route, and approval outcomes.
+1. Implement the iOS side of `/sync/calendar` and `/sync/reminders` to push local Apple EventKit and Reminders data to Tank.
+2. Let the user review, pause, and revoke schedules from Activity.
+3. Record schedule runs, sources, processing route, and approval outcomes in the UI.
 
 Do not connect email, messages, health, location, purchases, deletion, or account administration until the approval UI and revocation path are usable.
 

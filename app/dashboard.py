@@ -45,6 +45,15 @@ async def build_dashboard_status(
                 "detail": "Review these privately on your authenticated NOBS device.",
             }
         )
+    if agent.get("pending_proposals"):
+        count = agent["pending_proposals"]
+        attention.append(
+            {
+                "level": "action",
+                "title": f"{count} new idea{'s' if count != 1 else ''} proposed",
+                "detail": "Tank has autonomously generated suggestions for your review.",
+            }
+        )
     if system["disk_used_percent"] >= 85:
         attention.append(
             {
@@ -62,6 +71,11 @@ async def build_dashboard_status(
             }
         )
 
+    # Combine approvals and proposals for the frontend metric which expects 'pending_approvals'
+    frontend_pending = agent["pending_approvals"] + agent.get("pending_proposals", 0)
+    agent_for_frontend = dict(agent)
+    agent_for_frontend["pending_approvals"] = frontend_pending
+
     gpu_status = _gpu_status()
     return {
         "generated_at": datetime.now(UTC).isoformat(),
@@ -71,7 +85,7 @@ async def build_dashboard_status(
             "api": {"status": "online", "version": settings.version},
             "ollama": ollama,
         },
-        "agent": agent,
+        "agent": agent_for_frontend,
         "workspaces": workspaces,
         "attention": attention,
         "privacy": "Room-safe summary only. No conversations or private event details are shown.",

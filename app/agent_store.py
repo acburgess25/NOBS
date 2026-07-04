@@ -242,8 +242,11 @@ class AgentStore:
         cutoff = (datetime.now(UTC) - timedelta(hours=24)).isoformat()
         with self._lock:
             connection = self._connect()
-            pending = connection.execute(
+            pending_approvals = connection.execute(
                 "SELECT COUNT(*) FROM approvals WHERE status = 'pending'"
+            ).fetchone()[0]
+            pending_proposals = connection.execute(
+                "SELECT COUNT(*) FROM proposals WHERE status = 'pending'"
             ).fetchone()[0]
             runs_24h = connection.execute(
                 "SELECT COUNT(*) FROM agent_runs WHERE created_at >= ?",
@@ -257,7 +260,8 @@ class AgentStore:
                 "SELECT created_at FROM audit_events ORDER BY created_at DESC LIMIT 1"
             ).fetchone()
         return {
-            "pending_approvals": pending,
+            "pending_approvals": pending_approvals,
+            "pending_proposals": pending_proposals,
             "runs_24h": runs_24h,
             "completed_24h": completed_24h,
             "last_activity_at": last_event[0] if last_event else None,

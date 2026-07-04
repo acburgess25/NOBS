@@ -1,22 +1,24 @@
 const root = document.documentElement;
-const themeButtons = [...document.querySelectorAll("[data-theme-choice]")];
-let themeChoice = localStorage.getItem("nobs.dashboard.theme") || "auto";
+root.dataset.theme = "dark"; // Force premium dark mode
 
-function applyTheme() {
-  const dark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-  const resolved = themeChoice === "auto" ? (dark ? "dark" : "light") : themeChoice;
-  root.dataset.theme = resolved;
-  themeButtons.forEach((button) => {
-    button.setAttribute("aria-pressed", String(button.dataset.themeChoice === themeChoice));
+function initQRCode() {
+  const container = document.getElementById("qrcode");
+  if (!container) return;
+  // If we are on localhost, recommend tank.local or the actual IP
+  const hostname = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" 
+    ? "tank.local" 
+    : window.location.hostname;
+  
+  const pairingUri = `nobs://pair?device=${hostname}`;
+  new QRCode(container, {
+    text: pairingUri,
+    width: 72,
+    height: 72,
+    colorDark : "#101510",
+    colorLight : "#ffffff",
+    correctLevel : QRCode.CorrectLevel.L
   });
 }
-
-themeButtons.forEach((button) => button.addEventListener("click", () => {
-  themeChoice = button.dataset.themeChoice;
-  localStorage.setItem("nobs.dashboard.theme", themeChoice);
-  applyTheme();
-}));
-window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", applyTheme);
 
 function setText(id, value) {
   document.getElementById(id).textContent = value;
@@ -91,7 +93,7 @@ function shiftForBurnIn() {
   shell.style.transform = `translate(${offset}px, ${offset}px)`;
 }
 
-applyTheme();
+initQRCode();
 updateClock();
 refresh();
 shiftForBurnIn();

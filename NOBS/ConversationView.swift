@@ -21,6 +21,10 @@ struct ConversationView: View {
             }
         }
         .task { await model.start() }
+        .onOpenURL { url in
+            model.section = .privacy // Switch to privacy tab to show the connection status
+            handleScan(payload: url.absoluteString)
+        }
         .sheet(isPresented: $showNavigation) { navigationSheet }
         .sheet(item: $selectedReceipt) { receipt in
             PrivacyReceiptView(receipt: receipt)
@@ -481,6 +485,8 @@ private struct PrivacyView: View {
               let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return }
         if let tankURL = components.queryItems?.first(where: { $0.name == "url" })?.value {
             model.tankAddress = tankURL
+        } else if let device = components.queryItems?.first(where: { $0.name == "device" })?.value {
+            model.tankAddress = "http://\(device):8000"
         }
         if let token = components.queryItems?.first(where: { $0.name == "token" })?.value {
             model.tankToken = token
