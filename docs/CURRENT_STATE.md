@@ -32,15 +32,28 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 
 - Vite/React build-in-public portfolio under `website/`.
 - Approved Personal Workshop visual direction under `design/`.
-- Website content has not yet been updated to describe the working Tank agent core.
+- Content updated July 3 to describe the shipped agent core, dashboard, and security boundary; roadmap items carry shipped/in-progress status. Deployed live to nobsdash.com.
 
 ### Connected-screen dashboard
 
 - Tank-hosted, room-safe dashboard at `/dashboard` with 15-second refresh.
 - Light, Dark, and system-following Auto themes.
-- API, Ollama, uptime, load, storage, agent activity, approval count, and workspace counts.
+- API, Ollama, uptime, load, storage, agent activity, approval count, workspace counts, and GPU stats (utilization, VRAM, temperature via nvidia-smi with graceful fallback).
 - Responsive 16:9 and narrow-screen layouts with connection-loss behavior.
-- Kiosk launcher and graphical-session autostart entry under `scripts/` and `deploy/tank/`.
+- LIVE on Tank's HDMI display: GNOME minimal desktop + Firefox kiosk autostart, auto-login, survives reboot. GUI session is on tty2 (Ctrl+Alt+F2); text console on tty3.
+
+### Tank host (live deployment facts, July 3 2026)
+
+- Ubuntu 24.04, RTX 3060. Wi-Fi wlp5s0 = 192.168.0.59; ethernet enp6s0 also configured (`/etc/netplan/99-rescue.yaml`, renderer forced to networkd after a desktop-install outage).
+- UFW: port 22 open; LAN (192.168.0.0/24) allowed to all ports.
+- systemd user services (linger on): `nobs-api` (:8000), `nobsdash` (:4173), `cloudflared-nobsdash` (public tunnel), `open-webui` (:8080 local AI chat, `~/.openwebui` uv venv).
+- Ollama models: `qwen3:8b` (app chat), `qwen2.5-coder:14b` (coding).
+- No passwordless sudo; root changes need the console.
+
+### Local-model coding pipeline
+
+- Aider (`~/.local/bin/aider`, installed via uv, run with `--map-tokens 0` on macOS) drives `qwen2.5-coder:14b` on Tank through an SSH tunnel (`ssh -f -N -L 11434:127.0.0.1:11434 tank`).
+- Proven loop on the GPU dashboard card (commit 38b14bf): supervisor writes spec → local model implements → tests run → failure report → model fixes. Use it for well-scoped backend tasks.
 
 ## Not working yet
 
@@ -50,8 +63,8 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 - No approved long-term memory workflow.
 - No Sign in with Apple, household identity, subscription, or NOBScloud implementation.
 - No arbitrary MCP server is trusted or installed by the NOBS agent.
-- LAN access to Tank still requires confirming mDNS and a narrow firewall rule on the live server.
-- Tank has no kiosk browser installed yet; automatic HDMI display launch requires an interactive sudo installation and graphical session.
+- mDNS (`tank.local`) does not resolve from the LAN; clients use 192.168.0.59 directly.
+- The daily briefing slice is specced but not started: see [`BRIEFING_SLICE_SPEC.md`](BRIEFING_SLICE_SPEC.md).
 
 ## Recommended next vertical slice
 
