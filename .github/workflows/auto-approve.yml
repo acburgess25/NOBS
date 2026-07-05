@@ -1,0 +1,77 @@
+name: Auto-approve safe PRs
+
+# Auto-approval rules (documented here for maintainers):
+#   1. Dependabot PRs that bump a dependency by PATCH or MINOR version only.
+#      MAJOR version bumps are never auto-approved and require manual review.
+#   2. PRs opened by Dependabot must have passing status checks before this
+#      workflow runs (triggered on pull_request_target after checks report).
+#   3. Auto-approval never auto-merges; a human (or branch protection's
+#      required auto-merge setting) still controls when the PR actually merges.
+#
+# To extend the rule set, add additional conditions to the `should-approve`
+# job's `if:` guard below. Keep rules narrow and additive — prefer denying
+# and falling back to manual review over broadening auto-approval.
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, labeled]
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  dependabot-metadata:
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    outputs:
+      update-type: ${{ steps.metadata.outputs.update-type }}
+    steps:
+      - name: Fetch Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@v2
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+
+  auto-approve:
+    needs: dependabot-metadata
+    if: >
+      github.actor == 'dependabot[bot]' &&
+      (needs.dependabot-metadata.outputs.update-type == 'version-update:semver-patch' ||
+       needs.dependabot-metadata.outputs.update-type == 'version-update:semver-minor')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Approve patch/minor dependency update
+        run: |
+          gh pr review --approve "$PR_URL" -b "Auto-approved: Dependabot $UPDATE_TYPE update (patch/minor only, per repo auto-approve rules)."
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          UPDATE_TYPE: ${{ needs.dependabot-metadata.outputs.update-type }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  docs-only-auto-approve:
+    if: github.actor != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Determine if PR only touches docs/markdown
+        id: check
+        run: |
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          CHANGED=$(git diff --name-only "$BASE_SHA" "$HEAD_SHA")
+          echo "$CHANGED"
+          if [ -n "$CHANGED" ] && ! echo "$CHANGED" | grep -qvE '\.(md|txt)$|^docs/'; then
+            echo "docs_only=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "docs_only=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Approve docs-only PR
+        if: steps.check.outputs.docs_only == 'true'
+        run: |
+          gh pr review --approve "$PR_URL" -b "Auto-approved: documentation-only change, per repo auto-approve rules."
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
