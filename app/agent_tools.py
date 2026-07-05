@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import StrEnum
 import os
@@ -7,7 +8,7 @@ from pathlib import Path
 import platform
 import re
 import shutil
-from typing import Any, Callable
+from typing import Any
 
 from app.home_assistant import HomeAssistantClient
 from app.agent_store import AgentStore

@@ -1,11 +1,11 @@
 from contextlib import asynccontextmanager
+import asyncio
 from datetime import UTC, date, datetime
 from enum import Enum
 import json
 import secrets
 from pathlib import Path
 import time
-import asyncio
 from typing import AsyncIterator, Literal
 
 import httpx
@@ -27,7 +27,7 @@ from app.agent_tools import ToolRegistry
 from app.config import Settings, get_settings
 from app.dashboard import build_dashboard_status
 from app.home_assistant import HomeAssistantClient
-from app.scheduler import run_scheduler
+from app.scheduler import _BRIEFING_SYSTEM_PROMPT, run_scheduler
 
 
 class ChatMessage(BaseModel):
@@ -297,17 +297,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "think": False,
             "format": "json",
             "messages": [
-                {
-                    "role": "system",
-                    "content": (
-                        "You are NOBS, a warm, concise, privacy-first personal assistant. "
-                        "Create a realistic daily briefing using ONLY the supplied calendar and "
-                        "reminder items. Never invent events, tasks, or context. Return only a JSON "
-                        "object with string fields personal, business, and shared. Keep all three "
-                        "sections clearly separate; use a brief 'Nothing scheduled' sentence when "
-                        "a section has no items."
-                    ),
-                },
+                {"role": "system", "content": _BRIEFING_SYSTEM_PROMPT},
                 {"role": "user", "content": json.dumps(source)},
             ],
         }

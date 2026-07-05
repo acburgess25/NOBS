@@ -370,7 +370,9 @@ class AgentStore:
         with self._lock:
             connection = self._connect()
             if status is None:
-                rows = connection.execute("SELECT * FROM briefing_schedules ORDER BY created_at DESC").fetchall()
+                rows = connection.execute(
+                    "SELECT * FROM briefing_schedules ORDER BY created_at DESC"
+                ).fetchall()
             else:
                 rows = connection.execute(
                     "SELECT * FROM briefing_schedules WHERE status = ? ORDER BY created_at DESC",
