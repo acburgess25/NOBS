@@ -1,7 +1,7 @@
 import asyncio
 import json
 import logging
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import httpx
@@ -16,6 +16,10 @@ logger = logging.getLogger(__name__)
 # Seconds elapsed within each scheduler cycle (mod 60) below which autonomous
 # idea generation is allowed to fire.  Keeps it to at most once per minute.
 _IDEA_WINDOW_SECONDS = 15
+
+# Minimum time between autonomous idea proposals regardless of their status.
+# Prevents flooding even if the user hasn't reviewed previous proposals.
+_IDEA_COOLDOWN = timedelta(hours=1)
 
 _BRIEFING_SYSTEM_PROMPT = (
     "You are NOBS, a warm, concise, privacy-first personal assistant. "
@@ -65,11 +69,12 @@ async def run_scheduler(
             logger.exception("Scheduler error during briefing check")
 
         try:
-            pending_proposals = [
-                p for p in store.list_proposals() if p["status"] == "pending"
-            ]
+            last_proposal = store.last_proposal_at()
+            cooldown_expired = last_proposal is None or (
+                datetime.now(UTC) - datetime.fromisoformat(last_proposal) > _IDEA_COOLDOWN
+            )
             elapsed = int(datetime.now(UTC).timestamp()) % 60
-            if not pending_proposals and elapsed < _IDEA_WINDOW_SECONDS:
+            if cooldown_expired and elapsed < _IDEA_WINDOW_SECONDS:
                 logger.info("Triggering autonomous agent to propose an idea.")
                 task = asyncio.create_task(
                     trigger_autonomous_idea(settings, store, tools, transport)
