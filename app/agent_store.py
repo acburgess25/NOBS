@@ -238,6 +238,14 @@ class AgentStore:
             raise ValueError("Approval is not being executed")
         return self.get_approval(approval_id)
 
+    def last_proposal_at(self) -> str | None:
+        """Return ISO timestamp of the most recently created proposal, or None."""
+        with self._lock:
+            row = self._connect().execute(
+                "SELECT created_at FROM proposals ORDER BY created_at DESC LIMIT 1"
+            ).fetchone()
+        return row["created_at"] if row else None
+
     def dashboard_metrics(self) -> dict[str, Any]:
         cutoff = (datetime.now(UTC) - timedelta(hours=24)).isoformat()
         with self._lock:
@@ -370,7 +378,9 @@ class AgentStore:
         with self._lock:
             connection = self._connect()
             if status is None:
-                rows = connection.execute("SELECT * FROM briefing_schedules ORDER BY created_at DESC").fetchall()
+                rows = connection.execute(
+                    "SELECT * FROM briefing_schedules ORDER BY created_at DESC"
+                ).fetchall()
             else:
                 rows = connection.execute(
                     "SELECT * FROM briefing_schedules WHERE status = ? ORDER BY created_at DESC",

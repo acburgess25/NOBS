@@ -1,15 +1,41 @@
 import asyncio
-from datetime import UTC, datetime, date
-import logging
 import json
+import logging
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from app.agent_store import AgentStore
-from app.config import Settings
+import httpx
+
 from app.agent import AgentTaskRequest, TankAgent
+from app.agent_store import AgentStore
 from app.agent_tools import ToolRegistry
+from app.config import Settings
 
 logger = logging.getLogger(__name__)
+
+# Seconds elapsed within each scheduler cycle (mod 60) below which autonomous
+# idea generation is allowed to fire.  Keeps it to at most once per minute.
+_IDEA_WINDOW_SECONDS = 15
+
+# Minimum time between autonomous idea proposals regardless of their status.
+# Prevents flooding even if the user hasn't reviewed previous proposals.
+_IDEA_COOLDOWN = timedelta(hours=1)
+
+_BRIEFING_SYSTEM_PROMPT = (
+    "You are NOBS, a warm, concise, privacy-first personal assistant. "
+    "Create a realistic daily briefing using ONLY the supplied calendar and "
+    "reminder items. Never invent events, tasks, or context. Return only a JSON "
+    "object with string fields personal, business, and shared. Keep all three "
+    "sections clearly separate; use a brief 'Nothing scheduled' sentence when "
+    "a section has no items."
+)
+
+_IDEA_OBJECTIVE = (
+    "You are NOBS. Come up with a single, highly useful smart home routine or "
+    "system optimization idea that would benefit the user. Use the `propose_idea` "
+    "tool to submit it for approval. Do not do anything else."
+)
+
 
 async def run_scheduler(
     settings: Settings,
@@ -17,9 +43,9 @@ async def run_scheduler(
     tools: ToolRegistry,
     transport: Any = None,
 ) -> None:
-    """Background task that runs every minute to trigger scheduled agent runs."""
-    # Track the last minute we ran for to avoid double-triggering in the same minute
-    last_triggered_minute = None
+    """Background task: fires scheduled briefings and autonomous idea proposals."""
+    last_triggered_minute: str | None = None
+    _background_tasks: set[asyncio.Task[None]] = set()
 
     while True:
         try:
@@ -30,58 +56,50 @@ async def run_scheduler(
                 schedules = store.list_briefing_schedules(status="active")
                 for schedule in schedules:
                     if schedule["time_of_day"] == current_time:
-                        logger.info(f"Triggering briefing schedule {schedule['id']} for {current_time}")
-                        
-                        # Generate the briefing directly using the same logic as the POST /briefing endpoint,
-                        # but sourcing data from the DB synced by the iOS app.
-                        await trigger_briefing_generation(settings, store, transport)
-                        
-                        # Record the event
-                        store.record_event(
-                            "system_scheduler", 
-                            "schedule_triggered", 
-                            {"schedule_id": schedule["id"], "time": current_time}
+                        logger.info(
+                            "Triggering briefing schedule %s for %s",
+                            schedule["id"],
+                            current_time,
                         )
+                        await trigger_briefing_generation(settings, store, transport)
 
                 last_triggered_minute = current_time
 
-        except Exception as e:
-            logger.error(f"Scheduler error: {e}")
+        except Exception:
+            logger.exception("Scheduler error during briefing check")
 
-        # Try to trigger autonomous idea generation if idle
         try:
-            # Randomly trigger an autonomous thought process every so often (simulated here by checking seconds)
-            # For demonstration, we'll run it immediately if no proposals exist
-            pending_proposals = [p for p in store.list_proposals() if p["status"] == "pending"]
-            if not pending_proposals and int(datetime.now().timestamp()) % 60 < 15:
-                # Only trigger once every minute max
+            last_proposal = store.last_proposal_at()
+            cooldown_expired = last_proposal is None or (
+                datetime.now(UTC) - datetime.fromisoformat(last_proposal) > _IDEA_COOLDOWN
+            )
+            elapsed = int(datetime.now(UTC).timestamp()) % 60
+            if cooldown_expired and elapsed < _IDEA_WINDOW_SECONDS:
                 logger.info("Triggering autonomous agent to propose an idea.")
-                asyncio.create_task(trigger_autonomous_idea(settings, store, tools, transport))
-        except Exception as e:
-            pass
+                task = asyncio.create_task(
+                    trigger_autonomous_idea(settings, store, tools, transport)
+                )
+                _background_tasks.add(task)
+                task.add_done_callback(_background_tasks.discard)
+        except Exception:
+            logger.exception("Scheduler error during autonomous idea check")
 
-        # Sleep for a bit before checking again
         await asyncio.sleep(15)
 
-async def trigger_autonomous_idea(settings: Settings, store: AgentStore, tools: ToolRegistry, transport: Any):
-    # Create an agent run
-    run_id = store.create_run(
-        objective="Analyze current home or system state and propose a helpful routine or optimization.",
-        context="personal"
-    )
-    
+
+async def trigger_autonomous_idea(
+    settings: Settings,
+    store: AgentStore,
+    tools: ToolRegistry,
+    transport: Any,
+) -> None:
+    """Ask the agent to propose one smart-home or system optimization idea."""
     agent = TankAgent(settings=settings, tools=tools, store=store, transport=transport)
-    request = AgentTaskRequest(
-        run_id=run_id,
-        objective="You are NOBS. Come up with a single, highly useful smart home routine or system optimization idea that would benefit the user. Use the `propose_idea` tool to submit it for approval. Do not do anything else.",
-        context="personal"
-    )
-    
+    request = AgentTaskRequest(objective=_IDEA_OBJECTIVE, context="personal")
     try:
         await agent.run(request)
-    except Exception as e:
-        store.record_event(run_id, "error", {"error": str(e)})
-        store.update_run(run_id, "failed")
+    except Exception:
+        logger.exception("Autonomous idea generation failed")
 
 
 async def trigger_briefing_generation(
@@ -89,52 +107,40 @@ async def trigger_briefing_generation(
     store: AgentStore,
     transport: Any,
 ) -> None:
+    """Generate a daily briefing from synced calendar/reminder data and persist it."""
     calendar = store.list_calendar_events()
     reminders = store.list_reminders()
+    today = datetime.now(UTC).date()
 
-    # Match the format expected by the system prompt
     source = {
-        "date": date.today().isoformat(),
+        "date": today.isoformat(),
         "calendar": calendar,
         "reminders": reminders,
     }
-
     payload = {
         "model": settings.ollama_model,
         "stream": False,
         "think": False,
         "format": "json",
         "messages": [
-            {
-                "role": "system",
-                "content": (
-                    "You are NOBS, a warm, concise, privacy-first personal assistant. "
-                    "Create a realistic daily briefing using ONLY the supplied calendar and "
-                    "reminder items. Never invent events, tasks, or context. Return only a JSON "
-                    "object with string fields personal, business, and shared. Keep all three "
-                    "sections clearly separate; use a brief 'Nothing scheduled' sentence when "
-                    "a section has no items."
-                ),
-            },
+            {"role": "system", "content": _BRIEFING_SYSTEM_PROMPT},
             {"role": "user", "content": json.dumps(source)},
         ],
     }
 
-    import httpx
     try:
         async with httpx.AsyncClient(
             timeout=settings.ollama_timeout_seconds,
             transport=transport,
         ) as client:
-            response = await client.post(f"{settings.ollama_base_url}/api/chat", json=payload)
+            response = await client.post(
+                f"{settings.ollama_base_url}/api/chat", json=payload
+            )
             response.raise_for_status()
-            
-        data = response.json()
-        model_content = data["message"]["content"]
-        sections = json.loads(model_content)
-        
+
+        sections = json.loads(response.json()["message"]["content"])
         result = {
-            "date": date.today().isoformat(),
+            "date": today.isoformat(),
             "personal": sections.get("personal", "Nothing scheduled."),
             "business": sections.get("business", "Nothing scheduled."),
             "shared": sections.get("shared", "Nothing scheduled."),
@@ -148,19 +154,25 @@ async def trigger_briefing_generation(
                 "processed": "Tank on your private network",
                 "shared": [],
                 "changed": [],
-            }
+            },
         }
-        
-        store.save_briefing(date.today().isoformat(), result)
-        logger.info("Successfully generated and saved scheduled briefing.")
-        
-        # Also create a visible agent run so it shows in the dashboard
+
+        store.save_briefing(today.isoformat(), result)
+        logger.info("Generated and saved scheduled briefing for %s.", today.isoformat())
+
         run_id = store.create_run(
-            objective="Autonomously generate the scheduled daily briefing based on the latest synced data.",
-            context="personal"
+            objective=(
+                "Autonomously generate the scheduled daily briefing "
+                "based on the latest synced data."
+            ),
+            context="personal",
         )
-        store.record_event(run_id, "tool_executed", {"tool": "generate_briefing", "risk": "read_only", "result": result})
+        store.record_event(
+            run_id,
+            "tool_executed",
+            {"tool": "generate_briefing", "risk": "read_only", "result": result},
+        )
         store.update_run(run_id, "completed")
-        
-    except Exception as e:
-        logger.error(f"Failed to generate scheduled briefing: {e}")
+
+    except Exception:
+        logger.exception("Failed to generate scheduled briefing")
