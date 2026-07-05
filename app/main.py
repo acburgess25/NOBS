@@ -163,6 +163,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         settings.agent_project_path,
         app.state.home_assistant,
         app.state.agent_store,
+        settings,
     )
     app.state.process_started_at = time.time()
     dashboard_directory = Path(__file__).resolve().parents[1] / "dashboard"

@@ -3,15 +3,30 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 from enum import StrEnum
+import json
 import os
 from pathlib import Path
 import platform
 import re
-import shutil
 from typing import Any
+from urllib.parse import urlparse
 
-from app.home_assistant import HomeAssistantClient
+import feedparser
+import httpx
+import psutil
+import trafilatura
+import wikipediaapi
+from duckduckgo_search import DDGS
+
 from app.agent_store import AgentStore
+from app.home_assistant import HomeAssistantClient
+
+try:
+    import pynvml  # type: ignore[import-untyped]
+    pynvml.nvmlInit()
+    _NVML_AVAILABLE = True
+except Exception:
+    _NVML_AVAILABLE = False
 
 
 class ToolRisk(StrEnum):
@@ -76,11 +91,13 @@ class ToolRegistry:
         project: Path | None = None,
         home_assistant: HomeAssistantClient | None = None,
         store: AgentStore | None = None,
+        settings: Any | None = None,
     ) -> None:
         self.workspace = workspace.resolve()
         self.project = (project or Path.cwd()).resolve()
         self.home_assistant = home_assistant
         self.store = store
+        self.settings = settings
         self._tools = {
             tool.name: tool
             for tool in (
@@ -259,11 +276,134 @@ class ToolRegistry:
                         "properties": {
                             "title": {"type": "string", "minLength": 1, "maxLength": 120},
                             "description": {"type": "string", "minLength": 1, "maxLength": 2000},
-                            "proposal_type": {"type": "string", "enum": ["routine", "integration", "optimization"]},
+                            "proposal_type": {
+                                "type": "string",
+                                "enum": ["routine", "integration", "optimization"],
+                            },
                         },
                         "additionalProperties": False,
                     },
                     handler=self._propose_idea,
+                ),
+                ToolDefinition(
+                    name="web_search",
+                    description=(
+                        "Search the web via DuckDuckGo. Returns titles, URLs, and snippets. "
+                        "Use this to research current events, look up facts, find information "
+                        "about people or businesses, or answer questions the local model may "
+                        "not know. No personal data is shared with DuckDuckGo."
+                    ),
+                    risk=ToolRisk.READ_ONLY,
+                    parameters={
+                        "type": "object",
+                        "required": ["query"],
+                        "properties": {
+                            "query": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 200,
+                                "description": "The search query.",
+                            },
+                            "max_results": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 10,
+                                "description": "Number of results to return (default 5).",
+                            },
+                        },
+                        "additionalProperties": False,
+                    },
+                    handler=self._web_search,
+                ),
+                ToolDefinition(
+                    name="get_weather",
+                    description=(
+                        "Get current weather conditions and a 7-day forecast using Open-Meteo "
+                        "(free, no API key, GDPR-safe). Requires NOBS_WEATHER_LATITUDE and "
+                        "NOBS_WEATHER_LONGITUDE to be configured. No personal data is transmitted."
+                    ),
+                    risk=ToolRisk.READ_ONLY,
+                    parameters={
+                        "type": "object",
+                        "properties": {},
+                        "additionalProperties": False,
+                    },
+                    handler=self._get_weather,
+                ),
+                ToolDefinition(
+                    name="read_news_feeds",
+                    description=(
+                        "Fetch recent headlines from configured RSS/Atom news feeds. "
+                        "Returns titles, links, and summaries from user-configured sources. "
+                        "Configure feeds via NOBS_NEWS_FEED_URLS (comma-separated URLs)."
+                    ),
+                    risk=ToolRisk.READ_ONLY,
+                    parameters={
+                        "type": "object",
+                        "properties": {
+                            "max_per_feed": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 20,
+                                "description": "Max headlines to return per feed (default 5).",
+                            },
+                        },
+                        "additionalProperties": False,
+                    },
+                    handler=self._read_news_feeds,
+                ),
+                ToolDefinition(
+                    name="read_url",
+                    description=(
+                        "Fetch a public web URL and extract its main readable text content, "
+                        "stripping ads, navigation, and boilerplate. Use this to read articles, "
+                        "documentation, or any public page for summarization or research. "
+                        "Only HTTP/HTTPS URLs are allowed."
+                    ),
+                    risk=ToolRisk.READ_ONLY,
+                    parameters={
+                        "type": "object",
+                        "required": ["url"],
+                        "properties": {
+                            "url": {
+                                "type": "string",
+                                "minLength": 10,
+                                "maxLength": 2000,
+                                "description": "The full HTTP/HTTPS URL to fetch.",
+                            },
+                        },
+                        "additionalProperties": False,
+                    },
+                    handler=self._read_url,
+                ),
+                ToolDefinition(
+                    name="lookup_wikipedia",
+                    description=(
+                        "Search Wikipedia and return a plain-text summary of the best-matching "
+                        "article. Use for factual lookups: people, places, events, concepts, "
+                        "companies, or anything the local model may not know accurately."
+                    ),
+                    risk=ToolRisk.READ_ONLY,
+                    parameters={
+                        "type": "object",
+                        "required": ["query"],
+                        "properties": {
+                            "query": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 200,
+                                "description": "The topic or entity to look up.",
+                            },
+                            "sentences": {
+                                "type": "integer",
+                                "minimum": 1,
+                                "maximum": 20,
+                                "description": "Approximate number of summary sentences (default 5).",
+                            },
+                        },
+                        "additionalProperties": False,
+                    },
+                    handler=self._lookup_wikipedia,
                 ),
             )
         }
@@ -314,14 +454,41 @@ class ToolRegistry:
         return counts
 
     def _get_tank_status(self, _: dict[str, Any]) -> dict[str, Any]:
-        usage = shutil.disk_usage(self.workspace.parent if self.workspace.parent.exists() else Path.cwd())
-        load = os.getloadavg()[0] if hasattr(os, "getloadavg") else None
-        return {
+        cpu_percent = psutil.cpu_percent(interval=0.2)
+        mem = psutil.virtual_memory()
+        disk_root = Path("/") if Path("/").exists() else Path.cwd()
+        disk = psutil.disk_usage(str(disk_root))
+        load_avg = psutil.getloadavg() if hasattr(psutil, "getloadavg") else (None, None, None)
+
+        result: dict[str, Any] = {
             "hostname": platform.node(),
             "platform": platform.system(),
-            "load_1m": load,
-            "disk_free_gb": round(usage.free / (1024**3), 1),
+            "cpu_percent": round(cpu_percent, 1),
+            "load_1m": round(load_avg[0], 2) if load_avg[0] is not None else None,
+            "load_5m": round(load_avg[1], 2) if load_avg[1] is not None else None,
+            "memory_used_gb": round(mem.used / (1024**3), 2),
+            "memory_total_gb": round(mem.total / (1024**3), 2),
+            "memory_percent": round(mem.percent, 1),
+            "disk_used_gb": round(disk.used / (1024**3), 1),
+            "disk_total_gb": round(disk.total / (1024**3), 1),
+            "disk_free_gb": round(disk.free / (1024**3), 1),
         }
+
+        if _NVML_AVAILABLE:
+            try:
+                handle = pynvml.nvmlDeviceGetHandleByIndex(0)
+                gpu_mem = pynvml.nvmlDeviceGetMemoryInfo(handle)
+                gpu_util = pynvml.nvmlDeviceGetUtilizationRates(handle)
+                gpu_temp = pynvml.nvmlDeviceGetTemperature(handle, pynvml.NVML_TEMPERATURE_GPU)
+                result["gpu_name"] = pynvml.nvmlDeviceGetName(handle)
+                result["gpu_util_percent"] = gpu_util.gpu
+                result["gpu_vram_used_gb"] = round(gpu_mem.used / (1024**3), 2)
+                result["gpu_vram_total_gb"] = round(gpu_mem.total / (1024**3), 2)
+                result["gpu_temp_c"] = gpu_temp
+            except Exception:
+                result["gpu"] = "unavailable"
+
+        return result
 
     def _context_path(self, context: str) -> Path:
         if context not in {"personal", "business", "shared"}:
@@ -584,3 +751,176 @@ class ToolRegistry:
     def _require_argument_keys(arguments: dict[str, Any], allowed: set[str]) -> None:
         if not isinstance(arguments, dict) or not set(arguments).issubset(allowed):
             raise ValueError("Tool arguments contain unsupported fields")
+
+    # ------------------------------------------------------------------ #
+    # Research tools                                                       #
+    # ------------------------------------------------------------------ #
+
+    def _web_search(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        self._require_argument_keys(arguments, {"query", "max_results"})
+        query = str(arguments.get("query", "")).strip()
+        if not query:
+            raise ValueError("Search query is required")
+        max_results = int(arguments.get("max_results") or (
+            self.settings.web_search_max_results if self.settings else 5
+        ))
+        max_results = max(1, min(max_results, 10))
+        try:
+            raw = list(DDGS().text(query, max_results=max_results))
+        except Exception as exc:
+            return {"error": f"Web search failed: {exc}"}
+        results = [
+            {"title": r.get("title", ""), "url": r.get("href", ""), "snippet": r.get("body", "")}
+            for r in raw
+        ]
+        return {"query": query, "results": results, "count": len(results)}
+
+    def _get_weather(self, _: dict[str, Any]) -> dict[str, Any]:
+        if not self.settings or self.settings.weather_latitude is None:
+            return {
+                "error": (
+                    "Weather is not configured. "
+                    "Set NOBS_WEATHER_LATITUDE and NOBS_WEATHER_LONGITUDE in your environment."
+                )
+            }
+        lat = self.settings.weather_latitude
+        lon = self.settings.weather_longitude
+        url = (
+            "https://api.open-meteo.com/v1/forecast"
+            f"?latitude={lat}&longitude={lon}"
+            "&current=temperature_2m,relative_humidity_2m,apparent_temperature,"
+            "precipitation,wind_speed_10m,weather_code"
+            "&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,"
+            "weather_code,sunrise,sunset"
+            "&temperature_unit=fahrenheit&wind_speed_unit=mph"
+            "&precipitation_unit=inch&timezone=auto&forecast_days=7"
+        )
+        try:
+            with httpx.Client(timeout=10.0) as client:
+                response = client.get(url)
+                response.raise_for_status()
+            data = response.json()
+        except Exception as exc:
+            return {"error": f"Weather fetch failed: {exc}"}
+        current = data.get("current", {})
+        daily = data.get("daily", {})
+        forecast = []
+        dates = daily.get("time", [])
+        for i, date in enumerate(dates):
+            forecast.append({
+                "date": date,
+                "high_f": daily.get("temperature_2m_max", [None])[i],
+                "low_f": daily.get("temperature_2m_min", [None])[i],
+                "precipitation_in": daily.get("precipitation_sum", [None])[i],
+                "weather_code": daily.get("weather_code", [None])[i],
+                "sunrise": daily.get("sunrise", [None])[i],
+                "sunset": daily.get("sunset", [None])[i],
+            })
+        return {
+            "latitude": lat,
+            "longitude": lon,
+            "timezone": data.get("timezone"),
+            "current": {
+                "temperature_f": current.get("temperature_2m"),
+                "feels_like_f": current.get("apparent_temperature"),
+                "humidity_pct": current.get("relative_humidity_2m"),
+                "wind_mph": current.get("wind_speed_10m"),
+                "precipitation_in": current.get("precipitation"),
+                "weather_code": current.get("weather_code"),
+            },
+            "forecast_7day": forecast,
+        }
+
+    def _read_news_feeds(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        self._require_argument_keys(arguments, {"max_per_feed"})
+        max_per_feed = int(arguments.get("max_per_feed") or 5)
+        max_per_feed = max(1, min(max_per_feed, 20))
+        raw_urls = (self.settings.news_feed_urls if self.settings else "").strip()
+        if not raw_urls:
+            return {
+                "error": (
+                    "No news feeds configured. "
+                    "Set NOBS_NEWS_FEED_URLS to a comma-separated list of RSS/Atom URLs."
+                )
+            }
+        feed_urls = [u.strip() for u in raw_urls.split(",") if u.strip()]
+        all_items: list[dict[str, Any]] = []
+        errors: list[str] = []
+        for url in feed_urls[:10]:
+            try:
+                parsed = feedparser.parse(url)
+                feed_title = parsed.feed.get("title", url)
+                for entry in parsed.entries[:max_per_feed]:
+                    all_items.append({
+                        "feed": feed_title,
+                        "title": entry.get("title", ""),
+                        "url": entry.get("link", ""),
+                        "summary": entry.get("summary", "")[:500],
+                        "published": entry.get("published", ""),
+                    })
+            except Exception as exc:
+                errors.append(f"{url}: {exc}")
+        result: dict[str, Any] = {"items": all_items, "count": len(all_items)}
+        if errors:
+            result["errors"] = errors
+        return result
+
+    def _read_url(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        self._require_argument_keys(arguments, {"url"})
+        url = str(arguments.get("url", "")).strip()
+        if not url:
+            raise ValueError("URL is required")
+        parsed = urlparse(url)
+        if parsed.scheme not in {"http", "https"}:
+            raise ValueError("Only HTTP and HTTPS URLs are allowed")
+        try:
+            downloaded = trafilatura.fetch_url(url)
+            if downloaded is None:
+                return {"error": "Could not fetch the URL"}
+            text = trafilatura.extract(downloaded, include_comments=False, include_tables=True)
+            if not text:
+                return {"error": "Could not extract readable content from the URL"}
+            truncated = len(text) > 20_000
+            return {
+                "url": url,
+                "content": text[:20_000],
+                "truncated": truncated,
+                "char_count": len(text),
+            }
+        except Exception as exc:
+            return {"error": f"Failed to read URL: {exc}"}
+
+    def _lookup_wikipedia(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        self._require_argument_keys(arguments, {"query", "sentences"})
+        query = str(arguments.get("query", "")).strip()
+        if not query:
+            raise ValueError("Search query is required")
+        sentences = int(arguments.get("sentences") or 5)
+        sentences = max(1, min(sentences, 20))
+        try:
+            wiki = wikipediaapi.Wikipedia(
+                user_agent="NOBS-Tank/0.1 (private home assistant)",
+                language="en",
+            )
+            page = wiki.page(query)
+            if not page.exists():
+                search_terms = query.replace(" ", "_")
+                page = wiki.page(search_terms)
+            if not page.exists():
+                return {"query": query, "found": False, "error": "No Wikipedia article found"}
+            full_summary = page.summary
+            # Return approximately the requested number of sentences
+            sent_list = full_summary.split(". ")
+            summary = ". ".join(sent_list[:sentences])
+            if not summary.endswith("."):
+                summary += "."
+            return {
+                "query": query,
+                "found": True,
+                "title": page.title,
+                "url": page.fullurl,
+                "summary": summary,
+                "full_summary_available": len(sent_list) > sentences,
+            }
+        except Exception as exc:
+            return {"error": f"Wikipedia lookup failed: {exc}"}
