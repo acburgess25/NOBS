@@ -115,7 +115,7 @@ struct AgentProposal: Identifiable, Codable {
 }
 
 /// Type-erased Codable wrapper for heterogeneous JSON values (approval arguments).
-struct AnyCodable: Codable {
+struct AnyCodable: Codable, @unchecked Sendable {
     let value: Any
 
     init(_ value: Any) { self.value = value }
