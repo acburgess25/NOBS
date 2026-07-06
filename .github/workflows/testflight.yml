@@ -42,24 +42,22 @@ jobs:
           echo "$ASC_API_KEY_CONTENT" | base64 --decode \
             > ~/private_keys/AuthKey_${{ secrets.ASC_API_KEY_ID }}.p8
 
-      # ── 3. Select the right Xcode ──────────────────────────────────────────
-      - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode_16.app/Contents/Developer
-
-      # ── 4. Resolve package dependencies (none yet, fast no-op) ────────────
-      - name: Resolve packages
+      # ── 3. Show available Xcode versions ──────────────────────────────────
+      - name: Show Xcode versions
         run: |
-          xcodebuild -resolvePackageDependencies \
-            -project NOBS.xcodeproj \
-            -scheme NOBS
+          ls /Applications/ | grep -i xcode || true
+          xcode-select -p
+          xcodebuild -version
 
-      # ── 5. Archive ─────────────────────────────────────────────────────────
+      # ── 4. Archive (iOS device, no simulator) ─────────────────────────────
       - name: Archive
         run: |
+          set -o pipefail
           xcodebuild archive \
             -project NOBS.xcodeproj \
             -scheme NOBS \
             -configuration Release \
+            -destination "generic/platform=iOS" \
             -archivePath "$RUNNER_TEMP/NOBS.xcarchive" \
             -allowProvisioningUpdates \
             -authenticationKeyPath ~/private_keys/AuthKey_${{ secrets.ASC_API_KEY_ID }}.p8 \
@@ -67,9 +65,10 @@ jobs:
             -authenticationKeyIssuerID ${{ secrets.ASC_API_ISSUER_ID }} \
             CODE_SIGN_STYLE=Automatic \
             DEVELOPMENT_TEAM=K853LKQLAS \
-            | xcpretty || cat /tmp/xcodebuild.log
+            2>&1 | tee /tmp/xcodebuild.log | xcpretty --color || \
+          { echo "--- xcodebuild output ---"; cat /tmp/xcodebuild.log; exit 1; }
 
-      # ── 6. Export .ipa ─────────────────────────────────────────────────────
+      # ── 5. Export .ipa ─────────────────────────────────────────────────────
       - name: Export IPA
         run: |
           xcodebuild -exportArchive \
@@ -81,7 +80,7 @@ jobs:
             -authenticationKeyID ${{ secrets.ASC_API_KEY_ID }} \
             -authenticationKeyIssuerID ${{ secrets.ASC_API_ISSUER_ID }}
 
-      # ── 7. Upload to TestFlight ────────────────────────────────────────────
+      # ── 6. Upload to TestFlight ────────────────────────────────────────────
       - name: Upload to TestFlight
         run: |
           xcrun altool --upload-app \
@@ -90,7 +89,8 @@ jobs:
             --apiKey ${{ secrets.ASC_API_KEY_ID }} \
             --apiIssuer ${{ secrets.ASC_API_ISSUER_ID }}
 
-      # ── 8. Clean up key ────────────────────────────────────────────────────
+      # ── 7. Clean up key ────────────────────────────────────────────────────
       - name: Remove API key
         if: always()
         run: rm -f ~/private_keys/AuthKey_${{ secrets.ASC_API_KEY_ID }}.p8
+
