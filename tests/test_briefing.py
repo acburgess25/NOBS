@@ -55,9 +55,7 @@ def test_briefing_timeout_maps_to_service_unavailable() -> None:
     def timeout(_: httpx.Request) -> httpx.Response:
         raise httpx.ReadTimeout("timed out")
 
-    response = client(httpx.MockTransport(timeout)).post(
-        "/briefing", json=REQUEST, headers=auth()
-    )
+    response = client(httpx.MockTransport(timeout)).post("/briefing", json=REQUEST, headers=auth())
 
     assert response.status_code == 503
 

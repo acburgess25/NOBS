@@ -91,10 +91,14 @@ def test_proposals_endpoints(tmp_path: Path) -> None:
     assert response.json()[0]["id"] == prop["id"]
 
     # Decide proposal (approve)
-    response = client.post(f"/agent/proposals/{prop['id']}/decide", json={"decision": "approve"}, headers=auth)
+    response = client.post(
+        f"/agent/proposals/{prop['id']}/decide", json={"decision": "approve"}, headers=auth
+    )
     assert response.status_code == 200
     assert response.json()["status"] == "approved"
 
     # Double decide fails
-    response = client.post(f"/agent/proposals/{prop['id']}/decide", json={"decision": "dismiss"}, headers=auth)
+    response = client.post(
+        f"/agent/proposals/{prop['id']}/decide", json={"decision": "dismiss"}, headers=auth
+    )
     assert response.status_code == 409

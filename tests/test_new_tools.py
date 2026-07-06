@@ -37,6 +37,7 @@ def _registry(settings_overrides: dict[str, Any] | None = None) -> ToolRegistry:
 # web_search                                                           #
 # ------------------------------------------------------------------ #
 
+
 class TestWebSearch:
     def test_returns_results(self) -> None:
         fake_results = [
@@ -55,9 +56,7 @@ class TestWebSearch:
     def test_respects_max_results_setting(self) -> None:
         with patch("app.agent_tools.DDGS") as mock_ddgs:
             mock_ddgs.return_value.text.return_value = []
-            _registry({"web_search_max_results": 7}).execute(
-                "web_search", {"query": "test"}
-            )
+            _registry({"web_search_max_results": 7}).execute("web_search", {"query": "test"})
             _, kwargs = mock_ddgs.return_value.text.call_args
             assert kwargs["max_results"] == 7
 
@@ -82,6 +81,7 @@ class TestWebSearch:
 # ------------------------------------------------------------------ #
 # get_weather                                                          #
 # ------------------------------------------------------------------ #
+
 
 class TestGetWeather:
     _MOCK_RESPONSE = {
@@ -138,6 +138,7 @@ class TestGetWeather:
 # read_news_feeds                                                      #
 # ------------------------------------------------------------------ #
 
+
 class TestReadNewsFeeds:
     _MOCK_FEED = MagicMock()
 
@@ -145,15 +146,24 @@ class TestReadNewsFeeds:
         feed_mock = MagicMock()
         feed_mock.feed.get.return_value = "Test Feed"
         feed_mock.entries = [
-            MagicMock(**{"get.side_effect": lambda k, d="": e.get(k, d)})
-            for e in entries
+            MagicMock(**{"get.side_effect": lambda k, d="": e.get(k, d)}) for e in entries
         ]
         return feed_mock
 
     def test_returns_headlines(self) -> None:
         entries = [
-            {"title": "Headline 1", "link": "https://ex.com/1", "summary": "Sum 1", "published": "2026-07-05"},
-            {"title": "Headline 2", "link": "https://ex.com/2", "summary": "Sum 2", "published": "2026-07-05"},
+            {
+                "title": "Headline 1",
+                "link": "https://ex.com/1",
+                "summary": "Sum 1",
+                "published": "2026-07-05",
+            },
+            {
+                "title": "Headline 2",
+                "link": "https://ex.com/2",
+                "summary": "Sum 2",
+                "published": "2026-07-05",
+            },
         ]
         with patch("app.agent_tools.feedparser.parse") as mock_parse:
             mock_feed = MagicMock()
@@ -186,10 +196,13 @@ class TestReadNewsFeeds:
 # read_url                                                             #
 # ------------------------------------------------------------------ #
 
+
 class TestReadUrl:
     def test_returns_extracted_content(self) -> None:
-        with patch("app.agent_tools.trafilatura.fetch_url") as mock_fetch, \
-             patch("app.agent_tools.trafilatura.extract") as mock_extract:
+        with (
+            patch("app.agent_tools.trafilatura.fetch_url") as mock_fetch,
+            patch("app.agent_tools.trafilatura.extract") as mock_extract,
+        ):
             mock_fetch.return_value = "<html>...</html>"
             mock_extract.return_value = "This is the article text."
             result = _registry().execute("read_url", {"url": "https://example.com/article"})
@@ -207,15 +220,19 @@ class TestReadUrl:
         assert "error" in result
 
     def test_no_extractable_content_gives_error(self) -> None:
-        with patch("app.agent_tools.trafilatura.fetch_url", return_value="<html/>"), \
-             patch("app.agent_tools.trafilatura.extract", return_value=None):
+        with (
+            patch("app.agent_tools.trafilatura.fetch_url", return_value="<html/>"),
+            patch("app.agent_tools.trafilatura.extract", return_value=None),
+        ):
             result = _registry().execute("read_url", {"url": "https://example.com"})
         assert "error" in result
 
     def test_long_content_is_truncated(self) -> None:
         big_text = "word " * 5000  # 25k chars
-        with patch("app.agent_tools.trafilatura.fetch_url", return_value="<html/>"), \
-             patch("app.agent_tools.trafilatura.extract", return_value=big_text):
+        with (
+            patch("app.agent_tools.trafilatura.fetch_url", return_value="<html/>"),
+            patch("app.agent_tools.trafilatura.extract", return_value=big_text),
+        ):
             result = _registry().execute("read_url", {"url": "https://example.com"})
         assert result["truncated"] is True
         assert len(result["content"]) <= 20_000
@@ -225,8 +242,11 @@ class TestReadUrl:
 # lookup_wikipedia                                                     #
 # ------------------------------------------------------------------ #
 
+
 class TestLookupWikipedia:
-    def _mock_page(self, exists: bool = True, summary: str = "Test summary. Second sentence.") -> MagicMock:
+    def _mock_page(
+        self, exists: bool = True, summary: str = "Test summary. Second sentence."
+    ) -> MagicMock:
         page = MagicMock()
         page.exists.return_value = exists
         page.title = "Test Article"
@@ -260,6 +280,7 @@ class TestLookupWikipedia:
 # ------------------------------------------------------------------ #
 # get_tank_status (upgraded)                                           #
 # ------------------------------------------------------------------ #
+
 
 class TestGetTankStatusUpgraded:
     def test_returns_cpu_memory_disk(self) -> None:

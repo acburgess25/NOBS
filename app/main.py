@@ -145,12 +145,14 @@ class AppleAuthResponse(BaseModel):
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
-    task = asyncio.create_task(run_scheduler(
-        settings,
-        app.state.agent_store,
-        app.state.agent_tools,
-        getattr(app.state, "ollama_transport", None),
-    ))
+    task = asyncio.create_task(
+        run_scheduler(
+            settings,
+            app.state.agent_store,
+            app.state.agent_tools,
+            getattr(app.state, "ollama_transport", None),
+        )
+    )
     yield
     task.cancel()
 

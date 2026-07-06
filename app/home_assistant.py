@@ -43,12 +43,14 @@ class HomeAssistantClient:
                 continue
 
             friendly_name = item.get("attributes", {}).get("friendly_name", entity_id)
-            devices.append({
-                "entity_id": entity_id,
-                "name": friendly_name,
-                "state": item.get("state", "unknown"),
-                "domain": domain,
-            })
+            devices.append(
+                {
+                    "entity_id": entity_id,
+                    "name": friendly_name,
+                    "state": item.get("state", "unknown"),
+                    "domain": domain,
+                }
+            )
         return devices
 
     def call_service(

@@ -22,7 +22,7 @@ def _load_token_from_file(path: Path) -> str | None:
     try:
         for line in path.read_text(encoding="utf-8").splitlines():
             if line.startswith("NOBS_DEVICE_TOKEN="):
-                return line.partition("=")[2].strip('"\'')
+                return line.partition("=")[2].strip("\"'")
     except OSError:
         return None
     return None

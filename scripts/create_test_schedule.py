@@ -6,6 +6,7 @@ from pathlib import Path
 import sqlite3
 import uuid
 
+
 def resolve_db_path() -> Path:
     env_path = os.environ.get("NOBS_AGENT_DB_PATH")
     if env_path:
@@ -70,6 +71,7 @@ def main() -> int:
 
     print(f"Created active schedule for {time_str} UTC with 2 events and 1 reminder.")
     return 0
+
 
 if __name__ == "__main__":
     raise SystemExit(main())

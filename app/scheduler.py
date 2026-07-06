@@ -133,9 +133,7 @@ async def trigger_briefing_generation(
             timeout=settings.ollama_timeout_seconds,
             transport=transport,
         ) as client:
-            response = await client.post(
-                f"{settings.ollama_base_url}/api/chat", json=payload
-            )
+            response = await client.post(f"{settings.ollama_base_url}/api/chat", json=payload)
             response.raise_for_status()
 
         sections = json.loads(response.json()["message"]["content"])

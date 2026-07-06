@@ -132,10 +132,14 @@ async def _ollama_status(
 def _gpu_status() -> dict[str, int] | None:
     try:
         result = subprocess.run(
-            ["nvidia-smi", "--query-gpu=utilization.gpu,memory.used,memory.total,temperature.gpu", "--format=csv,noheader,nounits"],
+            [
+                "nvidia-smi",
+                "--query-gpu=utilization.gpu,memory.used,memory.total,temperature.gpu",
+                "--format=csv,noheader,nounits",
+            ],
             timeout=2,
             capture_output=True,
-            text=True
+            text=True,
         )
         if result.returncode != 0:
             return None
@@ -149,7 +153,7 @@ def _gpu_status() -> dict[str, int] | None:
             "utilization_percent": utilization_percent,
             "memory_used_mb": memory_used_mb,
             "memory_total_mb": memory_total_mb,
-            "temperature_c": temperature_c
+            "temperature_c": temperature_c,
         }
     except (OSError, subprocess.SubprocessError, ValueError):
         return None

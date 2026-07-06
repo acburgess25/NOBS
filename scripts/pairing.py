@@ -61,7 +61,7 @@ def main():
     )
     qr.add_data(pairing_url)
     qr.make(fit=True)
-    
+
     # Print ASCII QR code to terminal
     try:
         qr.print_ascii(tty=True)

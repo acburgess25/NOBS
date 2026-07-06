@@ -22,6 +22,7 @@ from app.home_assistant import HomeAssistantClient
 
 try:
     import pynvml  # type: ignore[import-untyped]
+
     pynvml.nvmlInit()
     _NVML_AVAILABLE = True
 except Exception:
@@ -57,9 +58,7 @@ class ToolDefinition:
 class ToolRegistry:
     """Allowlisted tools. There is intentionally no arbitrary shell tool."""
 
-    _DEVELOPER_TOOLS = frozenset(
-        {"list_project_files", "read_project_file", "search_project_text"}
-    )
+    _DEVELOPER_TOOLS = frozenset({"list_project_files", "read_project_file", "search_project_text"})
     _BLOCKED_PROJECT_PARTS = frozenset(
         {".git", ".venv", "__pycache__", "data", "node_modules", "xcuserdata"}
     )
@@ -504,7 +503,8 @@ class ToolRegistry:
         files = [
             item.relative_to(path).as_posix()
             for item in sorted(path.rglob("*"))
-            if item.is_file() and not any(part.startswith(".") for part in item.relative_to(path).parts)
+            if item.is_file()
+            and not any(part.startswith(".") for part in item.relative_to(path).parts)
         ]
         return {"context": path.name, "files": files[:100], "truncated": len(files) > 100}
 
@@ -571,8 +571,7 @@ class ToolRegistry:
         for dirpath, dirnames, filenames in os.walk(root):
             # Prune directories starting with "." or in blocked parts in-place
             dirnames[:] = [
-                d for d in dirnames
-                if not (d.startswith(".") or d in self._BLOCKED_PROJECT_PARTS)
+                d for d in dirnames if not (d.startswith(".") or d in self._BLOCKED_PROJECT_PARTS)
             ]
             for filename in filenames:
                 item = Path(dirpath) / filename
@@ -691,7 +690,9 @@ class ToolRegistry:
             raise ValueError("entity_id and service are required")
         domain = entity_id.split(".")[0] if "." in entity_id else ""
         if domain in {"lock", "alarm_control_panel", "cover"}:
-            raise ValueError("This tool is not permitted to control secure devices. Use control_secure_home_device instead.")
+            raise ValueError(
+                "This tool is not permitted to control secure devices. Use control_secure_home_device instead."
+            )
         if not self.home_assistant or not self.home_assistant.is_configured:
             return {
                 "error": "Home Assistant integration is not configured. Ask the user to set NOBS_HOMEASSISTANT_URL and NOBS_HOMEASSISTANT_TOKEN in their environment."
@@ -713,7 +714,9 @@ class ToolRegistry:
             raise ValueError("entity_id and service are required")
         domain = entity_id.split(".")[0] if "." in entity_id else ""
         if domain not in {"lock", "alarm_control_panel", "cover"}:
-            raise ValueError("This tool is only permitted to control secure devices (lock, alarm_control_panel, cover). Use control_home_device for other domains.")
+            raise ValueError(
+                "This tool is only permitted to control secure devices (lock, alarm_control_panel, cover). Use control_home_device for other domains."
+            )
         if not self.home_assistant or not self.home_assistant.is_configured:
             return {
                 "error": "Home Assistant integration is not configured. Ask the user to set NOBS_HOMEASSISTANT_URL and NOBS_HOMEASSISTANT_TOKEN in their environment."
@@ -760,9 +763,10 @@ class ToolRegistry:
         query = str(arguments.get("query", "")).strip()
         if not query:
             raise ValueError("Search query is required")
-        max_results = int(arguments.get("max_results") or (
-            self.settings.web_search_max_results if self.settings else 5
-        ))
+        max_results = int(
+            arguments.get("max_results")
+            or (self.settings.web_search_max_results if self.settings else 5)
+        )
         max_results = max(1, min(max_results, 10))
         try:
             raw = list(DDGS().text(query, max_results=max_results))
@@ -799,22 +803,24 @@ class ToolRegistry:
                 response = client.get(url)
                 response.raise_for_status()
             data = response.json()
-        except (httpx.HTTPError, ValueError, RuntimeError) as exc:
+        except Exception as exc:
             return {"error": f"Weather fetch failed: {exc}"}
         current = data.get("current", {})
         daily = data.get("daily", {})
         forecast = []
         dates = daily.get("time", [])
         for i, date in enumerate(dates):
-            forecast.append({
-                "date": date,
-                "high_f": daily.get("temperature_2m_max", [None])[i],
-                "low_f": daily.get("temperature_2m_min", [None])[i],
-                "precipitation_in": daily.get("precipitation_sum", [None])[i],
-                "weather_code": daily.get("weather_code", [None])[i],
-                "sunrise": daily.get("sunrise", [None])[i],
-                "sunset": daily.get("sunset", [None])[i],
-            })
+            forecast.append(
+                {
+                    "date": date,
+                    "high_f": daily.get("temperature_2m_max", [None])[i],
+                    "low_f": daily.get("temperature_2m_min", [None])[i],
+                    "precipitation_in": daily.get("precipitation_sum", [None])[i],
+                    "weather_code": daily.get("weather_code", [None])[i],
+                    "sunrise": daily.get("sunrise", [None])[i],
+                    "sunset": daily.get("sunset", [None])[i],
+                }
+            )
         return {
             "latitude": lat,
             "longitude": lon,
@@ -850,14 +856,16 @@ class ToolRegistry:
                 parsed = feedparser.parse(url)
                 feed_title = parsed.feed.get("title", url)
                 for entry in parsed.entries[:max_per_feed]:
-                    all_items.append({
-                        "feed": feed_title,
-                        "title": entry.get("title", ""),
-                        "url": entry.get("link", ""),
-                        "summary": entry.get("summary", "")[:500],
-                        "published": entry.get("published", ""),
-                    })
-            except (ValueError, TypeError, OSError) as exc:
+                    all_items.append(
+                        {
+                            "feed": feed_title,
+                            "title": entry.get("title", ""),
+                            "url": entry.get("link", ""),
+                            "summary": entry.get("summary", "")[:500],
+                            "published": entry.get("published", ""),
+                        }
+                    )
+            except Exception as exc:
                 errors.append(f"{url}: {exc}")
         result: dict[str, Any] = {"items": all_items, "count": len(all_items)}
         if errors:
@@ -921,5 +929,5 @@ class ToolRegistry:
                 "summary": summary,
                 "full_summary_available": len(sent_list) > sentences,
             }
-        except (ValueError, TypeError, OSError) as exc:
+        except Exception as exc:
             return {"error": f"Wikipedia lookup failed: {exc}"}
