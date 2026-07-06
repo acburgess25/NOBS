@@ -50,7 +50,7 @@ struct ConversationView: View {
                 case .today: TodayView { selectedReceipt = $0 }
                 case .approvals: ApprovalsView()
                 case .memory: ComingSoonView(title: "Memory", symbol: "brain", detail: "Approved memories will appear here with their source and deletion controls.")
-                case .activity: ActivityView()
+                case .activity: ActivityView() { selectedReceipt = $0 }
                 case .home: ComingSoonView(title: "Home", symbol: "house", detail: "Unified Apple Home, Google, and Alexa control is coming soon. No devices are connected yet.")
                 case .privacy: PrivacyView()
                 }
@@ -490,6 +490,8 @@ private struct TodayView: View {
 
 private struct ActivityView: View {
     @EnvironmentObject private var model: AppModel
+    let onSelectReceipt: (PrivacyReceipt) -> Void
+    private let accent = Color.nobsAccent
 
     var body: some View {
         List {
@@ -516,6 +518,104 @@ private struct ActivityView: View {
                     .buttonStyle(.plain)
                 }
             }
+            Section("Sync schedules") {
+                if model.isLoadingSchedules && model.schedules.isEmpty {
+                    HStack(spacing: 10) {
+                        ProgressView()
+                        Text("Loading schedules from Tank…")
+                            .foregroundStyle(.secondary)
+                    }
+                } else if model.schedules.isEmpty {
+                    Text("No schedules yet")
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(model.schedules) { schedule in
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Label("Daily \(schedule.timeOfDay)", systemImage: "clock")
+                                    .font(.subheadline.weight(.semibold))
+                                Spacer()
+                                Text(schedule.status.capitalized)
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(schedule.status == "active" ? accent : .secondary)
+                            }
+                            HStack(spacing: 10) {
+                                if schedule.status == "active" {
+                                    Button("Pause") { Task { await model.updateSchedule(schedule, status: "paused") } }
+                                        .buttonStyle(.bordered)
+                                } else if schedule.status == "paused" {
+                                    Button("Resume") { Task { await model.updateSchedule(schedule, status: "active") } }
+                                        .buttonStyle(.bordered)
+                                }
+                                if schedule.status != "revoked" {
+                                    Button("Revoke", role: .destructive) {
+                                        Task { await model.updateSchedule(schedule, status: "revoked") }
+                                    }
+                                    .buttonStyle(.bordered)
+                                }
+                            }
+                        }
+                        .padding(.vertical, 4)
+                    }
+                }
+            }
+            Section("Sync now") {
+                Button {
+                    Task { await model.syncCalendarToTank() }
+                } label: {
+                    HStack {
+                        Label("Sync calendar to Tank", systemImage: "calendar")
+                        Spacer()
+                        if model.isSyncingCalendar { ProgressView() }
+                    }
+                }
+                .disabled(model.isSyncingCalendar || !model.tankAvailable)
+
+                Button {
+                    Task { await model.syncRemindersToTank() }
+                } label: {
+                    HStack {
+                        Label("Sync reminders to Tank", systemImage: "checklist")
+                        Spacer()
+                        if model.isSyncingReminders { ProgressView() }
+                    }
+                }
+                .disabled(model.isSyncingReminders || !model.tankAvailable)
+            }
+            Section("Recent sync actions") {
+                if model.syncActivity.isEmpty {
+                    Text("No sync actions yet")
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(model.syncActivity) { item in
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack {
+                                Text(item.title)
+                                    .font(.subheadline.weight(.semibold))
+                                Spacer()
+                                Button {
+                                    onSelectReceipt(item.receipt)
+                                } label: {
+                                    Label(
+                                        item.route.rawValue,
+                                        systemImage: item.route == .tank ? "server.rack" : "iphone"
+                                    )
+                                    .font(.caption.weight(.semibold))
+                                }
+                                .buttonStyle(.plain)
+                                .foregroundStyle(accent)
+                            }
+                            Text(item.detail)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            Text(item.createdAt, format: .relative(presentation: .named))
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.vertical, 2)
+                    }
+                }
+            }
             Section("Recent on this device") {
                 if model.activity.isEmpty {
                     Text("No activity yet").foregroundStyle(.secondary)
@@ -527,6 +627,7 @@ private struct ActivityView: View {
             }
         }
         .scrollContentBackground(.hidden)
+        .task { await model.loadSchedules() }
     }
 }
 

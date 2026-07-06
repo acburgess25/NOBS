@@ -11,6 +11,7 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 
 - SwiftUI conversation-first prototype with onboarding and focused Chat, Today, Memory, Activity, Home, and Privacy surfaces.
 - Local EventKit calendar permission flow and same-day event display.
+- EventKit calendar and reminders sync to Tank (`/sync/calendar`, `/sync/reminders`) using the same Keychain-backed device-token auth as chat.
 - Configurable Tank address, KeychainAccess-backed device token storage, and
   shared app-root model ownership so onboarding, sign-in, and privacy flows
   stay in sync.
@@ -25,6 +26,7 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 - Today can include local reminders (when permission is granted) alongside
   calendar events in briefing context.
 - Activity lists pending Tank changes and provides explicit Approve and Deny actions.
+- Activity shows Tank schedules and supports pause/revoke actions, plus sync action receipts with Local/Tank processing labels.
 - iOS 27 simulator build verified with Xcode 27 beta.
 
 ### Tank API and agent
@@ -81,7 +83,6 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 - mDNS (`tank.local`) does not resolve from the LAN; clients use 192.168.0.59 directly.
 - The briefing API is deployed and live-verified on Tank. The iOS UI is simulator-built;
   physical iPhone validation remains pending.
-- iOS app does not yet push local calendars and reminders to the Tank API.
 
 ## Recommended next vertical slice
 
