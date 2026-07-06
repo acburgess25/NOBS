@@ -28,7 +28,7 @@ def test_dashboard_is_served_and_redirected() -> None:
     assert redirect.headers["location"] == "/dashboard/assets/index.html"
     assert page.status_code == 200
     assert "NOBS Tank Dashboard" in page.text
-    assert 'data-theme-choice="dark"' in page.text
+    assert 'aria-label="Tank status"' in page.text
 
 
 def test_dashboard_status_is_room_safe(tmp_path) -> None:

@@ -5,7 +5,14 @@ from app.main import create_app
 
 
 def make_client() -> TestClient:
-    return TestClient(create_app(Settings(agent_database_path=":memory:")))
+    return TestClient(
+        create_app(
+            Settings(
+                agent_database_path=":memory:",
+                device_token="test-device-token",
+            )
+        )
+    )
 
 
 def test_first_apple_signin_registers_and_returns_token() -> None:

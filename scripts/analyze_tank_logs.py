@@ -1,6 +1,4 @@
 import httpx
-import json
-import sys
 from pathlib import Path
 
 def main():
