@@ -113,6 +113,7 @@ When documents disagree, `docs/PRODUCT_DECISIONS.md` is the product source of tr
 
 ## Collaboration and IP baseline
 
+- Public collaboration codename: **Project Lantern**.
 - This repository is licensed under **AGPL-3.0-or-later** (`LICENSE`).
 - Contributions are accepted under `CONTRIBUTING.md` rules, including DCO sign-off (`git commit -s`).
 - Keep crown-jewel/private implementation details in private repositories until you choose to publish them.

@@ -9,6 +9,10 @@ $openWebUiVenv = $env:NOBS_OPEN_WEBUI_VENV
 if ([string]::IsNullOrWhiteSpace($openWebUiVenv)) {
     $openWebUiVenv = Join-Path $HOME ".nobs/open-webui"
 }
+$aiderVenv = $env:NOBS_AIDER_VENV
+if ([string]::IsNullOrWhiteSpace($aiderVenv)) {
+    $aiderVenv = Join-Path $HOME ".nobs/aider"
+}
 
 if (-not (Get-Command python -ErrorAction SilentlyContinue) -and -not (Get-Command py -ErrorAction SilentlyContinue)) {
     throw "Python 3.11+ is required."
@@ -35,7 +39,12 @@ foreach ($model in $models.Split(" ", [System.StringSplitOptions]::RemoveEmptyEn
 
 if (-not (Get-Command aider -ErrorAction SilentlyContinue)) {
     Write-Host "Installing aider-chat"
-    Invoke-Expression "$pythonCmd -m pip install --user --upgrade aider-chat"
+    $aiderPython = Join-Path $aiderVenv "Scripts/python.exe"
+    if (-not (Test-Path $aiderPython)) {
+        Invoke-Expression "$pythonCmd -m venv `"$aiderVenv`""
+    }
+    & $aiderPython -m pip install --upgrade pip
+    & $aiderPython -m pip install --upgrade aider-chat
 }
 
 if (-not (Test-Path $openWebUiVenv)) {

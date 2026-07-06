@@ -13,9 +13,10 @@ Thanks for helping build NOBS.
 ## Pull request checklist
 
 1. Use a clear title and explain the user impact.
-2. Include tests or explain why tests are not needed.
-3. Ensure local checks pass (`python3 scripts/dev.py check` for backend changes).
-4. Confirm each commit includes `Signed-off-by: Your Name <email>`.
+2. Use the public codename **Project Lantern** when discussing sensitive roadmap items in public threads.
+3. Include tests or explain why tests are not needed.
+4. Ensure local checks pass (`python3 scripts/dev.py check` for backend changes).
+5. Confirm each commit includes `Signed-off-by: Your Name <email>`.
 
 ## License
 
