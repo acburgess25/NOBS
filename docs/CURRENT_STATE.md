@@ -14,8 +14,13 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 - Configurable Tank address and Keychain-backed device token.
 - Authenticated Tank chat with visible Local/Tank routing and privacy receipts.
 - Honest local fallback when Tank is unavailable.
-- Today can create a three-part Personal, Business, and Shared morning briefing
-  from visible EventKit event titles and times, with a Tank privacy receipt.
+- Today now generates Morning Briefing v2 with structured topline, priorities,
+  explicit conflict/overload risks, recommended sequencing, one clarifying
+  question when ambiguity exists, and reversible suggested next actions.
+- Briefing generation runs on-device first, then refines with Tank when
+  connected, while keeping visible route badges and privacy receipts.
+- Today can include local reminders (when permission is granted) alongside
+  calendar events in briefing context.
 - Activity lists pending Tank changes and provides explicit Approve and Deny actions.
 - iOS 27 simulator build verified with Xcode 27 beta.
 
