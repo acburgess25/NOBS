@@ -4,12 +4,8 @@ from app.config import Settings
 from app.main import create_app
 
 
-TOKEN = "test-device-token-for-apple-auth"
-
-
 def make_client() -> TestClient:
-    settings = Settings.model_validate({"device_token": TOKEN, "agent_database_path": ":memory:"})
-    return TestClient(create_app(settings))
+    return TestClient(create_app(Settings(agent_database_path=":memory:")))
 
 
 def test_first_apple_signin_registers_and_returns_token() -> None:
@@ -19,16 +15,19 @@ def test_first_apple_signin_registers_and_returns_token() -> None:
         json={"user_identifier": "001234.abcdef1234567890", "identity_token": None},
     )
     assert response.status_code == 200
-    assert response.json()["device_token"] == TOKEN
+    data = response.json()
+    assert "device_token" in data
+    assert isinstance(data["device_token"], str)
+    assert len(data["device_token"]) > 0
 
 
 def test_same_apple_user_can_sign_in_again() -> None:
     client = make_client()
     uid = "001234.abcdef1234567890"
-    client.post("/auth/apple", json={"user_identifier": uid})
-    response = client.post("/auth/apple", json={"user_identifier": uid})
-    assert response.status_code == 200
-    assert response.json()["device_token"] == TOKEN
+    first = client.post("/auth/apple", json={"user_identifier": uid})
+    second = client.post("/auth/apple", json={"user_identifier": uid})
+    assert second.status_code == 200
+    assert second.json()["device_token"] == first.json()["device_token"]
 
 
 def test_different_apple_user_is_rejected() -> None:
