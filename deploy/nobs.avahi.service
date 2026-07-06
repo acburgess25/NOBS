@@ -1,0 +1,23 @@
+<?xml version="1.0" standalone='no'?>
+<!DOCTYPE service-group SYSTEM "avahi-service.dtd">
+<!--
+  Advertises the NOBS Tank API via mDNS (Bonjour) so the iOS app can
+  resolve `tank.local:8000` without knowing the IP address.
+
+  Install:
+    sudo apt install avahi-daemon
+    sudo cp deploy/nobs.avahi.service /etc/avahi/services/nobs.service
+    sudo systemctl enable --now avahi-daemon
+
+  The iOS app browses for _nobs._tcp on the local network and connects
+  to the first result. It also tries http://tank.local:8000 directly
+  because avahi registers the hostname "tank.local" for the machine.
+-->
+<service-group>
+  <name replace-wildcards="yes">NOBS Tank (%h)</name>
+  <service>
+    <type>_nobs._tcp</type>
+    <port>8000</port>
+    <txt-record>version=1</txt-record>
+  </service>
+</service-group>

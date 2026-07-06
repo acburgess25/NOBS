@@ -196,8 +196,13 @@ final class AppModel: ObservableObject {
     @Published var isGeneratingBriefing = false
     @Published var isLoadingApprovals = false
     @Published var isLoadingProposals = false
+    @Published var isSigningIn = false
+    @Published var tankConnectStatus: String?
     @Published var tankAddress = TankConfiguration.savedAddress
     @Published var tankToken = TankConfiguration.savedToken
+
+    /// The Apple user identifier stored in keychain after Sign in with Apple.
+    var appleUserID: String? { TankConfiguration.savedAppleUserID }
 
     private let calendar = CalendarService()
     private let tank = TankClient()
@@ -221,6 +226,36 @@ final class AppModel: ObservableObject {
             _ = await (health, approvals, proposals)
         }
         startAutoRefresh()
+    }
+
+    /// Called from SignInView after Apple returns a credential.
+    func signInWithApple(userIdentifier: String, identityToken: String?) async {
+        isSigningIn = true
+        tankConnectStatus = "Connecting to Tank…"
+        defer { isSigningIn = false }
+
+        // Save the Apple user ID locally for display / re-auth.
+        TankConfiguration.saveAppleUserID(userIdentifier)
+
+        do {
+            let response = try await tank.authWithApple(
+                userIdentifier: userIdentifier,
+                identityToken: identityToken
+            )
+            try TankConfiguration.save(address: tankAddress, token: response.deviceToken)
+            tankToken = response.deviceToken
+            tankAddress = TankConfiguration.savedAddress
+            await refreshTankStatus()
+            tankConnectStatus = tankAvailable
+                ? "Connected to Tank"
+                : "Token saved. Tank unavailable on this network."
+            activity.insert("Signed in with Apple and connected to Tank", at: 0)
+        } catch {
+            tankConnectStatus = "Could not connect: \(error.localizedDescription)"
+            lastError = tankAvailable
+                ? "Tank didn't recognise this Apple ID. Make sure you've run the setup once at home."
+                : "Tank is unreachable. Make sure you're on your home network and Tank is running."
+        }
     }
 
     func requestCalendarAccess() async {
@@ -562,6 +597,26 @@ private actor TankClient {
         return try JSONDecoder().decode(AgentProposal.self, from: data)
     }
 
+    /// Authenticates via Apple Identity and retrieves the Tank device token.
+    /// No Authorization header needed — this is the bootstrap endpoint.
+    func authWithApple(userIdentifier: String, identityToken: String?) async throws -> AppleAuthResponse {
+        guard let baseURL = TankConfiguration.currentURL else {
+            throw URLError(.userAuthenticationRequired)
+        }
+        var request = URLRequest(url: baseURL.appending(path: "auth/apple"))
+        request.httpMethod = "POST"
+        request.timeoutInterval = 10
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(
+            AppleAuthRequest(userIdentifier: userIdentifier, identityToken: identityToken)
+        )
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard (response as? HTTPURLResponse)?.statusCode == 200 else {
+            throw URLError(.badServerResponse)
+        }
+        return try JSONDecoder().decode(AppleAuthResponse.self, from: data)
+    }
+
     private func authorizedRequest(path: String, method: String) throws -> URLRequest {
         guard let baseURL = TankConfiguration.currentURL,
               let token = TankConfiguration.currentToken,
@@ -587,6 +642,7 @@ private actor TankClient {
 private enum TankConfiguration {
     private static let addressKey = "nobs.tank.address"
     private static let tokenAccount = "tank-device-token"
+    private static let appleUserAccount = "tank-apple-user-id"
     private static let keychainService = "com.acburgess25.NOBS"
 
     static var savedAddress: String {
@@ -601,15 +657,8 @@ private enum TankConfiguration {
     static var savedToken: String { currentToken ?? "" }
 
     static var currentURL: URL? { normalizedURL(from: savedAddress) }
-    static var currentToken: String? {
-        var query = keychainQuery
-        query[kSecReturnData as String] = true
-        query[kSecMatchLimit as String] = kSecMatchLimitOne
-        var result: CFTypeRef?
-        guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
-              let data = result as? Data else { return nil }
-        return String(data: data, encoding: .utf8)
-    }
+    static var currentToken: String? { keychainRead(account: tokenAccount) }
+    static var savedAppleUserID: String? { keychainRead(account: appleUserAccount) }
 
     static func normalizedURL(from value: String) -> URL? {
         let clean = value.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -621,19 +670,37 @@ private enum TankConfiguration {
 
     static func save(address: String, token: String) throws {
         UserDefaults.standard.set(address, forKey: addressKey)
-        SecItemDelete(keychainQuery as CFDictionary)
-        var query = keychainQuery
-        query[kSecValueData as String] = Data(token.utf8)
+        try keychainWrite(account: tokenAccount, value: token)
+    }
+
+    static func saveAppleUserID(_ userID: String) {
+        try? keychainWrite(account: appleUserAccount, value: userID)
+    }
+
+    private static func keychainRead(account: String) -> String? {
+        var query = baseQuery(account: account)
+        query[kSecReturnData as String] = true
+        query[kSecMatchLimit as String] = kSecMatchLimitOne
+        var result: CFTypeRef?
+        guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
+              let data = result as? Data else { return nil }
+        return String(data: data, encoding: .utf8)
+    }
+
+    private static func keychainWrite(account: String, value: String) throws {
+        SecItemDelete(baseQuery(account: account) as CFDictionary)
+        var query = baseQuery(account: account)
+        query[kSecValueData as String] = Data(value.utf8)
         query[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
         let status = SecItemAdd(query as CFDictionary, nil)
         guard status == errSecSuccess else { throw KeychainError.saveFailed(status) }
     }
 
-    private static var keychainQuery: [String: Any] {
+    private static func baseQuery(account: String) -> [String: Any] {
         [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: keychainService,
-            kSecAttrAccount as String: tokenAccount,
+            kSecAttrAccount as String: account,
         ]
     }
 
@@ -688,4 +755,22 @@ private struct ApprovalDecisionRequest: Codable {
 
 private struct ProposalDecisionRequest: Codable {
     let decision: String
+}
+
+private struct AppleAuthRequest: Codable {
+    let userIdentifier: String
+    let identityToken: String?
+
+    enum CodingKeys: String, CodingKey {
+        case userIdentifier = "user_identifier"
+        case identityToken = "identity_token"
+    }
+}
+
+private struct AppleAuthResponse: Codable {
+    let deviceToken: String
+
+    enum CodingKeys: String, CodingKey {
+        case deviceToken = "device_token"
+    }
 }

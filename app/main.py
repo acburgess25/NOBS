@@ -133,6 +133,15 @@ class SyncRemindersRequest(BaseModel):
     reminders: list[BriefingReminderItem]
 
 
+class AppleAuthRequest(BaseModel):
+    user_identifier: str = Field(min_length=1, max_length=256)
+    identity_token: str | None = None
+
+
+class AppleAuthResponse(BaseModel):
+    device_token: str
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
@@ -225,6 +234,37 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     async def ready() -> dict[str, str]:
         return {"status": "ready"}
+
+    @app.post(
+        "/auth/apple",
+        response_model=AppleAuthResponse,
+        tags=["auth"],
+        summary="Exchange an Apple user identifier for a Tank device token",
+    )
+    async def auth_apple(
+        request: AppleAuthRequest,
+        settings: Settings = Depends(get_settings),
+    ) -> AppleAuthResponse:
+        """
+        Bootstrap endpoint — no device token required.
+
+        First call registers the Apple user ID and returns the device token.
+        Subsequent calls from the same user ID also return the token.
+        Any other user ID is rejected (personal-use protection).
+        """
+        store: AgentStore = app.state.agent_store
+        registered = store.get_kv("apple_user_identifier")
+
+        if registered is None:
+            # First pairing — register this Apple user.
+            store.set_kv("apple_user_identifier", request.user_identifier)
+        elif registered != request.user_identifier:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="This Tank is already paired to a different Apple ID.",
+            )
+
+        return AppleAuthResponse(device_token=settings.device_token)
 
     @app.post(
         "/chat",

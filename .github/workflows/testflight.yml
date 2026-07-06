@@ -1,0 +1,96 @@
+name: TestFlight
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "NOBS/**"
+      - "NOBS.xcodeproj/**"
+      - "ExportOptions.plist"
+  workflow_dispatch:
+    inputs:
+      notes:
+        description: "What's new in this build (shown in TestFlight)"
+        required: false
+
+# Only allow one upload at a time — cancels in-progress if a new commit lands.
+concurrency:
+  group: testflight
+  cancel-in-progress: true
+
+jobs:
+  build-and-upload:
+    name: Archive & Upload to TestFlight
+    runs-on: macos-latest
+
+    steps:
+      # ── 1. Checkout ────────────────────────────────────────────────────────
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── 2. Write the App Store Connect API key to disk ────────────────────
+      # Secrets needed (set in repo Settings → Secrets → Actions):
+      #   ASC_API_KEY_ID        — Key ID  (e.g. ABC1234567)
+      #   ASC_API_ISSUER_ID     — Issuer ID (UUID from App Store Connect)
+      #   ASC_API_KEY_CONTENT   — Base64-encoded contents of the .p8 key file
+      #                           Generate with: base64 -i AuthKey_XXXX.p8 | tr -d '\n'
+      - name: Write App Store Connect API key
+        env:
+          ASC_API_KEY_CONTENT: ${{ secrets.ASC_API_KEY_CONTENT }}
+        run: |
+          mkdir -p ~/private_keys
+          echo "$ASC_API_KEY_CONTENT" | base64 --decode \
+            > ~/private_keys/AuthKey_${{ secrets.ASC_API_KEY_ID }}.p8
+
+      # ── 3. Select the right Xcode ──────────────────────────────────────────
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.app/Contents/Developer
+
+      # ── 4. Resolve package dependencies (none yet, fast no-op) ────────────
+      - name: Resolve packages
+        run: |
+          xcodebuild -resolvePackageDependencies \
+            -project NOBS.xcodeproj \
+            -scheme NOBS
+
+      # ── 5. Archive ─────────────────────────────────────────────────────────
+      - name: Archive
+        run: |
+          xcodebuild archive \
+            -project NOBS.xcodeproj \
+            -scheme NOBS \
+            -configuration Release \
+            -archivePath "$RUNNER_TEMP/NOBS.xcarchive" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath ~/private_keys/AuthKey_${{ secrets.ASC_API_KEY_ID }}.p8 \
+            -authenticationKeyID ${{ secrets.ASC_API_KEY_ID }} \
+            -authenticationKeyIssuerID ${{ secrets.ASC_API_ISSUER_ID }} \
+            CODE_SIGN_STYLE=Automatic \
+            DEVELOPMENT_TEAM=K853LKQLAS \
+            | xcpretty || cat /tmp/xcodebuild.log
+
+      # ── 6. Export .ipa ─────────────────────────────────────────────────────
+      - name: Export IPA
+        run: |
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/NOBS.xcarchive" \
+            -exportOptionsPlist ExportOptions.plist \
+            -exportPath "$RUNNER_TEMP/export" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath ~/private_keys/AuthKey_${{ secrets.ASC_API_KEY_ID }}.p8 \
+            -authenticationKeyID ${{ secrets.ASC_API_KEY_ID }} \
+            -authenticationKeyIssuerID ${{ secrets.ASC_API_ISSUER_ID }}
+
+      # ── 7. Upload to TestFlight ────────────────────────────────────────────
+      - name: Upload to TestFlight
+        run: |
+          xcrun altool --upload-app \
+            --type ios \
+            --file "$RUNNER_TEMP/export/NOBS.ipa" \
+            --apiKey ${{ secrets.ASC_API_KEY_ID }} \
+            --apiIssuer ${{ secrets.ASC_API_ISSUER_ID }}
+
+      # ── 8. Clean up key ────────────────────────────────────────────────────
+      - name: Remove API key
+        if: always()
+        run: rm -f ~/private_keys/AuthKey_${{ secrets.ASC_API_KEY_ID }}.p8
