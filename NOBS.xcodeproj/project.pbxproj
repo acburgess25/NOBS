@@ -234,6 +234,7 @@
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsLocalNetworking = YES;
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "NOBS uses your calendar on this iPhone to build a realistic day plan and identify conflicts.";
+				INFOPLIST_KEY_NSRemindersFullAccessUsageDescription = "NOBS uses your reminders on this iPhone to keep your Tank planning context up to date.";
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "NOBS connects to your private Tank to process requests on hardware you control.";
 				INFOPLIST_KEY_NSCameraUsageDescription = "NOBS uses the camera to scan a QR code to pair with your local Tank.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -261,6 +262,7 @@
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsLocalNetworking = YES;
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "NOBS uses your calendar on this iPhone to build a realistic day plan and identify conflicts.";
+				INFOPLIST_KEY_NSRemindersFullAccessUsageDescription = "NOBS uses your reminders on this iPhone to keep your Tank planning context up to date.";
 				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "NOBS connects to your private Tank to process requests on hardware you control.";
 				INFOPLIST_KEY_NSCameraUsageDescription = "NOBS uses the camera to scan a QR code to pair with your local Tank.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
