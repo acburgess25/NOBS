@@ -679,8 +679,8 @@ class ToolRegistry:
         try:
             devices = self.home_assistant.list_devices(domain)
             return {"devices": devices[:100], "truncated": len(devices) > 100}
-        except Exception as e:
-            return {"error": f"Failed to list devices from Home Assistant: {str(e)}"}
+        except (httpx.HTTPError, ValueError, TypeError) as error:
+            return {"error": f"Failed to list devices from Home Assistant: {error}"}
 
     def _control_home_device(self, arguments: dict[str, Any]) -> dict[str, Any]:
         self._require_argument_keys(arguments, {"entity_id", "service", "service_data"})
@@ -701,8 +701,8 @@ class ToolRegistry:
             data["entity_id"] = entity_id
             res = self.home_assistant.call_service(domain, service, data)
             return {"status": "success", "result": res}
-        except Exception as e:
-            return {"error": f"Failed to control device: {str(e)}"}
+        except (httpx.HTTPError, ValueError, TypeError) as error:
+            return {"error": f"Failed to control device: {error}"}
 
     def _control_secure_home_device(self, arguments: dict[str, Any]) -> dict[str, Any]:
         self._require_argument_keys(arguments, {"entity_id", "service", "service_data"})
@@ -723,8 +723,8 @@ class ToolRegistry:
             data["entity_id"] = entity_id
             res = self.home_assistant.call_service(domain, service, data)
             return {"status": "success", "result": res}
-        except Exception as e:
-            return {"error": f"Failed to control secure device: {str(e)}"}
+        except (httpx.HTTPError, ValueError, TypeError) as error:
+            return {"error": f"Failed to control secure device: {error}"}
 
     def _propose_idea(self, arguments: dict[str, Any]) -> dict[str, Any]:
         self._require_argument_keys(arguments, {"title", "description", "proposal_type"})
@@ -743,8 +743,8 @@ class ToolRegistry:
         try:
             prop = self.store.create_proposal(title, description, proposal_type)
             return {"status": "success", "proposal_id": prop["id"]}
-        except Exception as e:
-            return {"error": f"Failed to save proposal: {str(e)}"}
+        except (OSError, ValueError, RuntimeError) as error:
+            return {"error": f"Failed to save proposal: {error}"}
 
     @staticmethod
     def _require_argument_keys(arguments: dict[str, Any], allowed: set[str]) -> None:
@@ -799,7 +799,7 @@ class ToolRegistry:
                 response = client.get(url)
                 response.raise_for_status()
             data = response.json()
-        except Exception as exc:
+        except (httpx.HTTPError, ValueError, RuntimeError) as exc:
             return {"error": f"Weather fetch failed: {exc}"}
         current = data.get("current", {})
         daily = data.get("daily", {})
@@ -857,7 +857,7 @@ class ToolRegistry:
                         "summary": entry.get("summary", "")[:500],
                         "published": entry.get("published", ""),
                     })
-            except Exception as exc:
+            except (ValueError, TypeError, OSError) as exc:
                 errors.append(f"{url}: {exc}")
         result: dict[str, Any] = {"items": all_items, "count": len(all_items)}
         if errors:
@@ -886,7 +886,7 @@ class ToolRegistry:
                 "truncated": truncated,
                 "char_count": len(text),
             }
-        except Exception as exc:
+        except (ValueError, OSError, TypeError) as exc:
             return {"error": f"Failed to read URL: {exc}"}
 
     def _lookup_wikipedia(self, arguments: dict[str, Any]) -> dict[str, Any]:
@@ -921,5 +921,5 @@ class ToolRegistry:
                 "summary": summary,
                 "full_summary_available": len(sent_list) > sentences,
             }
-        except Exception as exc:
+        except (ValueError, TypeError, OSError) as exc:
             return {"error": f"Wikipedia lookup failed: {exc}"}

@@ -6,7 +6,7 @@ from typing import Any
 
 import httpx
 
-from app.agent import AgentTaskRequest, TankAgent
+from app.agent import AgentModelError, AgentTaskRequest, TankAgent
 from app.agent_store import AgentStore
 from app.agent_tools import ToolRegistry
 from app.config import Settings
@@ -48,8 +48,8 @@ async def run_scheduler(
     _background_tasks: set[asyncio.Task[None]] = set()
 
     while True:
+        now = datetime.now(UTC)
         try:
-            now = datetime.now(UTC)
             current_time = now.strftime("%H:%M")
 
             if current_time != last_triggered_minute:
@@ -71,9 +71,9 @@ async def run_scheduler(
         try:
             last_proposal = store.last_proposal_at()
             cooldown_expired = last_proposal is None or (
-                datetime.now(UTC) - datetime.fromisoformat(last_proposal) > _IDEA_COOLDOWN
+                now - datetime.fromisoformat(last_proposal) > _IDEA_COOLDOWN
             )
-            elapsed = int(datetime.now(UTC).timestamp()) % 60
+            elapsed = int(now.timestamp()) % 60
             if cooldown_expired and elapsed < _IDEA_WINDOW_SECONDS:
                 logger.info("Triggering autonomous agent to propose an idea.")
                 task = asyncio.create_task(
@@ -98,8 +98,8 @@ async def trigger_autonomous_idea(
     request = AgentTaskRequest(objective=_IDEA_OBJECTIVE, context="personal")
     try:
         await agent.run(request)
-    except Exception:
-        logger.exception("Autonomous idea generation failed")
+    except (AgentModelError, httpx.HTTPError, ValueError, TypeError, OSError) as error:
+        logger.exception("Autonomous idea generation failed: %s", error)
 
 
 async def trigger_briefing_generation(
@@ -174,5 +174,5 @@ async def trigger_briefing_generation(
         )
         store.update_run(run_id, "completed")
 
-    except Exception:
-        logger.exception("Failed to generate scheduled briefing")
+    except (httpx.HTTPError, ValueError, KeyError, TypeError, json.JSONDecodeError) as error:
+        logger.exception("Failed to generate scheduled briefing: %s", error)
