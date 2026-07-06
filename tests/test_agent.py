@@ -53,7 +53,7 @@ def test_agent_executes_read_only_tool_without_approval(tmp_path: Path) -> None:
 def test_developer_mode_uses_coder_model_and_project_tools(tmp_path: Path) -> None:
     project = tmp_path / "project"
     project.mkdir()
-    (project / "README.md").write_text("# NOBS\n", encoding="utf-8")
+    (project / "README.md").write_text("# NOBS\n", encoding="utf-8", newline="\n")
     calls = 0
 
     def ollama_response(request: httpx.Request) -> httpx.Response:
@@ -318,7 +318,7 @@ def test_approval_cannot_be_executed_twice(tmp_path: Path) -> None:
 def test_agent_parses_json_tool_call_from_content(tmp_path: Path) -> None:
     project = tmp_path / "project"
     project.mkdir()
-    (project / "README.md").write_text("# NOBS\n", encoding="utf-8")
+    (project / "README.md").write_text("# NOBS\n", encoding="utf-8", newline="\n")
     calls = 0
 
     def ollama_response(request: httpx.Request) -> httpx.Response:
