@@ -20,7 +20,7 @@ rsync -az --delete "$REPO_ROOT/dashboard/" "$TANK_HOST:~/nobs/dashboard/"
 rsync -az "$REPO_ROOT/pyproject.toml" "$TANK_HOST:~/nobs/pyproject.toml"
 
 echo "==> Installing dependencies in Tank venv"
-ssh "$TANK_HOST" 'cd ~/nobs && .venv/bin/pip install -q -e . && echo "deps ok"'
+ssh "$TANK_HOST" 'cd ~/nobs && if [ -x .venv/bin/pip ]; then .venv/bin/pip install -q -e .; else ~/.local/bin/uv pip install -q --python .venv/bin/python -e .; fi && echo "deps ok"'
 
 echo "==> Restarting nobs-api"
 ssh "$TANK_HOST" 'systemctl --user restart nobs-api && sleep 3 && systemctl --user is-active nobs-api'
