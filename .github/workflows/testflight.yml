@@ -29,11 +29,14 @@ jobs:
         uses: actions/checkout@v4
 
       # ── 2. Write the App Store Connect API key to disk ────────────────────
-      # Secrets needed (set in repo Settings → Secrets → Actions):
+      # Required GitHub secrets (Settings → Secrets → Actions):
       #   ASC_API_KEY_ID        — Key ID  (e.g. ABC1234567)
       #   ASC_API_ISSUER_ID     — Issuer ID (UUID from App Store Connect)
-      #   ASC_API_KEY_CONTENT   — Base64-encoded contents of the .p8 key file
-      #                           Generate with: base64 -i AuthKey_XXXX.p8 | tr -d '\n'
+      #   ASC_API_KEY_CONTENT   — base64 of .p8:  base64 -i AuthKey_XXXX.p8 | tr -d '\n'
+      #   DIST_CERT_P12         — base64 of Distribution cert: base64 -i cert.p12 | tr -d '\n'
+      #   DIST_CERT_PASSWORD    — password you chose when exporting the .p12
+      #   PROVISIONING_PROFILE  — base64 of App Store .mobileprovision:
+      #                           base64 -i "NOBS AppStore.mobileprovision" | tr -d '\n'
       - name: Write App Store Connect API key
         env:
           ASC_API_KEY_CONTENT: ${{ secrets.ASC_API_KEY_CONTENT }}
@@ -42,14 +45,47 @@ jobs:
           echo "$ASC_API_KEY_CONTENT" | base64 --decode \
             > ~/private_keys/AuthKey_${{ secrets.ASC_API_KEY_ID }}.p8
 
-      # ── 3. Show available Xcode versions ──────────────────────────────────
+      # ── 3. Import Distribution Certificate into a temporary keychain ──────
+      - name: Import Distribution Certificate
+        env:
+          P12: ${{ secrets.DIST_CERT_P12 }}
+          P12_PASSWORD: ${{ secrets.DIST_CERT_PASSWORD }}
+        run: |
+          echo "$P12" | base64 --decode > /tmp/dist_cert.p12
+          security create-keychain -p "" ci.keychain
+          security default-keychain -s ci.keychain
+          security unlock-keychain -p "" ci.keychain
+          security import /tmp/dist_cert.p12 \
+            -k ci.keychain \
+            -P "$P12_PASSWORD" \
+            -T /usr/bin/codesign \
+            -T /usr/bin/security
+          security set-key-partition-list \
+            -S apple-tool:,apple:,codesign: \
+            -s -k "" ci.keychain
+          rm /tmp/dist_cert.p12
+
+      # ── 4. Install Provisioning Profile ───────────────────────────────────
+      - name: Install Provisioning Profile
+        env:
+          PROFILE: ${{ secrets.PROVISIONING_PROFILE }}
+        run: |
+          echo "$PROFILE" | base64 --decode > /tmp/profile.mobileprovision
+          mkdir -p ~/Library/MobileDevice/Provisioning\ Profiles
+          uuid=$(/usr/libexec/PlistBuddy -c "Print :UUID" \
+            /dev/stdin <<< "$(security cms -D -i /tmp/profile.mobileprovision)")
+          cp /tmp/profile.mobileprovision \
+            ~/Library/MobileDevice/Provisioning\ Profiles/"$uuid".mobileprovision
+          echo "PROVISIONING_PROFILE_UUID=$uuid" >> "$GITHUB_ENV"
+
+      # ── 5. Show available Xcode versions ──────────────────────────────────
       - name: Show Xcode versions
         run: |
           ls /Applications/ | grep -i xcode || true
           xcode-select -p
           xcodebuild -version
 
-      # ── 4. Archive (iOS device, no simulator) ─────────────────────────────
+      # ── 6. Archive (iOS device, no simulator) ─────────────────────────────
       - name: Archive
         run: |
           set -o pipefail
@@ -59,28 +95,24 @@ jobs:
             -configuration Release \
             -destination "generic/platform=iOS" \
             -archivePath "$RUNNER_TEMP/NOBS.xcarchive" \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath ~/private_keys/AuthKey_${{ secrets.ASC_API_KEY_ID }}.p8 \
-            -authenticationKeyID ${{ secrets.ASC_API_KEY_ID }} \
-            -authenticationKeyIssuerID ${{ secrets.ASC_API_ISSUER_ID }} \
-            CODE_SIGN_STYLE=Automatic \
+            CODE_SIGN_STYLE=Manual \
             DEVELOPMENT_TEAM=K853LKQLAS \
+            PROVISIONING_PROFILE_SPECIFIER="$PROVISIONING_PROFILE_UUID" \
             2>&1 | tee /tmp/xcodebuild.log | xcpretty --color || \
           { echo "--- xcodebuild output ---"; cat /tmp/xcodebuild.log; exit 1; }
 
-      # ── 5. Export .ipa ─────────────────────────────────────────────────────
+      # ── 7. Export .ipa ─────────────────────────────────────────────────────
       - name: Export IPA
         run: |
+          set -o pipefail
           xcodebuild -exportArchive \
             -archivePath "$RUNNER_TEMP/NOBS.xcarchive" \
             -exportOptionsPlist ExportOptions.plist \
             -exportPath "$RUNNER_TEMP/export" \
-            -allowProvisioningUpdates \
-            -authenticationKeyPath ~/private_keys/AuthKey_${{ secrets.ASC_API_KEY_ID }}.p8 \
-            -authenticationKeyID ${{ secrets.ASC_API_KEY_ID }} \
-            -authenticationKeyIssuerID ${{ secrets.ASC_API_ISSUER_ID }}
+            2>&1 | tee /tmp/export.log | xcpretty --color || \
+          { echo "--- export output ---"; cat /tmp/export.log; exit 1; }
 
-      # ── 6. Upload to TestFlight ────────────────────────────────────────────
+      # ── 8. Upload to TestFlight ────────────────────────────────────────────
       - name: Upload to TestFlight
         run: |
           xcrun altool --upload-app \
@@ -89,8 +121,10 @@ jobs:
             --apiKey ${{ secrets.ASC_API_KEY_ID }} \
             --apiIssuer ${{ secrets.ASC_API_ISSUER_ID }}
 
-      # ── 7. Clean up key ────────────────────────────────────────────────────
-      - name: Remove API key
+      # ── 9. Clean up ────────────────────────────────────────────────────────
+      - name: Clean up secrets
         if: always()
-        run: rm -f ~/private_keys/AuthKey_${{ secrets.ASC_API_KEY_ID }}.p8
+        run: |
+          rm -f ~/private_keys/AuthKey_${{ secrets.ASC_API_KEY_ID }}.p8
+          security delete-keychain ci.keychain 2>/dev/null || true
 
