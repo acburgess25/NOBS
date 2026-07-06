@@ -79,20 +79,86 @@ struct DailyBriefing: Codable {
 
 struct PendingApproval: Identifiable, Codable {
     let id: String
+    let runId: String
     let toolName: String
+    let arguments: [String: AnyCodable]
     let risk: String
     let reason: String
     let status: String
+    let createdAt: String
+    let decidedAt: String?
 
     enum CodingKeys: String, CodingKey {
-        case id, risk, reason, status
+        case id, risk, reason, status, arguments
+        case runId = "run_id"
         case toolName = "tool_name"
+        case createdAt = "created_at"
+        case decidedAt = "decided_at"
+    }
+}
+
+struct AgentProposal: Identifiable, Codable {
+    let id: String
+    let title: String
+    let description: String
+    let proposalType: String
+    let status: String
+    let createdAt: String
+    let decidedAt: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id, title, description, status
+        case proposalType = "proposal_type"
+        case createdAt = "created_at"
+        case decidedAt = "decided_at"
+    }
+}
+
+/// Type-erased Codable wrapper for heterogeneous JSON values (approval arguments).
+struct AnyCodable: Codable {
+    let value: Any
+
+    init(_ value: Any) { self.value = value }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        if let v = try? container.decode(Bool.self) { value = v }
+        else if let v = try? container.decode(Int.self) { value = v }
+        else if let v = try? container.decode(Double.self) { value = v }
+        else if let v = try? container.decode(String.self) { value = v }
+        else if let v = try? container.decode([String: AnyCodable].self) { value = v }
+        else if let v = try? container.decode([AnyCodable].self) { value = v }
+        else { value = "" }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        switch value {
+        case let v as Bool: try container.encode(v)
+        case let v as Int: try container.encode(v)
+        case let v as Double: try container.encode(v)
+        case let v as String: try container.encode(v)
+        case let v as [String: AnyCodable]: try container.encode(v)
+        case let v as [AnyCodable]: try container.encode(v)
+        default: try container.encodeNil()
+        }
+    }
+
+    var displayString: String {
+        switch value {
+        case let v as String: return v
+        case let v as Bool: return v ? "true" : "false"
+        case let v as Int: return "\(v)"
+        case let v as Double: return "\(v)"
+        default: return "\(value)"
+        }
     }
 }
 
 enum AppSection: String, CaseIterable, Identifiable {
     case chat = "Chat"
     case today = "Today"
+    case approvals = "Approvals"
     case memory = "Memory"
     case activity = "Activity"
     case home = "Home"
@@ -104,6 +170,7 @@ enum AppSection: String, CaseIterable, Identifiable {
         switch self {
         case .chat: "message"
         case .today: "sun.max"
+        case .approvals: "checkmark.shield"
         case .memory: "brain"
         case .activity: "clock.arrow.circlepath"
         case .home: "house"
@@ -125,8 +192,10 @@ final class AppModel: ObservableObject {
     @Published var activity: [String] = []
     @Published var briefing: DailyBriefing?
     @Published var approvals: [PendingApproval] = []
+    @Published var proposals: [AgentProposal] = []
     @Published var isGeneratingBriefing = false
     @Published var isLoadingApprovals = false
+    @Published var isLoadingProposals = false
     @Published var tankAddress = TankConfiguration.savedAddress
     @Published var tankToken = TankConfiguration.savedToken
 
@@ -135,15 +204,23 @@ final class AppModel: ObservableObject {
 
     var activeRoute: ProcessingRoute { tankAvailable ? .tank : .local }
 
+    /// Total count of items needing a decision (shown as badge).
+    var pendingDecisionCount: Int {
+        approvals.filter { $0.status == "pending" }.count +
+        proposals.filter { $0.status == "pending" }.count
+    }
+
     func start() async {
         async let health: Void = refreshTankStatus()
         async let approvals: Void = loadApprovals()
+        async let proposals: Void = loadProposals()
         if calendarStatus == .fullAccess || calendarStatus == .authorized {
             async let events: Void = loadToday()
-            _ = await (health, approvals, events)
+            _ = await (health, approvals, proposals, events)
         } else {
-            _ = await (health, approvals)
+            _ = await (health, approvals, proposals)
         }
+        startAutoRefresh()
     }
 
     func requestCalendarAccess() async {
@@ -272,6 +349,43 @@ final class AppModel: ObservableObject {
             await loadApprovals()
         } catch {
             lastError = "Tank could not update that approval. It may already have been decided."
+        }
+    }
+
+    func loadProposals() async {
+        guard TankConfiguration.currentToken != nil else { return }
+        isLoadingProposals = true
+        defer { isLoadingProposals = false }
+        do {
+            proposals = try await tank.proposals()
+        } catch {
+            proposals = []
+        }
+    }
+
+    func decideProposal(_ proposal: AgentProposal, decision: String) async {
+        do {
+            _ = try await tank.decideProposal(id: proposal.id, decision: decision)
+            activity.insert(
+                "\(decision == "approve" ? "Approved" : "Dismissed") idea: \(proposal.title)",
+                at: 0
+            )
+            await loadProposals()
+        } catch {
+            lastError = "Tank could not update that proposal. It may already have been decided."
+        }
+    }
+
+    private func startAutoRefresh() {
+        Task { [weak self] in
+            while true {
+                try? await Task.sleep(for: .seconds(30))
+                guard let self else { return }
+                if self.tankAvailable {
+                    await self.loadApprovals()
+                    await self.loadProposals()
+                }
+            }
         }
     }
 
@@ -428,6 +542,26 @@ private actor TankClient {
         return try JSONDecoder().decode(PendingApproval.self, from: data)
     }
 
+    func proposals() async throws -> [AgentProposal] {
+        let request = try authorizedRequest(path: "agent/proposals", method: "GET")
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard (response as? HTTPURLResponse)?.statusCode == 200 else {
+            throw URLError(.badServerResponse)
+        }
+        let decoder = JSONDecoder()
+        return try decoder.decode([AgentProposal].self, from: data)
+    }
+
+    func decideProposal(id: String, decision: String) async throws -> AgentProposal {
+        var request = try authorizedRequest(path: "agent/proposals/\(id)/decide", method: "POST")
+        request.httpBody = try JSONEncoder().encode(ProposalDecisionRequest(decision: decision))
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard (response as? HTTPURLResponse)?.statusCode == 200 else {
+            throw URLError(.badServerResponse)
+        }
+        return try JSONDecoder().decode(AgentProposal.self, from: data)
+    }
+
     private func authorizedRequest(path: String, method: String) throws -> URLRequest {
         guard let baseURL = TankConfiguration.currentURL,
               let token = TankConfiguration.currentToken,
@@ -549,5 +683,9 @@ private struct TankBriefingReminderItem: Codable {
 }
 
 private struct ApprovalDecisionRequest: Codable {
+    let decision: String
+}
+
+private struct ProposalDecisionRequest: Codable {
     let decision: String
 }

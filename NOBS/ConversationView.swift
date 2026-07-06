@@ -47,6 +47,7 @@ struct ConversationView: View {
                 switch model.section {
                 case .chat: chat
                 case .today: TodayView(model: model) { selectedReceipt = $0 }
+                case .approvals: ApprovalsView(model: model)
                 case .memory: ComingSoonView(title: "Memory", symbol: "brain", detail: "Approved memories will appear here with their source and deletion controls.")
                 case .activity: ActivityView(model: model)
                 case .home: ComingSoonView(title: "Home", symbol: "house", detail: "Unified Apple Home, Google, and Alexa control is coming soon. No devices are connected yet.")
@@ -59,10 +60,20 @@ struct ConversationView: View {
     private var header: some View {
         HStack(spacing: 12) {
             Button { showNavigation = true } label: {
-                Image(systemName: "line.3.horizontal")
-                    .frame(width: 40, height: 40)
+                ZStack(alignment: .topTrailing) {
+                    Image(systemName: "line.3.horizontal")
+                        .frame(width: 40, height: 40)
+                    if model.pendingDecisionCount > 0 {
+                        Text("\(model.pendingDecisionCount)")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(.white)
+                            .padding(4)
+                            .background(Color.red, in: Circle())
+                            .offset(x: 6, y: -4)
+                    }
+                }
             }
-            .accessibilityLabel("Open navigation")
+            .accessibilityLabel("Open navigation\(model.pendingDecisionCount > 0 ? ", \(model.pendingDecisionCount) items need your attention" : "")")
 
             VStack(alignment: .leading, spacing: 1) {
                 Text(model.section.rawValue)
@@ -216,8 +227,19 @@ struct ConversationView: View {
                     model.section = section
                     showNavigation = false
                 } label: {
-                    Label(section.rawValue, systemImage: section.symbol)
-                        .foregroundStyle(section == model.section ? accent : .primary)
+                    HStack {
+                        Label(section.rawValue, systemImage: section.symbol)
+                            .foregroundStyle(section == model.section ? accent : .primary)
+                        Spacer()
+                        if section == .approvals, model.pendingDecisionCount > 0 {
+                            Text("\(model.pendingDecisionCount)")
+                                .font(.caption2.weight(.bold))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 7)
+                                .padding(.vertical, 3)
+                                .background(Color.red, in: Capsule())
+                        }
+                    }
                 }
             }
             .navigationTitle("NOBS")
@@ -377,30 +399,32 @@ private struct TodayView: View {
 
 private struct ActivityView: View {
     @ObservedObject var model: AppModel
+    private let accent = Color(red: 0.31, green: 0.43, blue: 0.20)
+
     var body: some View {
         List {
-            Section("Waiting for approval") {
-                if model.isLoadingApprovals {
-                    ProgressView("Checking Tank…")
-                } else if model.approvals.isEmpty {
-                    ContentUnavailableView("Nothing waiting", systemImage: "checkmark.shield", description: Text(model.tankAvailable ? "Tank has no pending changes." : "Tank is offline. No approval was changed."))
-                } else {
-                    ForEach(model.approvals) { approval in
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(approval.toolName).font(.headline)
-                            Text(approval.reason).font(.subheadline).foregroundStyle(.secondary)
-                            Text(approval.risk.capitalized).font(.caption.weight(.semibold))
-                            HStack {
-                                Button("Approve") { Task { await model.decideApproval(approval, decision: "approve") } }
-                                    .buttonStyle(.borderedProminent)
-                                Button("Deny", role: .destructive) { Task { await model.decideApproval(approval, decision: "deny") } }
-                                    .buttonStyle(.bordered)
+            if model.pendingDecisionCount > 0 {
+                Section {
+                    Button {
+                        model.section = .approvals
+                    } label: {
+                        HStack {
+                            Image(systemName: "checkmark.shield.fill")
+                                .foregroundStyle(.white)
+                                .frame(width: 32, height: 32)
+                                .background(Color.red, in: RoundedRectangle(cornerRadius: 8))
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("\(model.pendingDecisionCount) item\(model.pendingDecisionCount == 1 ? "" : "s") need your attention")
+                                    .font(.subheadline.weight(.semibold))
+                                Text("Go to Approvals →")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
                             }
+                            Spacer()
                         }
-                        .padding(.vertical, 6)
                     }
+                    .buttonStyle(.plain)
                 }
-                Button("Refresh approvals") { Task { await model.loadApprovals() } }
             }
             Section("Recent on this device") {
                 if model.activity.isEmpty {
@@ -413,7 +437,6 @@ private struct ActivityView: View {
             }
         }
         .scrollContentBackground(.hidden)
-        .task { await model.loadApprovals() }
     }
 }
 
