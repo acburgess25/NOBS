@@ -264,7 +264,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 detail="This Tank is already paired to a different Apple ID.",
             )
 
-        return AppleAuthResponse(device_token=settings.device_token)
+        if settings.device_token is None:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Tank device token is not configured.",
+            )
+
+        return AppleAuthResponse(device_token=settings.device_token.get_secret_value())
 
     @app.post(
         "/chat",
