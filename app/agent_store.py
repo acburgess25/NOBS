@@ -93,6 +93,10 @@ class AgentStore:
                     context TEXT NOT NULL,
                     created_at TEXT NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS kv (
+                    key TEXT PRIMARY KEY,
+                    value TEXT NOT NULL
+                );
                 """
             )
         return self._connection
@@ -462,3 +466,23 @@ class AgentStore:
             "created_at": row["created_at"],
             "decided_at": row["decided_at"],
         }
+
+    # ------------------------------------------------------------------
+    # Key-value store (generic settings, e.g. apple_user_identifier)
+    # ------------------------------------------------------------------
+
+    def get_kv(self, key: str) -> str | None:
+        with self._lock:
+            row = self._connect().execute(
+                "SELECT value FROM kv WHERE key = ?", (key,)
+            ).fetchone()
+        return row["value"] if row else None
+
+    def set_kv(self, key: str, value: str) -> None:
+        with self._lock:
+            connection = self._connect()
+            connection.execute(
+                "INSERT OR REPLACE INTO kv (key, value) VALUES (?, ?)",
+                (key, value),
+            )
+            connection.commit()

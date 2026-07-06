@@ -265,32 +265,45 @@ struct ConversationView: View {
 
 private struct OnboardingView: View {
     let onComplete: () -> Void
+    @StateObject private var model = AppModel()
     @State private var page = 0
+    private let accent = Color(red: 0.31, green: 0.43, blue: 0.20)
+
+    private let pages: [(icon: String, title: String, body: String)] = [
+        ("leaf",
+         "Your technology.\nFinally working for you.",
+         "NOBS helps turn a chaotic day into a realistic plan. Chat stays at the center."),
+        ("hand.raised",
+         "Private by default.\nClear when it isn't.",
+         "Every answer shows whether it was processed on this iPhone, your Tank, or optional NOBScloud."),
+    ]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 24) {
-            Spacer()
-            Image(systemName: page == 0 ? "leaf" : "hand.raised")
-                .font(.system(size: 42))
-                .foregroundStyle(Color(red: 0.31, green: 0.43, blue: 0.20))
-            Text(page == 0 ? "Your technology.\nFinally working for you." : "Private by default.\nClear when it isn’t.")
-                .font(.system(size: 42, weight: .regular, design: .serif))
-            Text(page == 0
-                 ? "NOBS helps turn a chaotic day into a realistic plan. Chat stays at the center."
-                 : "Every answer shows whether it was processed on this iPhone, your Tank, or optional NOBScloud.")
-                .font(.title3)
-                .foregroundStyle(.secondary)
-                .lineSpacing(4)
-            Spacer()
-            Button(page == 0 ? "Continue" : "Start with NOBS") {
-                if page == 0 { withAnimation { page = 1 } } else { onComplete() }
+        if page < pages.count {
+            let p = pages[page]
+            VStack(alignment: .leading, spacing: 24) {
+                Spacer()
+                Image(systemName: p.icon)
+                    .font(.system(size: 42))
+                    .foregroundStyle(accent)
+                Text(p.title)
+                    .font(.system(size: 42, weight: .regular, design: .serif))
+                Text(p.body)
+                    .font(.title3)
+                    .foregroundStyle(.secondary)
+                    .lineSpacing(4)
+                Spacer()
+                Button("Continue") { withAnimation { page += 1 } }
+                    .buttonStyle(.borderedProminent)
+                    .tint(accent)
+                    .controlSize(.large)
+                    .frame(maxWidth: .infinity, alignment: .trailing)
             }
-            .buttonStyle(.borderedProminent)
-            .tint(Color(red: 0.31, green: 0.43, blue: 0.20))
-            .controlSize(.large)
-            .frame(maxWidth: .infinity, alignment: .trailing)
+            .padding(28)
+        } else {
+            // Page 3: Sign in + Tank connect
+            SignInView(mode: .onboarding, model: model) { onComplete() }
         }
-        .padding(28)
     }
 }
 
@@ -443,6 +456,7 @@ private struct ActivityView: View {
 private struct PrivacyView: View {
     @ObservedObject var model: AppModel
     @State private var isScanningQR = false
+    private let accent = Color(red: 0.31, green: 0.43, blue: 0.20)
 
     var body: some View {
         List {
@@ -450,7 +464,17 @@ private struct PrivacyView: View {
                 LabeledContent("Chat", value: model.tankAvailable ? "Tank available" : "Local fallback")
                 LabeledContent("Calendar", value: "On this iPhone")
             }
-            Section("Your Tank") {
+
+            // Sign in with Apple section — primary connect method
+            Section {
+                SignInView(mode: .settings, model: model) {}
+            } header: {
+                Text("Quick Connect")
+            } footer: {
+                Text("Sign in once and NOBS automatically reconnects to Tank whenever you're home.")
+            }
+
+            Section("Manual Tank Setup") {
                 TextField("Tank address", text: $model.tankAddress)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
@@ -463,20 +487,20 @@ private struct PrivacyView: View {
                         Task { await model.saveTankConnection() }
                     }
                     .buttonStyle(.bordered)
-                    
+
                     Spacer()
-                    
+
                     Button(action: { isScanningQR = true }) {
                         Label("Scan QR", systemImage: "qrcode.viewfinder")
                     }
                     .buttonStyle(.borderedProminent)
-                    .tint(Color(red: 0.31, green: 0.43, blue: 0.20))
+                    .tint(accent)
                 }
                 Label(
                     model.tankAvailable ? "Connected on your private network" : "Not connected; local fallback is active",
                     systemImage: model.tankAvailable ? "checkmark.circle.fill" : "iphone"
                 )
-                .foregroundStyle(model.tankAvailable ? .green : .secondary)
+                .foregroundStyle(model.tankAvailable ? accent : .secondary)
             }
             Section("Boundaries") {
                 Label("Passwords are off-limits", systemImage: "key.slash")
