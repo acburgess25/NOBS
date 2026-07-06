@@ -115,7 +115,7 @@ struct SignInView: View {
                 guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential else { return }
                 Task {
                     await model.signInWithApple(
-                        userIdentifier: credential.userIdentifier,
+                        userIdentifier: credential.user,
                         identityToken: credential.identityToken.flatMap { String(data: $0, encoding: .utf8) }
                     )
                     if model.tankAvailable { onComplete() }
