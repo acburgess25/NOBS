@@ -3,10 +3,10 @@ import SwiftUI
 // MARK: - Main Approvals View
 
 struct ApprovalsView: View {
-    @ObservedObject var model: AppModel
+    @EnvironmentObject private var model: AppModel
 
-    private let accent = Color(red: 0.31, green: 0.43, blue: 0.20)
-    private let canvas = Color(red: 0.975, green: 0.968, blue: 0.945)
+    private let accent = Color.nobsAccent
+    private let canvas = Color.nobsCanvas
 
     @State private var segment: Segment = .approvals
 
@@ -200,6 +200,7 @@ private struct ApprovalCard: View {
 
             // Arguments disclosure
             if !approval.arguments.isEmpty {
+                // TODO(feature): Expand approval details with richer argument formatting and full execution context.
                 DisclosureGroup(isExpanded: $showArguments) {
                     VStack(alignment: .leading, spacing: 6) {
                         ForEach(Array(approval.arguments.keys.sorted()), id: \.self) { key in
@@ -401,7 +402,7 @@ private struct ProposalTypeBadge: View {
 
 private func riskColor(for risk: String) -> Color {
     switch risk.lowercased() {
-    case "low": return Color(red: 0.31, green: 0.43, blue: 0.20)
+    case "low": return .nobsAccent
     case "medium": return .orange
     case "high", "critical": return .red
     default: return .secondary

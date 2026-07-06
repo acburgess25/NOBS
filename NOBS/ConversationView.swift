@@ -2,14 +2,14 @@ import EventKit
 import SwiftUI
 
 struct ConversationView: View {
-    @StateObject private var model = AppModel()
+    @EnvironmentObject private var model: AppModel
     @AppStorage("nobs.onboarding.complete") private var onboardingComplete = false
     @State private var draft = ""
     @State private var selectedReceipt: PrivacyReceipt?
     @State private var showNavigation = false
 
-    private let accent = Color(red: 0.31, green: 0.43, blue: 0.20)
-    private let canvas = Color(red: 0.975, green: 0.968, blue: 0.945)
+    private let accent = Color.nobsAccent
+    private let canvas = Color.nobsCanvas
 
     var body: some View {
         ZStack {
@@ -23,7 +23,8 @@ struct ConversationView: View {
         .task { await model.start() }
         .onOpenURL { url in
             model.section = .privacy
-            handleDeepLink(payload: url.absoluteString)
+            model.applyTankPayload(from: url)
+            Task { await model.saveTankConnection() }
         }
         .sheet(isPresented: $showNavigation) { navigationSheet }
         .sheet(item: $selectedReceipt) { receipt in
@@ -46,12 +47,12 @@ struct ConversationView: View {
             Group {
                 switch model.section {
                 case .chat: chat
-                case .today: TodayView(model: model) { selectedReceipt = $0 }
-                case .approvals: ApprovalsView(model: model)
+                case .today: TodayView { selectedReceipt = $0 }
+                case .approvals: ApprovalsView()
                 case .memory: ComingSoonView(title: "Memory", symbol: "brain", detail: "Approved memories will appear here with their source and deletion controls.")
-                case .activity: ActivityView(model: model)
+                case .activity: ActivityView()
                 case .home: ComingSoonView(title: "Home", symbol: "house", detail: "Unified Apple Home, Google, and Alexa control is coming soon. No devices are connected yet.")
-                case .privacy: PrivacyView(model: model)
+                case .privacy: PrivacyView()
                 }
             }
         }
@@ -254,22 +255,6 @@ struct ConversationView: View {
         Task { await model.send(text) }
     }
 
-    /// Handles deep-link URLs (e.g. nobs://connect?url=...&token=...).
-    /// Also called by PrivacyView's QR scanner for the same payload.
-    func handleDeepLink(payload: String) {
-        guard let url = URL(string: payload),
-              let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return }
-        if let tankURL = components.queryItems?.first(where: { $0.name == "url" })?.value {
-            model.tankAddress = tankURL
-        } else if let device = components.queryItems?.first(where: { $0.name == "device" })?.value {
-            model.tankAddress = "http://\(device):8000"
-        }
-        if let token = components.queryItems?.first(where: { $0.name == "token" })?.value {
-            model.tankToken = token
-        }
-        Task { await model.saveTankConnection() }
-    }
-
     private var dayPart: String {
         switch Calendar.current.component(.hour, from: Date()) {
         case 5..<12: "morning"
@@ -281,9 +266,9 @@ struct ConversationView: View {
 
 private struct OnboardingView: View {
     let onComplete: () -> Void
-    @StateObject private var model = AppModel()
+    @EnvironmentObject private var model: AppModel
     @State private var page = 0
-    private let accent = Color(red: 0.31, green: 0.43, blue: 0.20)
+    private let accent = Color.nobsAccent
 
     private let pages: [(icon: String, title: String, body: String)] = [
         ("leaf",
@@ -318,15 +303,15 @@ private struct OnboardingView: View {
             .padding(28)
         } else {
             // Page 3: Sign in + Tank connect
-            SignInView(mode: .onboarding, model: model) { onComplete() }
+            SignInView(mode: .onboarding) { onComplete() }
         }
     }
 }
 
 private struct TodayView: View {
-    @ObservedObject var model: AppModel
+    @EnvironmentObject private var model: AppModel
     let onShowReceipt: (PrivacyReceipt) -> Void
-    private let accent = Color(red: 0.31, green: 0.43, blue: 0.20)
+    private let accent = Color.nobsAccent
 
     var body: some View {
         ScrollView {
@@ -504,8 +489,7 @@ private struct TodayView: View {
 }
 
 private struct ActivityView: View {
-    @ObservedObject var model: AppModel
-    private let accent = Color(red: 0.31, green: 0.43, blue: 0.20)
+    @EnvironmentObject private var model: AppModel
 
     var body: some View {
         List {
@@ -547,20 +531,21 @@ private struct ActivityView: View {
 }
 
 private struct PrivacyView: View {
-    @ObservedObject var model: AppModel
+    @EnvironmentObject private var model: AppModel
     @State private var isScanningQR = false
-    private let accent = Color(red: 0.31, green: 0.43, blue: 0.20)
+    private let accent = Color.nobsAccent
 
     var body: some View {
         List {
             Section("Processing now") {
+                // TODO(feature): Add a persistent sync status indicator alongside the current processing route.
                 LabeledContent("Chat", value: model.tankAvailable ? "Tank available" : "Local fallback")
                 LabeledContent("Calendar", value: "On this iPhone")
             }
 
             // Sign in with Apple section — primary connect method
             Section {
-                SignInView(mode: .settings, model: model) {}
+                SignInView(mode: .settings) {}
             } header: {
                 Text("Quick Connect")
             } footer: {
@@ -583,6 +568,7 @@ private struct PrivacyView: View {
 
                     Spacer()
 
+                    // TODO(feature): Add an explicit Tank reconnect button when the saved connection is offline.
                     Button(action: { isScanningQR = true }) {
                         Label("Scan QR", systemImage: "qrcode.viewfinder")
                     }
@@ -621,16 +607,8 @@ private struct PrivacyView: View {
     }
 
     private func handleScan(payload: String) {
-        guard let url = URL(string: payload),
-              let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return }
-        if let tankURL = components.queryItems?.first(where: { $0.name == "url" })?.value {
-            model.tankAddress = tankURL
-        } else if let device = components.queryItems?.first(where: { $0.name == "device" })?.value {
-            model.tankAddress = "http://\(device):8000"
-        }
-        if let token = components.queryItems?.first(where: { $0.name == "token" })?.value {
-            model.tankToken = token
-        }
+        guard let url = URL(string: payload) else { return }
+        model.applyTankPayload(from: url)
         isScanningQR = false
         Task { await model.saveTankConnection() }
     }
@@ -671,4 +649,7 @@ extension PrivacyReceipt: Identifiable {
     var id: String { "\(processed)|\(used.joined(separator: ","))|\(shared.joined(separator: ","))|\(changed.joined(separator: ","))" }
 }
 
-#Preview { ConversationView() }
+#Preview {
+    ConversationView()
+        .environmentObject(AppModel())
+}

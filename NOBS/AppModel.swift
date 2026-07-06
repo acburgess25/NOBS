@@ -1,15 +1,16 @@
+import AnyCodable
 import Combine
 @preconcurrency import EventKit
 import Foundation
-import Security
+@preconcurrency import KeychainAccess
 
-enum ProcessingRoute: String, Codable {
+enum ProcessingRoute: String, Codable, Sendable {
     case local = "Local"
     case tank = "Tank"
     case cloud = "NOBScloud"
 }
 
-struct PrivacyReceipt: Codable, Hashable {
+struct PrivacyReceipt: Codable, Hashable, Sendable {
     let used: [String]
     let processed: String
     let shared: [String]
@@ -23,7 +24,7 @@ struct PrivacyReceipt: Codable, Hashable {
     )
 }
 
-struct ConversationEntry: Identifiable, Codable {
+struct ConversationEntry: Identifiable, Codable, Sendable {
     enum Role: String, Codable {
         case user
         case assistant
@@ -50,7 +51,7 @@ struct ConversationEntry: Identifiable, Codable {
     }
 }
 
-struct DayEvent: Identifiable, Hashable {
+struct DayEvent: Identifiable, Hashable, Sendable {
     let id: String
     let title: String
     let start: Date
@@ -78,7 +79,7 @@ struct DayReminder: Identifiable, Hashable {
     let context: BriefingContextBucket
 }
 
-struct DailyBriefing: Codable {
+struct DailyBriefing: Codable, Sendable {
     let date: String
     let topline: String
     let priorities: [String]
@@ -101,7 +102,7 @@ struct DailyBriefing: Codable {
     }
 }
 
-struct PendingApproval: Identifiable, Codable {
+struct PendingApproval: Identifiable, Codable, @unchecked Sendable {
     let id: String
     let runId: String
     let toolName: String
@@ -121,7 +122,7 @@ struct PendingApproval: Identifiable, Codable {
     }
 }
 
-struct AgentProposal: Identifiable, Codable {
+struct AgentProposal: Identifiable, Codable, Sendable {
     let id: String
     let title: String
     let description: String
@@ -138,43 +139,19 @@ struct AgentProposal: Identifiable, Codable {
     }
 }
 
-/// Type-erased Codable wrapper for heterogeneous JSON values (approval arguments).
-struct AnyCodable: Codable, @unchecked Sendable {
-    let value: Any
-
-    init(_ value: Any) { self.value = value }
-
-    init(from decoder: Decoder) throws {
-        let container = try decoder.singleValueContainer()
-        if let v = try? container.decode(Bool.self) { value = v }
-        else if let v = try? container.decode(Int.self) { value = v }
-        else if let v = try? container.decode(Double.self) { value = v }
-        else if let v = try? container.decode(String.self) { value = v }
-        else if let v = try? container.decode([String: AnyCodable].self) { value = v }
-        else if let v = try? container.decode([AnyCodable].self) { value = v }
-        else { value = "" }
-    }
-
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.singleValueContainer()
-        switch value {
-        case let v as Bool: try container.encode(v)
-        case let v as Int: try container.encode(v)
-        case let v as Double: try container.encode(v)
-        case let v as String: try container.encode(v)
-        case let v as [String: AnyCodable]: try container.encode(v)
-        case let v as [AnyCodable]: try container.encode(v)
-        default: try container.encodeNil()
-        }
-    }
-
+extension AnyCodable {
     var displayString: String {
         switch value {
-        case let v as String: return v
-        case let v as Bool: return v ? "true" : "false"
-        case let v as Int: return "\(v)"
-        case let v as Double: return "\(v)"
-        default: return "\(value)"
+        case let value as String:
+            return value
+        case let value as Bool:
+            return value ? "true" : "false"
+        case let value as Int:
+            return "\(value)"
+        case let value as Double:
+            return "\(value)"
+        default:
+            return String(describing: value)
         }
     }
 }
@@ -233,6 +210,7 @@ final class AppModel: ObservableObject {
 
     private let calendar = CalendarService()
     private let tank = TankClient()
+    private var refreshTask: Task<Void, Never>?
 
     var activeRoute: ProcessingRoute { tankAvailable ? .tank : .local }
 
@@ -248,6 +226,10 @@ final class AppModel: ObservableObject {
     var pendingDecisionCount: Int {
         approvals.filter { $0.status == "pending" }.count +
         proposals.filter { $0.status == "pending" }.count
+    }
+
+    deinit {
+        refreshTask?.cancel()
     }
 
     func start() async {
@@ -291,7 +273,7 @@ final class AppModel: ObservableObject {
             tankConnectStatus = tankAvailable
                 ? "Connected to Tank"
                 : "Token saved. Tank unavailable on this network."
-            activity.insert("Signed in with Apple and connected to Tank", at: 0)
+            logActivity("Signed in with Apple and connected to Tank")
         } catch {
             tankConnectStatus = "Could not connect: \(error.localizedDescription)"
             lastError = tankAvailable
@@ -307,7 +289,7 @@ final class AppModel: ObservableObject {
             let granted = try await calendar.requestAccess()
             calendarStatus = EKEventStore.authorizationStatus(for: .event)
             if granted {
-                activity.insert("Calendar access approved", at: 0)
+                logActivity("Calendar access approved")
                 await loadToday()
                 reminderStatus = EKEventStore.authorizationStatus(for: .reminder)
             } else {
@@ -339,7 +321,7 @@ final class AppModel: ObservableObject {
         isLoadingCalendar = true
         defer { isLoadingCalendar = false }
         events = calendar.todayEvents()
-        activity.insert("Loaded \(events.count) calendar events locally", at: 0)
+        logActivity("Loaded \(events.count) calendar events locally")
     }
 
     func loadReminders() async {
@@ -351,6 +333,18 @@ final class AppModel: ObservableObject {
 
     func refreshTankStatus() async {
         tankAvailable = await tank.isHealthy()
+    }
+
+    func applyTankPayload(from url: URL) {
+        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return }
+        if let tankURL = components.queryItems?.first(where: { $0.name == "url" })?.value {
+            tankAddress = tankURL
+        } else if let device = components.queryItems?.first(where: { $0.name == "device" })?.value {
+            tankAddress = "http://\(device):8000"
+        }
+        if let token = components.queryItems?.first(where: { $0.name == "token" })?.value {
+            tankToken = token
+        }
     }
 
     func saveTankConnection() async {
@@ -369,10 +363,7 @@ final class AppModel: ObservableObject {
             tankAddress = url.absoluteString
             tankToken = cleanToken
             await refreshTankStatus()
-            activity.insert(
-                tankAvailable ? "Tank connection verified" : "Tank connection saved; server unavailable",
-                at: 0
-            )
+            logActivity(tankAvailable ? "Tank connection verified" : "Tank connection saved; server unavailable")
             if !tankAvailable {
                 lastError = "Connection saved, but Tank did not answer. NOBS will keep working locally."
             }
@@ -400,14 +391,19 @@ final class AppModel: ObservableObject {
                         receipt: result.receipt
                     )
                 )
-                activity.insert("Tank answered a chat request", at: 0)
+                logActivity("Tank answered a chat request")
                 return
             } catch {
-                tankAvailable = false
-                lastError = "Tank went offline. This request stayed on your iPhone."
+                if shouldMarkTankUnavailable(for: error) {
+                    tankAvailable = false
+                    lastError = "Tank went offline. This request stayed on your iPhone."
+                } else {
+                    lastError = "Tank couldn't answer that request. This request stayed on your iPhone."
+                }
             }
         }
 
+        // TODO(feature): Queue outbound messages while Tank is offline and replay them after reconnect.
         entries.append(localResponse(for: clean))
     }
 
@@ -422,13 +418,14 @@ final class AppModel: ObservableObject {
         guard tankAvailable else { return }
         do {
             briefing = try await tank.createBriefing(events: events, reminders: reminders)
-            activity.insert(
-                "Tank refined your morning briefing with synced context",
-                at: 0
-            )
+            logActivity("Tank refined your morning briefing with synced context")
         } catch {
-            tankAvailable = false
-            lastError = "Tank refinement failed, so I kept the on-device briefing."
+            if shouldMarkTankUnavailable(for: error) {
+                tankAvailable = false
+                lastError = "Tank went offline while creating the briefing. Your calendar remains available locally."
+            } else {
+                lastError = "Tank could not create the briefing. Your calendar remains available locally."
+            }
         }
     }
 
@@ -446,10 +443,7 @@ final class AppModel: ObservableObject {
     func decideApproval(_ approval: PendingApproval, decision: String) async {
         do {
             _ = try await tank.decideApproval(id: approval.id, decision: decision)
-            activity.insert(
-                "\(decision == "approve" ? "Approved" : "Denied") \(approval.toolName)",
-                at: 0
-            )
+            logActivity("\(decision == "approve" ? "Approved" : "Denied") \(approval.toolName)")
             await loadApprovals()
         } catch {
             lastError = "Tank could not update that approval. It may already have been decided."
@@ -470,10 +464,7 @@ final class AppModel: ObservableObject {
     func decideProposal(_ proposal: AgentProposal, decision: String) async {
         do {
             _ = try await tank.decideProposal(id: proposal.id, decision: decision)
-            activity.insert(
-                "\(decision == "approve" ? "Approved" : "Dismissed") idea: \(proposal.title)",
-                at: 0
-            )
+            logActivity("\(decision == "approve" ? "Approved" : "Dismissed") idea: \(proposal.title)")
             await loadProposals()
         } catch {
             lastError = "Tank could not update that proposal. It may already have been decided."
@@ -481,10 +472,11 @@ final class AppModel: ObservableObject {
     }
 
     private func startAutoRefresh() {
-        Task { [weak self] in
-            while true {
+        refreshTask?.cancel()
+        refreshTask = Task { [weak self] in
+            while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(30))
-                guard let self else { return }
+                guard let self, !Task.isCancelled else { return }
                 if self.tankAvailable {
                     await self.loadApprovals()
                     await self.loadProposals()
@@ -515,6 +507,28 @@ final class AppModel: ObservableObject {
             route: .local,
             receipt: .localOnly
         )
+    }
+
+    private func logActivity(_ message: String) {
+        activity.insert(message, at: 0)
+        if activity.count > 100 {
+            activity.removeSubrange(100...)
+        }
+    }
+
+    private func shouldMarkTankUnavailable(for error: Error) -> Bool {
+        let nsError = error as NSError
+        guard nsError.domain == NSURLErrorDomain else {
+            return false
+        }
+        let code = URLError.Code(rawValue: nsError.code)
+
+        switch code {
+        case .notConnectedToInternet, .cannotConnectToHost, .networkConnectionLost:
+            return true
+        default:
+            return false
+        }
     }
 
     private var localAgendaSummary: String {
@@ -796,11 +810,7 @@ private actor TankClient {
                 }
             )
         )
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard (response as? HTTPURLResponse)?.statusCode == 200 else {
-            throw URLError(.badServerResponse)
-        }
-        return try JSONDecoder().decode(TankChatResponse.self, from: data)
+        return try await fetch(TankChatResponse.self, for: request)
     }
 
     func createBriefing(events: [DayEvent], reminders: [DayReminder]) async throws -> DailyBriefing {
@@ -832,50 +842,29 @@ private actor TankClient {
                 }
             )
         )
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard (response as? HTTPURLResponse)?.statusCode == 200 else {
-            throw URLError(.badServerResponse)
-        }
-        return try JSONDecoder().decode(DailyBriefing.self, from: data)
+        return try await fetch(DailyBriefing.self, for: request)
     }
 
     func approvals() async throws -> [PendingApproval] {
         let request = try authorizedRequest(path: "agent/approvals", method: "GET")
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard (response as? HTTPURLResponse)?.statusCode == 200 else {
-            throw URLError(.badServerResponse)
-        }
-        return try JSONDecoder().decode([PendingApproval].self, from: data)
+        return try await fetch([PendingApproval].self, for: request)
     }
 
     func decideApproval(id: String, decision: String) async throws -> PendingApproval {
         var request = try authorizedRequest(path: "agent/approvals/\(id)", method: "POST")
         request.httpBody = try JSONEncoder().encode(ApprovalDecisionRequest(decision: decision))
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard (response as? HTTPURLResponse)?.statusCode == 200 else {
-            throw URLError(.badServerResponse)
-        }
-        return try JSONDecoder().decode(PendingApproval.self, from: data)
+        return try await fetch(PendingApproval.self, for: request)
     }
 
     func proposals() async throws -> [AgentProposal] {
         let request = try authorizedRequest(path: "agent/proposals", method: "GET")
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard (response as? HTTPURLResponse)?.statusCode == 200 else {
-            throw URLError(.badServerResponse)
-        }
-        let decoder = JSONDecoder()
-        return try decoder.decode([AgentProposal].self, from: data)
+        return try await fetch([AgentProposal].self, for: request)
     }
 
     func decideProposal(id: String, decision: String) async throws -> AgentProposal {
         var request = try authorizedRequest(path: "agent/proposals/\(id)/decide", method: "POST")
         request.httpBody = try JSONEncoder().encode(ProposalDecisionRequest(decision: decision))
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard (response as? HTTPURLResponse)?.statusCode == 200 else {
-            throw URLError(.badServerResponse)
-        }
-        return try JSONDecoder().decode(AgentProposal.self, from: data)
+        return try await fetch(AgentProposal.self, for: request)
     }
 
     /// Authenticates via Apple Identity and retrieves the Tank device token.
@@ -891,11 +880,7 @@ private actor TankClient {
         request.httpBody = try JSONEncoder().encode(
             AppleAuthRequest(userIdentifier: userIdentifier, identityToken: identityToken)
         )
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard (response as? HTTPURLResponse)?.statusCode == 200 else {
-            throw URLError(.badServerResponse)
-        }
-        return try JSONDecoder().decode(AppleAuthResponse.self, from: data)
+        return try await fetch(AppleAuthResponse.self, for: request)
     }
 
     private func authorizedRequest(path: String, method: String) throws -> URLRequest {
@@ -912,6 +897,17 @@ private actor TankClient {
         return request
     }
 
+    private func fetch<T: Decodable>(
+        _ type: T.Type,
+        for request: URLRequest,
+        decoder: JSONDecoder = JSONDecoder()
+    ) async throws -> T {
+        let (data, response) = try await URLSession.shared.data(for: request)
+        guard (response as? HTTPURLResponse)?.statusCode == 200 else {
+            throw URLError(.badServerResponse)
+        }
+        return try decoder.decode(T.self, from: data)
+    }
 }
 
 private enum TankConfiguration {
@@ -919,6 +915,10 @@ private enum TankConfiguration {
     private static let tokenAccount = "tank-device-token"
     private static let appleUserAccount = "tank-apple-user-id"
     private static let keychainService = "com.acburgess25.NOBS"
+    private static var keychain: Keychain {
+        Keychain(service: keychainService)
+            .accessibility(.afterFirstUnlockThisDeviceOnly)
+    }
 
     static var savedAddress: String {
         if let saved = UserDefaults.standard.string(forKey: addressKey) { return saved }
@@ -932,8 +932,8 @@ private enum TankConfiguration {
     static var savedToken: String { currentToken ?? "" }
 
     static var currentURL: URL? { normalizedURL(from: savedAddress) }
-    static var currentToken: String? { keychainRead(account: tokenAccount) }
-    static var savedAppleUserID: String? { keychainRead(account: appleUserAccount) }
+    static var currentToken: String? { try? keychain.get(tokenAccount) }
+    static var savedAppleUserID: String? { try? keychain.get(appleUserAccount) }
 
     static func normalizedURL(from value: String) -> URL? {
         let clean = value.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -945,42 +945,11 @@ private enum TankConfiguration {
 
     static func save(address: String, token: String) throws {
         UserDefaults.standard.set(address, forKey: addressKey)
-        try keychainWrite(account: tokenAccount, value: token)
+        try keychain.set(token, key: tokenAccount)
     }
 
     static func saveAppleUserID(_ userID: String) {
-        try? keychainWrite(account: appleUserAccount, value: userID)
-    }
-
-    private static func keychainRead(account: String) -> String? {
-        var query = baseQuery(account: account)
-        query[kSecReturnData as String] = true
-        query[kSecMatchLimit as String] = kSecMatchLimitOne
-        var result: CFTypeRef?
-        guard SecItemCopyMatching(query as CFDictionary, &result) == errSecSuccess,
-              let data = result as? Data else { return nil }
-        return String(data: data, encoding: .utf8)
-    }
-
-    private static func keychainWrite(account: String, value: String) throws {
-        SecItemDelete(baseQuery(account: account) as CFDictionary)
-        var query = baseQuery(account: account)
-        query[kSecValueData as String] = Data(value.utf8)
-        query[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
-        let status = SecItemAdd(query as CFDictionary, nil)
-        guard status == errSecSuccess else { throw KeychainError.saveFailed(status) }
-    }
-
-    private static func baseQuery(account: String) -> [String: Any] {
-        [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: keychainService,
-            kSecAttrAccount as String: account,
-        ]
-    }
-
-    private enum KeychainError: Error {
-        case saveFailed(OSStatus)
+        try? keychain.set(userID, key: appleUserAccount)
     }
 }
 
