@@ -96,6 +96,7 @@ jobs:
             -destination "generic/platform=iOS" \
             -archivePath "$RUNNER_TEMP/NOBS.xcarchive" \
             CODE_SIGN_STYLE=Manual \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
             DEVELOPMENT_TEAM=K853LKQLAS \
             PROVISIONING_PROFILE_SPECIFIER="$PROVISIONING_PROFILE_UUID" \
             2>&1 | tee /tmp/xcodebuild.log | xcpretty --color || \
@@ -127,4 +128,3 @@ jobs:
         run: |
           rm -f ~/private_keys/AuthKey_${{ secrets.ASC_API_KEY_ID }}.p8
           security delete-keychain ci.keychain 2>/dev/null || true
-
