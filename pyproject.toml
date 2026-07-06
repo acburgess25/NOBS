@@ -17,7 +17,7 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
   "pytest>=8.3,<9",
-  "qrcode>=7.4,<8",
+  "qrcode>=7.4,<9",
   "ruff>=0.9,<1",
 ]
 
