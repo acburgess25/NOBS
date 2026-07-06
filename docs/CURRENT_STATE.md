@@ -43,8 +43,13 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 - `AskNOBSIntent` App Intent exposes "Ask NOBS Tank" to Siri, Spotlight, and
   Shortcuts on macOS 27.
 - Reads the device token from `~/Documents/NOBS/.env` (path overridable via
-  `nobs.tank.rootPath` user default); not sandboxed yet — needed for
-  `launchctl` control and token reading. Revisit before distribution.
+  `nobs.tank.rootPath` user default).
+- Security posture: Hardened Runtime enabled (`flags=0x10000(runtime)`
+  verified on the signed build), which is the requirement for notarized
+  direct distribution. App Sandbox is deliberately off: the app's purpose is
+  supervising the user's own LaunchAgent (`launchctl`) and reading the local
+  server's `.env`, both of which the sandbox forbids. Revisit only if App
+  Store distribution is ever wanted.
 - macOS Debug build and iOS simulator build both verified with Xcode 27 beta.
 
 ### Tank API and agent

@@ -91,7 +91,7 @@ struct MenuContentView: View {
                 .frame(maxHeight: 160)
                 if let answerRoute {
                     Label(answerRoute, systemImage: answerRoute == "Local"
-                          ? "iphone.gen3" : "shippingbox")
+                          ? "laptopcomputer" : "shippingbox")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .help("Where this response was processed")
