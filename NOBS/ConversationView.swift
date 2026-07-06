@@ -359,6 +359,7 @@ private struct TodayView: View {
                     .padding(18)
                     .background(accent.opacity(0.09), in: RoundedRectangle(cornerRadius: 16))
                 }
+                reminderSection
             }
             .padding(20)
         }
@@ -369,13 +370,24 @@ private struct TodayView: View {
             Label("Morning briefing", systemImage: "sunrise")
                 .font(.headline)
             if let briefing = model.briefing {
-                briefingSection("Personal", text: briefing.personal)
-                briefingSection("Business", text: briefing.business)
-                briefingSection("Shared", text: briefing.shared)
-                Button("Privacy receipt") { onShowReceipt(briefing.privacyReceipt) }
-                    .font(.caption.weight(.semibold))
+                briefingParagraph("Topline", text: briefing.topline)
+                briefingListSection("Priorities", items: briefing.priorities)
+                briefingListSection("Conflicts or risks", items: briefing.conflictsOrRisks)
+                briefingListSection("Recommended plan", items: briefing.recommendedPlan)
+                if let question = briefing.oneUsefulQuestion, !question.isEmpty {
+                    briefingParagraph("One useful question", text: question)
+                }
+                briefingListSection("Suggested next actions", items: briefing.suggestedNextActions)
+                HStack(spacing: 10) {
+                    Label(briefing.route.rawValue, systemImage: briefing.route == .tank ? "server.rack" : "iphone")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(accent)
+                    Spacer()
+                    Button("Privacy receipt") { onShowReceipt(briefing.privacyReceipt) }
+                        .font(.caption.weight(.semibold))
+                }
             } else {
-                Text("Send only the titles, times, and calendar context shown below to your Tank. Notes, attendees, and locations stay off the request.")
+                Text("Build on-device first from visible events and reminders, then refine on Tank when connected. No silent changes are made.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                 Button {
@@ -384,22 +396,64 @@ private struct TodayView: View {
                     if model.isGeneratingBriefing {
                         ProgressView()
                     } else {
-                        Text("Create from \(model.events.count) visible event\(model.events.count == 1 ? "" : "s")")
+                        Text("Create from \(model.events.count) event\(model.events.count == 1 ? "" : "s") and \(model.reminders.count) reminder\(model.reminders.count == 1 ? "" : "s")")
                     }
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(accent)
-                .disabled(model.isGeneratingBriefing || !model.tankAvailable)
+                .disabled(model.isGeneratingBriefing)
             }
         }
         .padding(18)
         .background(accent.opacity(0.09), in: RoundedRectangle(cornerRadius: 16))
     }
 
-    private func briefingSection(_ title: String, text: String) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
+    private var reminderSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label("Reminders", systemImage: "checklist")
+                .font(.headline)
+            if model.isLoadingReminders {
+                ProgressView("Loading reminder context…")
+            } else if model.hasReminderReadAccess {
+                if model.reminders.isEmpty {
+                    Text("No due reminders for today.")
+                        .font(.subheadline)
+                        .foregroundStyle(.secondary)
+                } else {
+                    ForEach(model.reminders) { reminder in reminderRow(reminder) }
+                    Button("Refresh reminders") { Task { await model.loadReminders() } }
+                        .buttonStyle(.bordered)
+                        .tint(accent)
+                }
+            } else {
+                Text("Add reminders for better prep and conflict suggestions.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                Button("Allow Reminders access") { Task { await model.requestReminderAccess() } }
+                    .buttonStyle(.bordered)
+                    .tint(accent)
+            }
+        }
+        .padding(18)
+        .background(accent.opacity(0.06), in: RoundedRectangle(cornerRadius: 16))
+    }
+
+    private func briefingParagraph(_ title: String, text: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
             Text(title).font(.caption.weight(.bold)).foregroundStyle(accent)
             Text(text).font(.subheadline)
+        }
+    }
+
+    private func briefingListSection(_ title: String, items: [String]) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title).font(.caption.weight(.bold)).foregroundStyle(accent)
+            ForEach(Array(items.prefix(6).enumerated()), id: \.offset) { _, item in
+                HStack(alignment: .top, spacing: 6) {
+                    Text("•").foregroundStyle(accent)
+                    Text(item).font(.subheadline)
+                }
+            }
         }
     }
 
@@ -422,6 +476,29 @@ private struct TodayView: View {
             Spacer()
         }
         .padding(.vertical, 8)
+        .accessibilityElement(children: .combine)
+    }
+
+    private func reminderRow(_ reminder: DayReminder) -> some View {
+        HStack(alignment: .top, spacing: 14) {
+            if let due = reminder.due {
+                Text(due, format: .dateTime.hour().minute())
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(accent)
+                    .frame(width: 76, alignment: .leading)
+            } else {
+                Text("Anytime")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.secondary)
+                    .frame(width: 76, alignment: .leading)
+            }
+            VStack(alignment: .leading, spacing: 3) {
+                Text(reminder.title).font(.headline)
+                Text(reminder.calendarName).font(.caption).foregroundStyle(.secondary)
+            }
+            Spacer()
+        }
+        .padding(.vertical, 6)
         .accessibilityElement(children: .combine)
     }
 }

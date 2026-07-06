@@ -57,21 +57,45 @@ struct DayEvent: Identifiable, Hashable {
     let end: Date
     let location: String?
     let calendarName: String
+    let context: BriefingContextBucket
 
     var overlapsNext: Bool = false
 }
 
+enum BriefingContextBucket: String, Codable, CaseIterable {
+    case personal
+    case business
+    case shared
+
+    var title: String { rawValue.capitalized }
+}
+
+struct DayReminder: Identifiable, Hashable {
+    let id: String
+    let title: String
+    let due: Date?
+    let calendarName: String
+    let context: BriefingContextBucket
+}
+
 struct DailyBriefing: Codable {
     let date: String
-    let personal: String
-    let business: String
-    let shared: String
+    let topline: String
+    let priorities: [String]
+    let conflictsOrRisks: [String]
+    let recommendedPlan: [String]
+    let oneUsefulQuestion: String?
+    let suggestedNextActions: [String]
     let generatedAt: String
     let route: ProcessingRoute
     let privacyReceipt: PrivacyReceipt
 
     enum CodingKeys: String, CodingKey {
-        case date, personal, business, shared, route
+        case date, topline, priorities, route
+        case conflictsOrRisks = "conflicts_or_risks"
+        case recommendedPlan = "recommended_plan"
+        case oneUsefulQuestion = "one_useful_question"
+        case suggestedNextActions = "suggested_next_actions"
         case generatedAt = "generated_at"
         case privacyReceipt = "privacy_receipt"
     }
@@ -184,8 +208,11 @@ final class AppModel: ObservableObject {
     @Published var section: AppSection = .chat
     @Published var entries: [ConversationEntry] = []
     @Published var events: [DayEvent] = []
+    @Published var reminders: [DayReminder] = []
     @Published var calendarStatus = EKEventStore.authorizationStatus(for: .event)
+    @Published var reminderStatus = EKEventStore.authorizationStatus(for: .reminder)
     @Published var isLoadingCalendar = false
+    @Published var isLoadingReminders = false
     @Published var isSending = false
     @Published var tankAvailable = false
     @Published var lastError: String?
@@ -209,6 +236,14 @@ final class AppModel: ObservableObject {
 
     var activeRoute: ProcessingRoute { tankAvailable ? .tank : .local }
 
+    var hasCalendarAccess: Bool {
+        calendarStatus == .fullAccess || calendarStatus == .authorized
+    }
+
+    var hasReminderReadAccess: Bool {
+        reminderStatus == .fullAccess || reminderStatus == .authorized
+    }
+
     /// Total count of items needing a decision (shown as badge).
     var pendingDecisionCount: Int {
         approvals.filter { $0.status == "pending" }.count +
@@ -219,9 +254,16 @@ final class AppModel: ObservableObject {
         async let health: Void = refreshTankStatus()
         async let approvals: Void = loadApprovals()
         async let proposals: Void = loadProposals()
-        if calendarStatus == .fullAccess || calendarStatus == .authorized {
-            async let events: Void = loadToday()
-            _ = await (health, approvals, proposals, events)
+        if hasCalendarAccess && hasReminderReadAccess {
+            async let eventsTask: Void = loadToday()
+            async let remindersTask: Void = loadReminders()
+            _ = await (health, approvals, proposals, eventsTask, remindersTask)
+        } else if hasCalendarAccess {
+            async let eventsTask: Void = loadToday()
+            _ = await (health, approvals, proposals, eventsTask)
+        } else if hasReminderReadAccess {
+            async let remindersTask: Void = loadReminders()
+            _ = await (health, approvals, proposals, remindersTask)
         } else {
             _ = await (health, approvals, proposals)
         }
@@ -267,6 +309,7 @@ final class AppModel: ObservableObject {
             if granted {
                 activity.insert("Calendar access approved", at: 0)
                 await loadToday()
+                reminderStatus = EKEventStore.authorizationStatus(for: .reminder)
             } else {
                 lastError = "Calendar access was not granted. NOBS still works as private chat."
             }
@@ -275,11 +318,35 @@ final class AppModel: ObservableObject {
         }
     }
 
+    func requestReminderAccess() async {
+        isLoadingReminders = true
+        defer { isLoadingReminders = false }
+        do {
+            let granted = try await calendar.requestReminderAccess()
+            reminderStatus = EKEventStore.authorizationStatus(for: .reminder)
+            if granted {
+                activity.insert("Reminders access approved", at: 0)
+                await loadReminders()
+            } else {
+                lastError = "Reminders access was not granted. Briefings will use calendar events only."
+            }
+        } catch {
+            lastError = "Reminders access could not be requested: \(error.localizedDescription)"
+        }
+    }
+
     func loadToday() async {
         isLoadingCalendar = true
         defer { isLoadingCalendar = false }
         events = calendar.todayEvents()
         activity.insert("Loaded \(events.count) calendar events locally", at: 0)
+    }
+
+    func loadReminders() async {
+        isLoadingReminders = true
+        defer { isLoadingReminders = false }
+        reminders = await calendar.todayReminders()
+        activity.insert("Loaded \(reminders.count) reminder items locally", at: 0)
     }
 
     func refreshTankStatus() async {
@@ -345,21 +412,23 @@ final class AppModel: ObservableObject {
     }
 
     func generateBriefing() async {
-        guard tankAvailable, !isGeneratingBriefing else {
-            lastError = "Tank is offline, so your calendar stayed on this iPhone. Reconnect Tank to create the briefing."
-            return
-        }
+        guard !isGeneratingBriefing else { return }
         isGeneratingBriefing = true
         defer { isGeneratingBriefing = false }
+        let local = generateOnDeviceBriefing()
+        briefing = local
+        activity.insert("Created an on-device morning briefing", at: 0)
+
+        guard tankAvailable else { return }
         do {
-            briefing = try await tank.createBriefing(events: events)
+            briefing = try await tank.createBriefing(events: events, reminders: reminders)
             activity.insert(
-                "Tank created a briefing from \(events.count) visible calendar events",
+                "Tank refined your morning briefing with synced context",
                 at: 0
             )
         } catch {
             tankAvailable = false
-            lastError = "Tank could not create the briefing. Your calendar remains available locally."
+            lastError = "Tank refinement failed, so I kept the on-device briefing."
         }
     }
 
@@ -457,6 +526,171 @@ final class AppModel: ObservableObject {
         let conflictText = conflicts == 0 ? "I found no overlaps." : "I found \(conflicts) schedule conflict\(conflicts == 1 ? "" : "s")."
         return "You have \(events.count) event\(events.count == 1 ? "" : "s") today. First is \(first.title) at \(formatter.string(from: first.start)). \(conflictText)"
     }
+
+    private func generateOnDeviceBriefing() -> DailyBriefing {
+        let risks = detectBriefingRisks()
+        let overload = risks.contains { $0.localizedCaseInsensitiveContains("overload") }
+            || risks.contains { $0.localizedCaseInsensitiveContains("heavy") }
+            || events.count >= 7
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        let contextCounts = Dictionary(grouping: events, by: \.context).mapValues(\.count)
+
+        let topline: String = {
+            if events.isEmpty && reminders.isEmpty {
+                return "This is a lighter day with room for focused work and recovery."
+            }
+            if overload {
+                return "This is a high-load day; early pruning and sequencing will keep it realistic."
+            }
+            let personal = contextCounts[.personal, default: 0]
+            let business = contextCounts[.business, default: 0]
+            let shared = contextCounts[.shared, default: 0]
+            return "This is a mixed day (\(business) business, \(personal) personal, \(shared) shared), and it should stay manageable with a clear order."
+        }()
+
+        let priorities = buildPriorities(formatter: formatter)
+        let recommendedPlan = buildRecommendedPlan(formatter: formatter)
+        let question = buildClarifyingQuestion(formatter: formatter)
+        let actions = buildSuggestedActions(formatter: formatter, risks: risks)
+
+        let dateFormatter = DateFormatter()
+        dateFormatter.locale = Locale(identifier: "en_US_POSIX")
+        dateFormatter.dateFormat = "yyyy-MM-dd"
+
+        return DailyBriefing(
+            date: dateFormatter.string(from: .now),
+            topline: topline,
+            priorities: priorities,
+            conflictsOrRisks: risks.isEmpty ? ["No major schedule collisions detected."] : risks,
+            recommendedPlan: recommendedPlan,
+            oneUsefulQuestion: question,
+            suggestedNextActions: actions,
+            generatedAt: ISO8601DateFormatter().string(from: .now),
+            route: .local,
+            privacyReceipt: PrivacyReceipt(
+                used: [
+                    "\(events.count) visible calendar event\(events.count == 1 ? "" : "s")",
+                    "\(reminders.count) local reminder\(reminders.count == 1 ? "" : "s")",
+                ],
+                processed: "Local on this iPhone",
+                shared: [],
+                changed: []
+            )
+        )
+    }
+
+    private func buildPriorities(formatter: DateFormatter) -> [String] {
+        let importantWords = ["deadline", "interview", "presentation", "review", "flight", "doctor", "launch"]
+        let rankedEvents = events.sorted { lhs, rhs in
+            let lhsImportant = importantWords.contains { lhs.title.lowercased().contains($0) }
+            let rhsImportant = importantWords.contains { rhs.title.lowercased().contains($0) }
+            if lhsImportant != rhsImportant { return lhsImportant }
+            return lhs.start < rhs.start
+        }
+        var priorities = rankedEvents.prefix(4).map {
+            "\(contextLabel($0.context)) · \($0.title) (\(formatter.string(from: $0.start)))"
+        }
+        if priorities.count < 3 {
+            priorities.append(contentsOf: reminders.prefix(5 - priorities.count).map {
+                "\(contextLabel($0.context)) · \($0.title)"
+            })
+        }
+        if priorities.isEmpty {
+            priorities.append("Protect one focused block for your highest-impact work.")
+        }
+        return Array(priorities.prefix(5))
+    }
+
+    private func detectBriefingRisks() -> [String] {
+        guard !events.isEmpty else {
+            return reminders.isEmpty ? [] : ["Your day has reminder commitments without fixed calendar blocks."]
+        }
+        var risks: [String] = []
+        if events.count >= 7 {
+            risks.append("Your calendar has \(events.count) events, which signals potential overload.")
+        }
+        var tightTransitions = 0
+        var overlaps = 0
+        var importantClusters = 0
+        let importantWords = ["deadline", "interview", "presentation", "review", "flight", "doctor", "launch"]
+        for (current, next) in zip(events, events.dropFirst()) {
+            if current.end > next.start {
+                overlaps += 1
+                continue
+            }
+            let gap = next.start.timeIntervalSince(current.end)
+            if gap <= 600 {
+                tightTransitions += 1
+            }
+            let currentImportant = importantWords.contains { current.title.lowercased().contains($0) }
+            let nextImportant = importantWords.contains { next.title.lowercased().contains($0) }
+            if currentImportant && nextImportant && gap <= 3600 {
+                importantClusters += 1
+            }
+        }
+        if overlaps > 0 {
+            risks.append("\(overlaps) overlap\(overlaps == 1 ? "" : "s") need a clear attendance decision.")
+        }
+        if tightTransitions >= 2 {
+            risks.append("\(tightTransitions) tight transitions under 10 minutes increase prep or travel risk.")
+        }
+        if importantClusters > 0 {
+            risks.append("Important commitments are packed too closely for quality prep.")
+        }
+        let morningEvents = events.filter {
+            Calendar.current.component(.hour, from: $0.start) < 12
+        }
+        if morningEvents.count >= 4 {
+            risks.append("Morning load is heavy with \(morningEvents.count) events before noon.")
+        }
+        return Array(risks.prefix(6))
+    }
+
+    private func buildRecommendedPlan(formatter: DateFormatter) -> [String] {
+        var plan: [String] = []
+        if let first = events.first {
+            plan.append("Prepare for \(first.title) before \(formatter.string(from: first.start)).")
+        }
+        for event in events.prefix(3) {
+            plan.append("Anchor \(contextLabel(event.context).lowercased()) focus around \(event.title) at \(formatter.string(from: event.start)).")
+        }
+        if !reminders.isEmpty {
+            plan.append("Batch reminder follow-ups into one admin block between meetings.")
+        }
+        plan.append("Re-check afternoon priorities after lunch and defer low-impact work.")
+        return Array(plan.prefix(6))
+    }
+
+    private func buildClarifyingQuestion(formatter: DateFormatter) -> String? {
+        for (current, next) in zip(events, events.dropFirst()) where current.end > next.start {
+            return "You have overlap between \(current.title) and \(next.title). Which one is must-attend?"
+        }
+        let hasAmbiguousReminders = reminders.count >= 3 && events.count >= 3
+        if hasAmbiguousReminders {
+            return "Which reminder is genuinely critical today so the rest can be deferred?"
+        }
+        return nil
+    }
+
+    private func buildSuggestedActions(formatter: DateFormatter, risks: [String]) -> [String] {
+        var actions: [String] = []
+        if let first = events.first {
+            actions.append("Review prep for \(first.title) before \(formatter.string(from: first.start)).")
+        }
+        if !risks.isEmpty {
+            actions.append("Draft a short conflict message for any meeting that can move.")
+        }
+        if let prepReminder = reminders.first {
+            actions.append("Create a prep reminder block for “\(prepReminder.title)”.")
+        }
+        actions.append("Re-check afternoon priorities after your second major commitment.")
+        return Array(actions.prefix(4))
+    }
+
+    private func contextLabel(_ context: BriefingContextBucket) -> String {
+        context.title
+    }
 }
 
 @MainActor
@@ -465,6 +699,10 @@ private final class CalendarService {
 
     func requestAccess() async throws -> Bool {
         try await store.requestFullAccessToEvents()
+    }
+
+    func requestReminderAccess() async throws -> Bool {
+        try await store.requestFullAccessToReminders()
     }
 
     func todayEvents() -> [DayEvent] {
@@ -479,13 +717,48 @@ private final class CalendarService {
                 start: $0.startDate,
                 end: $0.endDate,
                 location: $0.location,
-                calendarName: $0.calendar.title
+                calendarName: $0.calendar.title,
+                context: Self.context(for: $0.calendar.title)
             )
         }
         for index in result.indices.dropLast() {
             result[index].overlapsNext = result[index].end > result[index + 1].start
         }
         return result
+    }
+
+    func todayReminders() async -> [DayReminder] {
+        let start = Calendar.current.startOfDay(for: Date())
+        let end = Calendar.current.date(byAdding: .day, value: 1, to: start) ?? Date()
+        let predicate = store.predicateForIncompleteReminders(
+            withDueDateStarting: start,
+            ending: end,
+            calendars: nil
+        )
+        return await withCheckedContinuation { continuation in
+            store.fetchReminders(matching: predicate) { reminders in
+                let items = (reminders ?? []).map {
+                    DayReminder(
+                        id: $0.calendarItemIdentifier,
+                        title: $0.title.isEmpty ? "Untitled reminder" : $0.title,
+                        due: $0.dueDateComponents?.date,
+                        calendarName: $0.calendar.title,
+                        context: Self.context(for: $0.calendar.title)
+                    )
+                }
+                .sorted { lhs, rhs in
+                    (lhs.due ?? .distantFuture) < (rhs.due ?? .distantFuture)
+                }
+                continuation.resume(returning: items)
+            }
+        }
+    }
+
+    private static func context(for calendarName: String) -> BriefingContextBucket {
+        let name = calendarName.lowercased()
+        if name.contains("work") || name.contains("business") { return .business }
+        if name.contains("family") || name.contains("shared") { return .shared }
+        return .personal
     }
 }
 
@@ -530,7 +803,7 @@ private actor TankClient {
         return try JSONDecoder().decode(TankChatResponse.self, from: data)
     }
 
-    func createBriefing(events: [DayEvent]) async throws -> DailyBriefing {
+    func createBriefing(events: [DayEvent], reminders: [DayReminder]) async throws -> DailyBriefing {
         var request = try authorizedRequest(path: "briefing", method: "POST")
         let time = DateFormatter()
         time.locale = Locale(identifier: "en_US_POSIX")
@@ -545,10 +818,18 @@ private actor TankClient {
                     TankBriefingCalendarItem(
                         title: $0.title,
                         start: time.string(from: $0.start),
-                        context: Self.context(for: $0.calendarName)
+                        end: time.string(from: $0.end),
+                        location: $0.location,
+                        context: $0.context.rawValue
                     )
                 },
-                reminders: []
+                reminders: reminders.map {
+                    TankBriefingReminderItem(
+                        title: $0.title,
+                        due: $0.due.map { time.string(from: $0) },
+                        context: $0.context.rawValue
+                    )
+                }
             )
         )
         let (data, response) = try await URLSession.shared.data(for: request)
@@ -631,12 +912,6 @@ private actor TankClient {
         return request
     }
 
-    private static func context(for calendarName: String) -> String {
-        let name = calendarName.lowercased()
-        if name.contains("work") || name.contains("business") { return "business" }
-        if name.contains("family") || name.contains("shared") { return "shared" }
-        return "personal"
-    }
 }
 
 private enum TankConfiguration {
@@ -741,11 +1016,14 @@ private struct TankBriefingRequest: Codable {
 private struct TankBriefingCalendarItem: Codable {
     let title: String
     let start: String
+    let end: String?
+    let location: String?
     let context: String
 }
 
 private struct TankBriefingReminderItem: Codable {
     let title: String
+    let due: String?
     let context: String
 }
 

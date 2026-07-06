@@ -25,9 +25,11 @@ _BRIEFING_SYSTEM_PROMPT = (
     "You are NOBS, a warm, concise, privacy-first personal assistant. "
     "Create a realistic daily briefing using ONLY the supplied calendar and "
     "reminder items. Never invent events, tasks, or context. Return only a JSON "
-    "object with string fields personal, business, and shared. Keep all three "
-    "sections clearly separate; use a brief 'Nothing scheduled' sentence when "
-    "a section has no items."
+    "object with fields: topline (string), priorities (array of 3-5 strings), "
+    "conflicts_or_risks (array of strings), recommended_plan (array of strings), "
+    "one_useful_question (string or null), and suggested_next_actions (array of strings). "
+    "Ask one useful question only when ambiguity is real; otherwise set it to null. "
+    "Keep context boundaries clear by labeling Personal, Business, or Shared where useful."
 )
 
 _IDEA_OBJECTIVE = (
@@ -139,9 +141,15 @@ async def trigger_briefing_generation(
         sections = json.loads(response.json()["message"]["content"])
         result = {
             "date": today.isoformat(),
-            "personal": sections.get("personal", "Nothing scheduled."),
-            "business": sections.get("business", "Nothing scheduled."),
-            "shared": sections.get("shared", "Nothing scheduled."),
+            "topline": sections.get(
+                "topline",
+                "This day needs active prioritization to stay realistic.",
+            ),
+            "priorities": sections.get("priorities", []),
+            "conflicts_or_risks": sections.get("conflicts_or_risks", []),
+            "recommended_plan": sections.get("recommended_plan", []),
+            "one_useful_question": sections.get("one_useful_question"),
+            "suggested_next_actions": sections.get("suggested_next_actions", []),
             "generated_at": datetime.now(UTC).isoformat(),
             "route": "Tank",
             "privacy_receipt": {
