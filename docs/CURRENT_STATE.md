@@ -58,6 +58,7 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 - systemd user services (linger on): `nobs-api` (:8000), `nobsdash` (:4173), `cloudflared-nobsdash` (public tunnel), `open-webui` (:8080 local AI chat, `~/.openwebui` uv venv).
 - Ollama models: `qwen3:8b` (app chat), `qwen2.5-coder:14b` (coding).
 - No passwordless sudo; root changes need the console.
+- Repository-standard local AI stack setup scripts are available for Tank and dev hosts (`scripts/setup-local-ai.sh`, `scripts/setup-local-ai.ps1`) plus a tracked Tank `open-webui.service` template under `deploy/tank/`.
 
 ### Local-model coding pipeline
 

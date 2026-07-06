@@ -88,7 +88,7 @@ jobs:
       # ── 6. Archive (iOS device, no simulator) ─────────────────────────────
       - name: Archive
         run: |
-          set -o pipefail
+          set -euo pipefail
           xcodebuild archive \
             -project NOBS.xcodeproj \
             -scheme NOBS \
@@ -98,19 +98,17 @@ jobs:
             CODE_SIGN_STYLE=Manual \
             DEVELOPMENT_TEAM=K853LKQLAS \
             PROVISIONING_PROFILE_SPECIFIER="$PROVISIONING_PROFILE_UUID" \
-            2>&1 | tee /tmp/xcodebuild.log | xcpretty --color || \
-          { echo "--- xcodebuild output ---"; cat /tmp/xcodebuild.log; exit 1; }
+            2>&1 | tee /tmp/xcodebuild.log
 
       # ── 7. Export .ipa ─────────────────────────────────────────────────────
       - name: Export IPA
         run: |
-          set -o pipefail
+          set -euo pipefail
           xcodebuild -exportArchive \
             -archivePath "$RUNNER_TEMP/NOBS.xcarchive" \
             -exportOptionsPlist ExportOptions.plist \
             -exportPath "$RUNNER_TEMP/export" \
-            2>&1 | tee /tmp/export.log | xcpretty --color || \
-          { echo "--- export output ---"; cat /tmp/export.log; exit 1; }
+            2>&1 | tee /tmp/export.log
 
       # ── 8. Upload to TestFlight ────────────────────────────────────────────
       - name: Upload to TestFlight
@@ -127,4 +125,3 @@ jobs:
         run: |
           rm -f ~/private_keys/AuthKey_${{ secrets.ASC_API_KEY_ID }}.p8
           security delete-keychain ci.keychain 2>/dev/null || true
-

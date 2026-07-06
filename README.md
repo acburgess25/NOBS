@@ -66,6 +66,29 @@ python3 scripts/dev.py lint
 python3 scripts/dev.py run
 ```
 
+## NOBS local AI stack (low-cost mode)
+
+Use the NOBS setup scripts to run AI workloads on your own hardware (Tank or local dev machine):
+
+### macOS / Linux / WSL2
+
+```bash
+./scripts/setup-local-ai.sh
+```
+
+### Windows PowerShell
+
+```powershell
+.\scripts\setup-local-ai.ps1
+```
+
+This prepares:
+- local Ollama models (`qwen3:8b`, `qwen2.5-coder:14b`);
+- Aider for coding-agent workflows;
+- Open WebUI in a dedicated user venv.
+
+For Tank systemd deployment, use `deploy/tank/open-webui.service`.
+
 ## Run the Apple app
 
 Open `NOBS.xcodeproj` in Xcode 27 or newer and run the `NOBS` scheme on an iOS 27 simulator or device. In the app's Privacy view, enter the Tank URL and the same device token configured on the server.
@@ -87,3 +110,9 @@ The device must be able to reach Tank on the private network. Local HTTP is perm
 - [Implementation backlog](docs/ISSUE_BACKLOG.md)
 
 When documents disagree, `docs/PRODUCT_DECISIONS.md` is the product source of truth. Planned capabilities must not be presented as shipped.
+
+## Collaboration and IP baseline
+
+- This repository is licensed under **AGPL-3.0-or-later** (`LICENSE`).
+- Contributions are accepted under `CONTRIBUTING.md` rules, including DCO sign-off (`git commit -s`).
+- Keep crown-jewel/private implementation details in private repositories until you choose to publish them.

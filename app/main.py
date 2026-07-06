@@ -206,11 +206,20 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             getattr(app.state, "ollama_transport", None),
         )
 
+    def resolve_device_token(store: AgentStore) -> str | None:
+        configured_token = settings.device_token
+        if configured_token is not None:
+            configured_value = configured_token.get_secret_value()
+            if configured_value:
+                return configured_value
+        return store.get_kv("device_token")
+
     async def require_device_token(
         authorization: str | None = Header(default=None),
     ) -> None:
-        configured_token = settings.device_token
-        if configured_token is None or not configured_token.get_secret_value():
+        store: AgentStore = app.state.agent_store
+        resolved_token = resolve_device_token(store)
+        if not resolved_token:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail="Tank device authentication is not configured",
@@ -219,7 +228,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         scheme, _, supplied_token = (authorization or "").partition(" ")
         if scheme.lower() != "bearer" or not secrets.compare_digest(
             supplied_token,
-            configured_token.get_secret_value(),
+            resolved_token,
         ):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
@@ -243,7 +252,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     async def auth_apple(
         request: AppleAuthRequest,
-        settings: Settings = Depends(get_settings),
     ) -> AppleAuthResponse:
         """
         Bootstrap endpoint — no device token required.
@@ -264,13 +272,11 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 detail="This Tank is already paired to a different Apple ID.",
             )
 
-        if settings.device_token is None:
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Tank device token is not configured.",
-            )
-
-        return AppleAuthResponse(device_token=settings.device_token.get_secret_value())
+        token = resolve_device_token(store)
+        if not token:
+            token = secrets.token_urlsafe(32)
+            store.set_kv("device_token", token)
+        return AppleAuthResponse(device_token=token)
 
     @app.post(
         "/chat",
