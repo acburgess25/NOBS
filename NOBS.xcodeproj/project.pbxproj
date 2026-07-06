@@ -13,6 +13,9 @@
 		A10000000000000000000004 /* ScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000005 /* ScannerView.swift */; };
 		A10000000000000000000005 /* ApprovalsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000006 /* ApprovalsView.swift */; };
 		A10000000000000000000006 /* SignInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000007 /* SignInView.swift */; };
+		A10000000000000000000007 /* Color+NOBS.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000008 /* Color+NOBS.swift */; };
+		C10000000000000000000001 /* KeychainAccess in Frameworks */ = {isa = PBXBuildFile; productRef = C30000000000000000000001 /* KeychainAccess */; };
+		C10000000000000000000002 /* AnyCodable in Frameworks */ = {isa = PBXBuildFile; productRef = C30000000000000000000002 /* AnyCodable */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -23,6 +26,7 @@
 		A20000000000000000000005 /* ScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScannerView.swift; sourceTree = "<group>"; };
 		A20000000000000000000006 /* ApprovalsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApprovalsView.swift; sourceTree = "<group>"; };
 		A20000000000000000000007 /* SignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInView.swift; sourceTree = "<group>"; };
+		A20000000000000000000008 /* Color+NOBS.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+NOBS.swift"; sourceTree = "<group>"; };
 		A20000000000000000000009 /* NOBS.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = NOBS.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -31,6 +35,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C10000000000000000000002 /* AnyCodable in Frameworks */,
+				C10000000000000000000001 /* KeychainAccess in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -54,6 +60,7 @@
 				A20000000000000000000005 /* ScannerView.swift */,
 				A20000000000000000000006 /* ApprovalsView.swift */,
 				A20000000000000000000007 /* SignInView.swift */,
+				A20000000000000000000008 /* Color+NOBS.swift */,
 				A20000000000000000000009 /* NOBS.entitlements */,
 			);
 			path = NOBS;
@@ -83,6 +90,10 @@
 			dependencies = (
 			);
 			name = NOBS;
+			packageProductDependencies = (
+				C30000000000000000000002 /* AnyCodable */,
+				C30000000000000000000001 /* KeychainAccess */,
+			);
 			productName = NOBS;
 			productReference = A20000000000000000000003 /* NOBS.app */;
 			productType = "com.apple.product-type.application";
@@ -111,6 +122,10 @@
 				Base,
 			);
 			mainGroup = A40000000000000000000001;
+			packageReferences = (
+				C20000000000000000000002 /* XCRemoteSwiftPackageReference "AnyCodable" */,
+				C20000000000000000000001 /* XCRemoteSwiftPackageReference "KeychainAccess" */,
+			);
 			productRefGroup = A40000000000000000000003 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -141,10 +156,43 @@
 				A10000000000000000000004 /* ScannerView.swift in Sources */,
 				A10000000000000000000005 /* ApprovalsView.swift in Sources */,
 				A10000000000000000000006 /* SignInView.swift in Sources */,
+				A10000000000000000000007 /* Color+NOBS.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		C20000000000000000000001 /* XCRemoteSwiftPackageReference "KeychainAccess" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/kishikawakatsumi/KeychainAccess";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.2.2;
+			};
+		};
+		C20000000000000000000002 /* XCRemoteSwiftPackageReference "AnyCodable" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Flight-School/AnyCodable";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.6.7;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		C30000000000000000000001 /* KeychainAccess */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C20000000000000000000001 /* XCRemoteSwiftPackageReference "KeychainAccess" */;
+			productName = KeychainAccess;
+		};
+		C30000000000000000000002 /* AnyCodable */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C20000000000000000000002 /* XCRemoteSwiftPackageReference "AnyCodable" */;
+			productName = AnyCodable;
+		};
+/* End XCSwiftPackageProductDependency section */
 
 /* Begin XCBuildConfiguration section */
 		B10000000000000000000001 /* Debug */ = {

@@ -5,7 +5,7 @@ import SwiftUI
 
 struct SignInView: View {
     let mode: Mode
-    @ObservedObject var model: AppModel
+    @EnvironmentObject private var model: AppModel
     let onComplete: () -> Void
 
     enum Mode {
@@ -13,7 +13,7 @@ struct SignInView: View {
         case settings    // Compact card in Privacy tab
     }
 
-    private let accent = Color(red: 0.31, green: 0.43, blue: 0.20)
+    private let accent = Color.nobsAccent
 
     var body: some View {
         switch mode {
@@ -51,7 +51,7 @@ struct SignInView: View {
                     ProgressView("Connecting to Tank…")
                         .frame(maxWidth: .infinity, alignment: .center)
                         .padding(.vertical, 14)
-                } else if model.tankAvailable && model.tankToken != "" {
+                } else if model.tankAvailable && !model.tankToken.isEmpty {
                     // Already connected — show success and skip button
                     Label("Connected to Tank", systemImage: "checkmark.circle.fill")
                         .foregroundStyle(accent)

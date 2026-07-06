@@ -1,6 +1,6 @@
 # NOBS Current State
 
-**Last updated:** July 3, 2026 (Developer Mode added)
+**Last updated:** July 6, 2026 (iOS + Tank cleanup pass)
 **Purpose:** Tool-neutral handoff for any contributor entering without prior chat history.
 
 This records implementation state, not product direction. [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md) remains the approved product source of truth. Verify the branch, tests, and live services before treating deployment facts as current.
@@ -11,9 +11,12 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 
 - SwiftUI conversation-first prototype with onboarding and focused Chat, Today, Memory, Activity, Home, and Privacy surfaces.
 - Local EventKit calendar permission flow and same-day event display.
-- Configurable Tank address and Keychain-backed device token.
+- Configurable Tank address, KeychainAccess-backed device token storage, and
+  shared app-root model ownership so onboarding, sign-in, and privacy flows
+  stay in sync.
 - Authenticated Tank chat with visible Local/Tank routing and privacy receipts.
-- Honest local fallback when Tank is unavailable.
+- Honest local fallback when Tank is unavailable, without permanently marking
+  Tank offline on non-connectivity API errors.
 - Today now generates Morning Briefing v2 with structured topline, priorities,
   explicit conflict/overload risks, recommended sequencing, one clarifying
   question when ambiguity exists, and reversible suggested next actions.
@@ -73,7 +76,7 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 ## Not working yet
 
 - No approved long-term memory workflow.
-- No Sign in with Apple, household identity, subscription, or NOBScloud implementation.
+- No household identity, subscription, or NOBScloud implementation.
 - No arbitrary MCP server is trusted or installed by the NOBS agent.
 - mDNS (`tank.local`) does not resolve from the LAN; clients use 192.168.0.59 directly.
 - The briefing API is deployed and live-verified on Tank. The iOS UI is simulator-built;
