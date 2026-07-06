@@ -1,6 +1,6 @@
 # NOBS Current State
 
-**Last updated:** July 6, 2026 (iOS + Tank cleanup pass)
+**Last updated:** July 6, 2026 (macOS mobile Tank menu-bar app)
 **Purpose:** Tool-neutral handoff for any contributor entering without prior chat history.
 
 This records implementation state, not product direction. [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md) remains the approved product source of truth. Verify the branch, tests, and live services before treating deployment facts as current.
@@ -28,6 +28,24 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 - Activity lists pending Tank changes and provides explicit Approve and Deny actions.
 - Activity shows Tank schedules and supports pause/revoke actions, plus sync action receipts with Local/Tank processing labels.
 - iOS 27 simulator build verified with Xcode 27 beta.
+
+### macOS mobile Tank (NOBSTank menu-bar app)
+
+- New `NOBSTank` target in `NOBS.xcodeproj` (`NOBSTankMac/`): a macOS 27
+  menu-bar app that turns the Mac into a portable Tank.
+- Shows Tank API, Ollama, on-device model, and network status; restarts the
+  `com.nobs.tank` LaunchAgent on demand.
+- Quick-ask box routes Tank-first with honest fallback to the on-device
+  Foundation Models `SystemLanguageModel` (macOS 27 beta framework); every
+  answer is labeled Local or Tank.
+- Displays the `nobs://pair` QR code (same payload as `scripts/pairing.py`)
+  so the iPhone can pair with the Mac directly.
+- `AskNOBSIntent` App Intent exposes "Ask NOBS Tank" to Siri, Spotlight, and
+  Shortcuts on macOS 27.
+- Reads the device token from `~/Documents/NOBS/.env` (path overridable via
+  `nobs.tank.rootPath` user default); not sandboxed yet — needed for
+  `launchctl` control and token reading. Revisit before distribution.
+- macOS Debug build and iOS simulator build both verified with Xcode 27 beta.
 
 ### Tank API and agent
 
