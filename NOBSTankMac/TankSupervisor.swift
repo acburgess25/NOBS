@@ -59,9 +59,11 @@ final class TankSupervisor {
         return "nobs://pair?url=http://\(ip):\(Self.serverPort)&token=\(token)"
     }
 
-    init() {
+    /// - Parameter polling: the menu-bar app keeps status live; short-lived
+    ///   users like `AskNOBSIntent` pass `false` and call `refresh()` once.
+    init(polling: Bool = true) {
         reloadToken()
-        startPolling()
+        if polling { startPolling() }
     }
 
     func reloadToken() {
@@ -83,7 +85,8 @@ final class TankSupervisor {
         pollTask?.cancel()
         pollTask = Task { [weak self] in
             while !Task.isCancelled {
-                await self?.refresh()
+                guard let self else { break }
+                await self.refresh()
                 try? await Task.sleep(for: .seconds(10))
             }
         }

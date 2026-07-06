@@ -21,10 +21,12 @@ struct TankChatReply: Decodable {
 
 /// Thin client for the local NOBS Tank API and the Ollama runtime.
 struct TankClient: Sendable {
-    private var session: URLSession {
+    private let session: URLSession
+
+    init() {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.timeoutIntervalForRequest = 8
-        return URLSession(configuration: configuration)
+        session = URLSession(configuration: configuration)
     }
 
     func isHealthy(baseURL: URL) async -> Bool {

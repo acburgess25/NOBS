@@ -20,12 +20,28 @@ rsync -az --delete "$REPO_ROOT/dashboard/" "$TANK_HOST:~/nobs/dashboard/"
 rsync -az "$REPO_ROOT/pyproject.toml" "$TANK_HOST:~/nobs/pyproject.toml"
 
 echo "==> Installing dependencies in Tank venv"
-ssh "$TANK_HOST" 'cd ~/nobs && if [ -x .venv/bin/pip ]; then .venv/bin/pip install -q -e .; else ~/.local/bin/uv pip install -q --python .venv/bin/python -e .; fi && echo "deps ok"'
+ssh "$TANK_HOST" 'set -e
+cd ~/nobs
+if [ ! -x .venv/bin/python ]; then
+  echo "error: ~/nobs/.venv/bin/python not found; create the venv on Tank first" >&2
+  exit 1
+fi
+if [ -x .venv/bin/pip ]; then
+  .venv/bin/pip install -q -e .
+elif command -v uv >/dev/null 2>&1; then
+  uv pip install -q --python .venv/bin/python -e .
+elif [ -x "$HOME/.local/bin/uv" ]; then
+  "$HOME/.local/bin/uv" pip install -q --python .venv/bin/python -e .
+else
+  echo "error: neither pip in the venv nor uv on PATH; cannot install dependencies" >&2
+  exit 1
+fi
+echo "deps ok"'
 
 echo "==> Restarting nobs-api"
 ssh "$TANK_HOST" 'systemctl --user restart nobs-api && sleep 3 && systemctl --user is-active nobs-api'
 
 echo "==> Health check"
-ssh "$TANK_HOST" 'curl -s -m 5 http://127.0.0.1:8000/health'
+ssh "$TANK_HOST" 'curl -fsS -m 5 http://127.0.0.1:8000/health'
 echo
 echo "==> Done"

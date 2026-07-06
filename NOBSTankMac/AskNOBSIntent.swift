@@ -14,7 +14,7 @@ struct AskNOBSIntent: AppIntent {
     var question: String
 
     func perform() async throws -> some IntentResult & ProvidesDialog {
-        let supervisor = await TankSupervisor()
+        let supervisor = await TankSupervisor(polling: false)
         await supervisor.refresh()
 
         if await supervisor.serverStatus == .running,
