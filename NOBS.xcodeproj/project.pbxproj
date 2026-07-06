@@ -13,6 +13,7 @@
 		A10000000000000000000004 /* ScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000005 /* ScannerView.swift */; };
 		A10000000000000000000005 /* ApprovalsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000006 /* ApprovalsView.swift */; };
 		A10000000000000000000006 /* SignInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000007 /* SignInView.swift */; };
+		A10000000000000000000007 /* FoundationModelService.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000008 /* FoundationModelService.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -23,6 +24,7 @@
 		A20000000000000000000005 /* ScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScannerView.swift; sourceTree = "<group>"; };
 		A20000000000000000000006 /* ApprovalsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApprovalsView.swift; sourceTree = "<group>"; };
 		A20000000000000000000007 /* SignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInView.swift; sourceTree = "<group>"; };
+		A20000000000000000000008 /* FoundationModelService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoundationModelService.swift; sourceTree = "<group>"; };
 		A20000000000000000000009 /* NOBS.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = NOBS.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -51,6 +53,7 @@
 				A20000000000000000000001 /* NOBSApp.swift */,
 				A20000000000000000000002 /* ConversationView.swift */,
 				A20000000000000000000004 /* AppModel.swift */,
+				A20000000000000000000008 /* FoundationModelService.swift */,
 				A20000000000000000000005 /* ScannerView.swift */,
 				A20000000000000000000006 /* ApprovalsView.swift */,
 				A20000000000000000000007 /* SignInView.swift */,
@@ -138,6 +141,7 @@
 				A10000000000000000000001 /* NOBSApp.swift in Sources */,
 				A10000000000000000000002 /* ConversationView.swift in Sources */,
 				A10000000000000000000003 /* AppModel.swift in Sources */,
+				A10000000000000000000007 /* FoundationModelService.swift in Sources */,
 				A10000000000000000000004 /* ScannerView.swift in Sources */,
 				A10000000000000000000005 /* ApprovalsView.swift in Sources */,
 				A10000000000000000000006 /* SignInView.swift in Sources */,

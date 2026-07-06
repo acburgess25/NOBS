@@ -83,16 +83,8 @@ struct ConversationView: View {
                     .foregroundStyle(.secondary)
             }
             Spacer()
-            Button { Task { await model.refreshTankStatus() } } label: {
-                Label(
-                    model.tankAvailable ? "Tank" : "Local",
-                    systemImage: model.tankAvailable ? "server.rack" : "iphone"
-                )
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(accent)
-                .padding(.horizontal, 11)
-                .padding(.vertical, 8)
-                .background(accent.opacity(0.11), in: Capsule())
+            Button { Task { await model.refreshProcessingAvailability() } } label: {
+                ProcessingRouteBadge(route: model.activeRoute)
             }
             .accessibilityHint("Checks the current processing connection")
         }
@@ -115,7 +107,7 @@ struct ConversationView: View {
                         if model.isSending {
                             HStack(spacing: 9) {
                                 ProgressView().tint(accent)
-                                Text(model.tankAvailable ? "Tank is thinking…" : "Working locally…")
+                                Text(sendingStatusText)
                                     .foregroundStyle(.secondary)
                             }
                             .font(.subheadline)
@@ -139,8 +131,12 @@ struct ConversationView: View {
             Text("Good \(dayPart).")
                 .font(.system(size: 30, weight: .regular, design: .serif))
             Text(model.tankAvailable
-                 ? "Tank is connected. Ask me something, or let’s make today realistic."
-                 : "I’m working locally. Calendar planning still works; Tank chat will reconnect when available.")
+                 ? (model.activeRoute == .onDevice && !model.preferTankWhenAvailable
+                    ? "Apple Intelligence is ready on this iPhone. Tank is also connected if you need it."
+                    : "Tank is connected. Ask me something, or let’s make today realistic.")
+                 : (model.onDeviceAvailable
+                    ? "Apple Intelligence is ready on this iPhone. Tank chat will reconnect when available."
+                    : "I’m working locally. Calendar planning still works; Tank chat will reconnect when available."))
                 .foregroundStyle(.secondary)
                 .lineSpacing(3)
             Button {
@@ -165,13 +161,11 @@ struct ConversationView: View {
                 .lineSpacing(3)
                 .padding(entry.role == .user ? 12 : 0)
                 .background(entry.role == .user ? accent.opacity(0.15) : .clear, in: RoundedRectangle(cornerRadius: 18))
-            if let route = entry.route {
+            if let route = entry.route, let receipt = entry.receipt {
                 Button {
-                    selectedReceipt = entry.receipt
+                    selectedReceipt = receipt
                 } label: {
-                    Label(route.rawValue, systemImage: route == .tank ? "server.rack" : "iphone")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(accent)
+                    ProcessingRouteBadge(route: route)
                 }
                 .buttonStyle(.plain)
                 .accessibilityHint("Shows the privacy receipt for this response")
@@ -252,6 +246,19 @@ struct ConversationView: View {
         let text = draft
         draft = ""
         Task { await model.send(text) }
+    }
+
+    private var sendingStatusText: String {
+        switch model.activeRoute {
+        case .onDevice:
+            "Thinking on this iPhone…"
+        case .tank:
+            "Tank is thinking…"
+        case .local:
+            "Working locally…"
+        case .cloud:
+            "NOBScloud is thinking…"
+        }
     }
 
     /// Handles deep-link URLs (e.g. nobs://connect?url=...&token=...).
@@ -387,7 +394,7 @@ private struct TodayView: View {
                         .font(.caption.weight(.semibold))
                 }
             } else {
-                Text("Build on-device first from visible events and reminders, then refine on Tank when connected. No silent changes are made.")
+                Text(briefingDescription)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                 Button {
@@ -401,7 +408,7 @@ private struct TodayView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(accent)
-                .disabled(model.isGeneratingBriefing)
+                .disabled(model.isGeneratingBriefing || (!model.onDeviceAvailable && !model.tankAvailable))
             }
         }
         .padding(18)
@@ -443,6 +450,16 @@ private struct TodayView: View {
             Text(title).font(.caption.weight(.bold)).foregroundStyle(accent)
             Text(text).font(.subheadline)
         }
+    }
+
+    private var briefingDescription: String {
+        if model.onDeviceAvailable {
+            return "Create a private morning briefing on this iPhone using Apple Intelligence. Visible event titles, times, and calendar context stay local."
+        }
+        if model.tankAvailable {
+            return "Send only the titles, times, and calendar context shown below to your Tank. Notes, attendees, and locations stay off the request."
+        }
+        return "Apple Intelligence is unavailable and Tank is offline, so NOBS can still show your calendar without sending it anywhere."
     }
 
     private func briefingListSection(_ title: String, items: [String]) -> some View {
@@ -554,8 +571,24 @@ private struct PrivacyView: View {
     var body: some View {
         List {
             Section("Processing now") {
-                LabeledContent("Chat", value: model.tankAvailable ? "Tank available" : "Local fallback")
+                LabeledContent("Chat", value: chatProcessingLabel)
+                LabeledContent("On-Device", value: model.onDeviceAvailable ? "Apple Intelligence ready" : "Unavailable")
+                LabeledContent("Tank", value: model.tankAvailable ? "Available" : "Unavailable")
                 LabeledContent("Calendar", value: "On this iPhone")
+            }
+
+            Section {
+                Toggle(
+                    "Prefer Tank when available",
+                    isOn: Binding(
+                        get: { model.preferTankWhenAvailable },
+                        set: { model.preferTankWhenAvailable = $0 }
+                    )
+                )
+            } header: {
+                Text("Routing preference")
+            } footer: {
+                Text("Default routing is On-Device, then Tank, then Local fallback. Turn this on to use Tank first whenever both are available.")
             }
 
             // Sign in with Apple section — primary connect method
@@ -634,6 +667,19 @@ private struct PrivacyView: View {
         isScanningQR = false
         Task { await model.saveTankConnection() }
     }
+
+    private var chatProcessingLabel: String {
+        switch model.activeRoute {
+        case .onDevice:
+            return "On-Device"
+        case .tank:
+            return model.preferTankWhenAvailable ? "Tank preferred" : "Tank"
+        case .local:
+            return "Local fallback"
+        case .cloud:
+            return "NOBScloud"
+        }
+    }
 }
 
 private struct ComingSoonView: View {
@@ -669,6 +715,69 @@ private struct PrivacyReceiptView: View {
 
 extension PrivacyReceipt: Identifiable {
     var id: String { "\(processed)|\(used.joined(separator: ","))|\(shared.joined(separator: ","))|\(changed.joined(separator: ","))" }
+}
+
+private struct ProcessingRouteBadge: View {
+    let route: ProcessingRoute
+
+    private let tankColor = Color(red: 0.31, green: 0.43, blue: 0.20)
+
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: route.symbolName)
+            Text(route.rawValue)
+        }
+        .font(.caption.weight(.semibold))
+        .foregroundStyle(foregroundColor)
+        .padding(.horizontal, 11)
+        .padding(.vertical, 8)
+        .background {
+            Capsule().fill(backgroundStyle)
+        }
+    }
+
+    private var foregroundColor: Color {
+        switch route {
+        case .local:
+            return .secondary
+        case .onDevice, .tank, .cloud:
+            return .white
+        }
+    }
+
+    private var backgroundStyle: AnyShapeStyle {
+        switch route {
+        case .onDevice:
+            return AnyShapeStyle(
+                LinearGradient(
+                    colors: [Color.blue, Color.purple],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+            )
+        case .tank:
+            return AnyShapeStyle(tankColor)
+        case .local:
+            return AnyShapeStyle(Color.black.opacity(0.08))
+        case .cloud:
+            return AnyShapeStyle(Color.indigo)
+        }
+    }
+}
+
+private extension ProcessingRoute {
+    var symbolName: String {
+        switch self {
+        case .onDevice:
+            return "sparkles"
+        case .local:
+            return "iphone"
+        case .tank:
+            return "server.rack"
+        case .cloud:
+            return "icloud"
+        }
+    }
 }
 
 #Preview { ConversationView() }

@@ -1,6 +1,6 @@
 # NOBS Current State
 
-**Last updated:** July 3, 2026 (Developer Mode added)
+**Last updated:** July 6, 2026 (On-Device Apple Intelligence route added)
 **Purpose:** Tool-neutral handoff for any contributor entering without prior chat history.
 
 This records implementation state, not product direction. [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md) remains the approved product source of truth. Verify the branch, tests, and live services before treating deployment facts as current.
@@ -12,13 +12,14 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 - SwiftUI conversation-first prototype with onboarding and focused Chat, Today, Memory, Activity, Home, and Privacy surfaces.
 - Local EventKit calendar permission flow and same-day event display.
 - Configurable Tank address and Keychain-backed device token.
-- Authenticated Tank chat with visible Local/Tank routing and privacy receipts.
+- Authenticated chat with visible On-Device, Tank, and Local routing plus privacy receipts.
+- Apple Foundation Models on iOS 26+ as a first-class On-Device route, with default routing order On-Device → Tank → Local and an optional prefer-Tank toggle.
 - Honest local fallback when Tank is unavailable.
 - Today now generates Morning Briefing v2 with structured topline, priorities,
   explicit conflict/overload risks, recommended sequencing, one clarifying
   question when ambiguity exists, and reversible suggested next actions.
-- Briefing generation runs on-device first, then refines with Tank when
-  connected, while keeping visible route badges and privacy receipts.
+- Briefing generation uses Apple Intelligence (iOS 26+) when available,
+  otherwise falls through to Tank, with visible route badges and privacy receipts.
 - Today can include local reminders (when permission is granted) alongside
   calendar events in briefing context.
 - Activity lists pending Tank changes and provides explicit Approve and Deny actions.
@@ -77,7 +78,7 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 - No arbitrary MCP server is trusted or installed by the NOBS agent.
 - mDNS (`tank.local`) does not resolve from the LAN; clients use 192.168.0.59 directly.
 - The briefing API is deployed and live-verified on Tank. The iOS UI is simulator-built;
-  physical iPhone validation remains pending.
+  physical iPhone validation for Apple Intelligence availability remains pending.
 - iOS app does not yet push local calendars and reminders to the Tank API.
 
 ## Recommended next vertical slice
