@@ -30,6 +30,17 @@ class Settings(BaseSettings):
     homeassistant_url: str = Field(default="")
     homeassistant_token: SecretStr | None = Field(default=None)
 
+    # Weather tool: set via NOBS_WEATHER_LATITUDE / NOBS_WEATHER_LONGITUDE
+    weather_latitude: float | None = None
+    weather_longitude: float | None = None
+
+    # News feeds tool: comma-separated RSS/Atom feed URLs
+    # e.g. NOBS_NEWS_FEED_URLS="https://feeds.bbci.co.uk/news/rss.xml,https://hnrss.org/frontpage"
+    news_feed_urls: str = ""
+
+    # Web search: max results returned per query (1–10)
+    web_search_max_results: int = Field(default=5, ge=1, le=10)
+
 
 @lru_cache
 def get_settings() -> Settings:

@@ -8,10 +8,15 @@ version = "0.1.0"
 description = "Privacy-first backend services for NOBS."
 requires-python = ">=3.11"
 dependencies = [
+  "duckduckgo-search>=8.0,<9",
   "fastapi>=0.115,<1",
+  "feedparser>=6.0,<7",
   "httpx>=0.28,<1",
+  "psutil>=6.0,<7",
   "pydantic-settings>=2.7,<3",
+  "trafilatura>=2.0,<3",
   "uvicorn[standard]>=0.34,<1",
+  "wikipedia-api>=0.7,<1",
 ]
 
 [project.optional-dependencies]
