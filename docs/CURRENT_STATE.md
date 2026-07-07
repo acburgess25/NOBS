@@ -1,6 +1,6 @@
 # NOBS Current State
 
-**Last updated:** July 6, 2026 (iOS + Tank cleanup pass)
+**Last updated:** July 6, 2026 (P0 integration fixes)
 **Purpose:** Tool-neutral handoff for any contributor entering without prior chat history.
 
 This records implementation state, not product direction. [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md) remains the approved product source of truth. Verify the branch, tests, and live services before treating deployment facts as current.
@@ -80,17 +80,16 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 - No approved long-term memory workflow.
 - No household identity, subscription, or NOBScloud implementation.
 - No arbitrary MCP server is trusted or installed by the NOBS agent.
-- mDNS (`tank.local`) does not resolve from the LAN; clients use 192.168.0.59 directly.
-- The briefing API is deployed and live-verified on Tank. The iOS UI is simulator-built;
-  physical iPhone validation remains pending.
+- mDNS (`tank.local`) does not resolve from the LAN; clients use the Tank LAN IP directly (for example `http://192.168.0.59:8000`).
+- Physical iPhone validation remains pending (simulator build verified; Tank pairing and sync need on-device QA).
 
 ## Recommended next vertical slice
 
-Add **iOS Client Data Synchronization**:
+**Physical iPhone validation and LAN discovery hardening:**
 
-1. Implement the iOS side of `/sync/calendar` and `/sync/reminders` to push local Apple EventKit and Reminders data to Tank.
-2. Let the user review, pause, and revoke schedules from Activity.
-3. Record schedule runs, sources, processing route, and approval outcomes in the UI.
+1. Pair a physical iPhone using the Tank dashboard QR or `scripts/pairing.py` and confirm chat, briefing, approvals, and calendar/reminders sync end-to-end.
+2. Verify saved Tank URL persists across app restarts and reconnects when returning to the home network.
+3. Investigate Bonjour/mDNS advertisement on Tank so `tank.local` can resolve reliably, or document IP-based pairing as the supported path.
 
 Do not connect email, messages, health, location, purchases, deletion, or account administration until the approval UI and revocation path are usable.
 

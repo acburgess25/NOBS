@@ -26,7 +26,7 @@ The display refreshes every 15 seconds. Light, Dark, and Auto themes are stored 
 
 ## Privacy boundary
 
-`GET /dashboard/status` is intentionally safe for a shared room and therefore does not require the device bearer token. Do not add private content to this response. Detailed approvals remain on authenticated `/agent/approvals` routes and should be reviewed on the iPhone.
+`GET /dashboard/status` is intentionally safe for a shared room and therefore does not require the device bearer token. It includes a `pairing` object (`url` + `token`) so the on-screen QR can complete iPhone setup without conversations or calendar content. Detailed approvals remain on authenticated `/agent/approvals` routes and should be reviewed on the iPhone.
 
 The LAN firewall must remain limited to the trusted home network. Do not expose the dashboard or API directly to the public internet.
 
