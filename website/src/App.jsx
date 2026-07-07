@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { ArrowRight, Check, Cloud, DeviceMobile, Copy, GithubLogo, HardDrives, List, LockKey, Monitor, X } from "@phosphor-icons/react";
+import { ArrowRight, Check, Cloud, DeviceMobile, Copy, GithubLogo, HardDrives, Heart, List, LockKey, Monitor, Repeat, X } from "@phosphor-icons/react";
 
 const githubUrl = "https://github.com/acburgess25/NOBS";
-const navItems = [["Vision", "vision"], ["Work so far", "work"], ["Architecture", "architecture"], ["Roadmap", "roadmap"]];
+const navItems = [["Vision", "vision"], ["Work so far", "work"], ["Architecture", "architecture"], ["Roadmap", "roadmap"], ["Support", "support"]];
 const milestones = [
   { label: "iPhone app (SwiftUI)", detail: "Authenticated chat with visible Local/Tank routing, day-at-a-glance, privacy receipts, and conversational onboarding.", icon: DeviceMobile },
   { label: "Apple-native day surface", detail: "Home Screen and Lock Screen briefing widget, Siri shortcuts, and Focus-aware planning that respects Do Not Disturb.", icon: DeviceMobile },
@@ -24,11 +24,23 @@ function goTo(id, done) {
   done?.();
 }
 
+function hasSupportLinks(links) {
+  return Boolean(links?.githubSponsors || links?.donateOneTime || links?.donateMonthly);
+}
+
 export function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [openRoadmap, setOpenRoadmap] = useState(0);
   const [activeSection, setActiveSection] = useState("vision");
+  const [supportLinks, setSupportLinks] = useState(null);
+
+  useEffect(() => {
+    fetch("/support.json")
+      .then((response) => (response.ok ? response.json() : {}))
+      .then((data) => setSupportLinks(data))
+      .catch(() => setSupportLinks({}));
+  }, []);
 
   useEffect(() => {
     const sections = navItems.map(([, id]) => document.getElementById(id)).filter(Boolean);
@@ -128,6 +140,50 @@ export function App() {
             </button>;
           })}</div>
         </section>
+
+        {hasSupportLinks(supportLinks) && (
+          <section className="support section" id="support">
+            <div className="section-heading">
+              <div>
+                <p className="eyebrow">Support the build</p>
+                <h2>Help NOBS stay local-first.</h2>
+              </div>
+              <p>Optional tips and sponsorships fund open development. Core features stay free; paid NOBScloud subscriptions will come through the App Store later.</p>
+            </div>
+            <div className="support-grid">
+              {supportLinks.donateOneTime && (
+                <a className="support-card" href={supportLinks.donateOneTime} target="_blank" rel="noreferrer">
+                  <Heart weight="fill" />
+                  <span>
+                    <strong>Send a tip</strong>
+                    <small>One-time contribution through Stripe.</small>
+                  </span>
+                  <ArrowRight />
+                </a>
+              )}
+              {supportLinks.donateMonthly && (
+                <a className="support-card" href={supportLinks.donateMonthly} target="_blank" rel="noreferrer">
+                  <Repeat />
+                  <span>
+                    <strong>Support monthly</strong>
+                    <small>Recurring sponsorship through Stripe.</small>
+                  </span>
+                  <ArrowRight />
+                </a>
+              )}
+              {supportLinks.githubSponsors && (
+                <a className="support-card" href={supportLinks.githubSponsors} target="_blank" rel="noreferrer">
+                  <GithubLogo weight="fill" />
+                  <span>
+                    <strong>Sponsor on GitHub</strong>
+                    <small>Follow the build and back the project there.</small>
+                  </span>
+                  <ArrowRight />
+                </a>
+              )}
+            </div>
+          </section>
+        )}
 
         <section className="closing section">
           <div><p className="eyebrow">Built by Alexander Burgess</p><h2>This is a personal project,<br />built in the open.</h2><p>I document decisions, share code as it’s ready, and welcome thoughtful feedback.</p></div>

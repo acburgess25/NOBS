@@ -107,6 +107,7 @@ The device must be able to reach Tank on the private network. Local HTTP is perm
 - [Tank build and operations guide](docs/NOBS_TANK_BUILD.md)
 - [Tank agent architecture and approval policy](docs/TANK_AGENT_CORE.md)
 - [Tank connected-screen dashboard](docs/TANK_DASHBOARD.md)
+- [Support, donations, and payments](docs/SUPPORT_AND_PAYMENTS.md)
 - [Implementation backlog](docs/ISSUE_BACKLOG.md)
 
 When documents disagree, `docs/PRODUCT_DECISIONS.md` is the product source of truth. Planned capabilities must not be presented as shipped.

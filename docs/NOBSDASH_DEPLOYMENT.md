@@ -61,3 +61,7 @@ journalctl --user -u nobsdash.service -u cloudflared-nobsdash.service --since to
 ```
 
 Rollback is a static-file replacement followed by `systemctl --user restart nobsdash.service`. Stopping `cloudflared-nobsdash.service` removes public access without exposing the origin.
+
+## Optional support links
+
+Edit `website/public/support.json` with GitHub Sponsors and Stripe Payment Link URLs, then rebuild. See [`docs/SUPPORT_AND_PAYMENTS.md`](../docs/SUPPORT_AND_PAYMENTS.md). The Support section appears only when at least one URL is set.
