@@ -2,33 +2,48 @@ import SwiftUI
 
 struct ConversationView: View {
     @EnvironmentObject private var model: AppModel
-    @AppStorage("nobs.onboarding.complete") private var onboardingComplete = false
     @State private var draft = ""
     @State private var selectedReceipt: PrivacyReceipt?
     @State private var showNavigation = false
 
     private let accent = Color.nobsAccent
     private let canvas = Color.nobsCanvas
+    private let forest = Color.nobsForest
+    private let surface = Color.nobsSagePale
 
     var body: some View {
         ZStack {
             canvas.ignoresSafeArea()
-            if onboardingComplete {
-                mainContent
+            if model.needsOnboarding {
+                OnboardingView(onComplete: { model.completeOnboarding() })
             } else {
-                OnboardingView(onComplete: { onboardingComplete = true })
+                mainContent
             }
         }
         .task { await model.start() }
+        .onChange(of: model.needsOnboarding) { _, needsOnboarding in
+            guard !needsOnboarding, let prompt = model.consumePendingChatPrompt() else { return }
+            draft = prompt
+        }
+        .onChange(of: model.pendingChatPrompt) { _, prompt in
+            guard let prompt, !prompt.isEmpty else { return }
+            draft = prompt
+        }
         .onOpenURL { url in
-            model.section = .privacy
-            model.applyTankPayload(from: url)
-            Task { await model.saveTankConnection() }
+            model.handleDeepLink(url)
         }
         .sheet(isPresented: $showNavigation) { navigationSheet }
         .sheet(item: $selectedReceipt) { receipt in
             PrivacyReceiptView(receipt: receipt)
                 .presentationDetents([.medium])
+        }
+        .sheet(isPresented: $model.showConflictSheet) {
+            if let conflict = model.clarifyingConflict {
+                ConflictResolutionSheet(conflict: conflict) { option in
+                    model.resolveConflict(choosing: option)
+                }
+                .presentationDetents([.medium])
+            }
         }
         .alert("NOBS", isPresented: Binding(
             get: { model.lastError != nil },
@@ -89,10 +104,10 @@ struct ConversationView: View {
                     systemImage: model.tankAvailable ? "server.rack" : "iphone"
                 )
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(accent)
+                .foregroundStyle(forest)
                 .padding(.horizontal, 11)
                 .padding(.vertical, 8)
-                .background(accent.opacity(0.11), in: Capsule())
+                .background(surface, in: Capsule())
             }
             .accessibilityHint("Checks the current processing connection")
         }
@@ -136,11 +151,9 @@ struct ConversationView: View {
 
     private var welcome: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Good \(dayPart).")
+            Text(model.personalizedDayPartGreeting)
                 .font(.system(size: 30, weight: .regular, design: .serif))
-            Text(model.tankAvailable
-                 ? "Tank is connected. Ask me something, or let's make today realistic."
-                 : "I'm working locally. Calendar planning still works; Tank chat will reconnect when available.")
+            Text(welcomeDetail)
                 .foregroundStyle(.secondary)
                 .lineSpacing(3)
             Button {
@@ -151,7 +164,7 @@ struct ConversationView: View {
                     .foregroundStyle(.white)
                     .padding(.horizontal, 16)
                     .frame(height: 44)
-                    .background(accent, in: RoundedRectangle(cornerRadius: 12))
+                    .background(forest, in: RoundedRectangle(cornerRadius: 12))
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -164,7 +177,7 @@ struct ConversationView: View {
                 .font(.body)
                 .lineSpacing(3)
                 .padding(entry.role == .user ? 12 : 0)
-                .background(entry.role == .user ? accent.opacity(0.15) : .clear, in: RoundedRectangle(cornerRadius: 18))
+                .background(entry.role == .user ? surface : .clear, in: RoundedRectangle(cornerRadius: 18))
             if let route = entry.route {
                 Button {
                     selectedReceipt = entry.receipt
@@ -188,7 +201,7 @@ struct ConversationView: View {
                         .font(.caption.weight(.medium))
                         .padding(.horizontal, 14)
                         .padding(.vertical, 9)
-                        .overlay(Capsule().stroke(accent.opacity(0.35)))
+                        .overlay(Capsule().stroke(Color.nobsGreen.opacity(0.45)))
                 }
             }
             .padding(.horizontal, 16)
@@ -210,7 +223,7 @@ struct ConversationView: View {
                     .font(.headline)
                     .foregroundStyle(.white)
                     .frame(width: 44, height: 44)
-                    .background(accent, in: Circle())
+                    .background(forest, in: Circle())
             }
             .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || model.isSending)
             .opacity(draft.isEmpty ? 0.5 : 1)
@@ -248,18 +261,17 @@ struct ConversationView: View {
         .presentationDetents([.medium, .large])
     }
 
+    private var welcomeDetail: String {
+        if model.tankAvailable {
+            return "Tank is connected. Ask me something, or let's make today realistic."
+        }
+        return "I'm working locally. Calendar planning still works; Tank chat will reconnect when available."
+    }
+
     private func sendDraft() {
         let text = draft
         draft = ""
         Task { await model.send(text) }
-    }
-
-    private var dayPart: String {
-        switch Calendar.current.component(.hour, from: Date()) {
-        case 5..<12: "morning"
-        case 12..<18: "afternoon"
-        default: "evening"
-        }
     }
 }
 

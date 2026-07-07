@@ -1,0 +1,11 @@
+# Copy to ~/.config/nobs/cloudflared-nobsdash.yml on your Tank host.
+# Create the tunnel in Cloudflare Zero Trust and keep credentials outside Git.
+tunnel: YOUR_TUNNEL_UUID
+credentials-file: /home/YOUR_USER/.config/nobs/YOUR_TUNNEL_UUID.json
+
+ingress:
+  - hostname: nobsdash.com
+    service: http://127.0.0.1:4173
+  - hostname: www.nobsdash.com
+    service: http://127.0.0.1:4173
+  - service: http_status:404

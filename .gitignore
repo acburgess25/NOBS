@@ -5,6 +5,7 @@ __pycache__/
 *.py[cod]
 .pytest_cache/
 .ruff_cache/
+*.log
 nobs.db
 data/
 .build/
@@ -24,3 +25,6 @@ CLAUDE.local.md
 xcuserdata/
 .aider*
 build/
+
+# Host-specific tunnel config (use deploy/tank/cloudflared-nobsdash.yml.example)
+deploy/tank/cloudflared-nobsdash.yml
