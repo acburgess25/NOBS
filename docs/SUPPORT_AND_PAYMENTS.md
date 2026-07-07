@@ -2,90 +2,47 @@
 
 NOBS makes money from **optional capability and services—not personal data** ([`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md) §21). Core local features stay free.
 
-This guide covers what you can turn on today versus what ships with the product later.
+## Primary path: Apple In-App Purchase
 
-## Today: donations and sponsorship
+With the Paid Applications Agreement active, use **StoreKit 2** in the iPhone app:
 
-Best for build-in-public while the app is still a prototype.
+- **Privacy → Support NOBS** — tip jars (consumables) and NOBScloud monthly subscription
+- Local testing: `NOBS/NOBS.storekit` + scheme StoreKit configuration
+- Setup checklist: [`APP_STORE_IAP_SETUP.md`](APP_STORE_IAP_SETUP.md)
 
-### 1. GitHub Sponsors
+| Product | ID |
+| --- | --- |
+| Small tip | `com.nobsdash.nobs.tip.small` |
+| Medium tip | `com.nobsdash.nobs.tip.medium` |
+| Large tip | `com.nobsdash.nobs.tip.large` |
+| NOBScloud monthly | `com.nobsdash.nobs.nobscloud.monthly` |
 
-1. Enable [GitHub Sponsors](https://github.com/sponsors) on your account.
-2. `.github/FUNDING.yml` already points sponsors to `acburgess25`.
-3. Add your sponsors URL to `website/public/support.json`:
+Tips do not unlock features. NOBScloud subscription is for future optional cloud capacity; local briefing and Tank stay free.
 
-```json
-"githubSponsors": "https://github.com/sponsors/YOUR_HANDLE"
-```
+## Website and GitHub (optional)
 
-### 2. Stripe Payment Links (one-time or monthly)
+- **GitHub Sponsors** — `.github/FUNDING.yml` and `website/public/support.json`
+- **Stripe Payment Links** — optional for web-only tips; not used for in-app digital goods (App Store rules). Helper: `scripts/setup_stripe_support_links.py`
 
-No backend required. Stripe hosts checkout.
-
-**Quick setup (test mode):**
-
-```bash
-export STRIPE_SECRET_KEY=sk_test_…   # Stripe Dashboard → Developers → API keys
-python3 scripts/setup_stripe_support_links.py
-cd website && pnpm run build
-```
-
-Optional amounts (cents): `NOBS_DONATE_ONETIME_CENTS=500`, `NOBS_DONATE_MONTHLY_CENTS=300`.
-
-**Manual setup** in [Stripe Dashboard](https://dashboard.stripe.com/) → **Payment Links** → **New**:
-2. Create a **one-time** link for tips (suggested name: “Support NOBS development”).
-3. Optionally create a **recurring** link for monthly supporters.
-4. Copy each link into `website/public/support.json`:
+Edit `website/public/support.json`:
 
 ```json
 {
   "githubSponsors": "https://github.com/sponsors/YOUR_HANDLE",
-  "donateOneTime": "https://buy.stripe.com/…",
-  "donateMonthly": "https://buy.stripe.com/…"
+  "supportInApp": true
 }
 ```
 
-5. Rebuild and deploy the site, or rsync only `support.json` to Tank if you edit it in place:
+Set `"supportInApp": true` to show that tips and subscriptions live in the iOS app.
 
-```bash
-cd website && pnpm run build
-rsync -az --delete dist/ tank:~/services/nobsdash/current/
-```
+## Later: backend entitlement sync
 
-The portfolio site shows a **Support** section only when at least one URL is set.
+[`PRD.md`](PRD.md) FR-4 describes RevenueCat webhooks and Tank API checks before enabling paid cloud routes. Until then, `hasNOBScloud` is tracked on-device only.
 
-### Tax and compliance
+## Checklist before accepting real money
 
-- Stripe and GitHub handle checkout; you are responsible for applicable tax reporting in your jurisdiction.
-- Donations are **not** NOBScloud subscriptions and do not unlock in-app paid features.
-- Say so clearly on the site (already reflected in the Support copy).
-
-## Later: in-app payments (NOBScloud)
-
-Product requirements ([`PRD.md`](PRD.md) FR-4) call for:
-
-- **StoreKit 2** on iPhone for subscriptions;
-- **RevenueCat** (or equivalent) webhooks to sync entitlement;
-- Tank API checks before enabling NOBScloud routes.
-
-Planned paid capability (always optional):
-
-- stronger/faster models when Tank is away;
-- research and document workflows;
-- higher automation limits;
-- cross-device continuity.
-
-Do **not** gate today’s free local briefing, widget, or Tank pairing behind a paywall.
-
-## Checklist before going live
-
-- [ ] Stripe account verified and Payment Links tested in test mode, then live mode.
-- [ ] GitHub Sponsors profile published.
-- [ ] `website/public/support.json` filled in and deployed.
-- [ ] Privacy policy mentions payments (processor names, what is not sold).
-- [ ] Thank-you page or email configured in Stripe (optional).
-
-## What not to commit
-
-- Stripe secret keys, webhook signing secrets, or live customer data.
-- Use Stripe Dashboard and GitHub Secrets for anything server-side when webhooks arrive.
+- [ ] Paid Apps agreement, tax, and banking complete in App Store Connect
+- [ ] All four product IDs created and cleared for sale
+- [ ] Sandbox purchase tested on a physical iPhone
+- [ ] Privacy policy URL lists Apple as payment processor
+- [ ] App Review notes explain tips vs subscription vs free tier

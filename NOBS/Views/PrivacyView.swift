@@ -50,6 +50,8 @@ struct PrivacyView: View {
                 )
                 .foregroundStyle(model.tankAvailable ? accent : .secondary)
             }
+            SupportView()
+
             Section("Boundaries") {
                 Label("Passwords are off-limits", systemImage: "key.slash")
                 Label("Financial accounts are off-limits", systemImage: "creditcard.trianglebadge.exclamationmark")

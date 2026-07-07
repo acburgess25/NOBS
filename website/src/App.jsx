@@ -25,7 +25,7 @@ function goTo(id, done) {
 }
 
 function hasSupportLinks(links) {
-  return Boolean(links?.githubSponsors || links?.donateOneTime || links?.donateMonthly);
+  return Boolean(links?.githubSponsors || links?.donateOneTime || links?.donateMonthly || links?.supportInApp);
 }
 
 export function App() {
@@ -148,9 +148,18 @@ export function App() {
                 <p className="eyebrow">Support the build</p>
                 <h2>Help NOBS stay local-first.</h2>
               </div>
-              <p>Optional tips and sponsorships fund open development. Core features stay free; paid NOBScloud subscriptions will come through the App Store later.</p>
+              <p>Optional tips and sponsorships fund open development. Tips and NOBScloud subscriptions are available in the NOBS iPhone app through Apple In-App Purchase. Core features stay free.</p>
             </div>
             <div className="support-grid">
+              {supportLinks.supportInApp && (
+                <article className="support-card support-card-static" aria-label="Support in the NOBS iPhone app">
+                  <DeviceMobile />
+                  <span>
+                    <strong>Support in the NOBS app</strong>
+                    <small>Open Privacy → Support NOBS for Apple tips and NOBScloud subscription.</small>
+                  </span>
+                </article>
+              )}
               {supportLinks.donateOneTime && (
                 <a className="support-card" href={supportLinks.donateOneTime} target="_blank" rel="noreferrer">
                   <Heart weight="fill" />
