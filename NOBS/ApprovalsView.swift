@@ -7,6 +7,8 @@ struct ApprovalsView: View {
 
     private let accent = Color.nobsAccent
     private let canvas = Color.nobsCanvas
+    private let forest = Color.nobsForest
+    private let surface = Color.nobsSagePale
 
     @State private var segment: Segment = .approvals
 
@@ -51,7 +53,7 @@ struct ApprovalsView: View {
                                 .foregroundStyle(.white)
                                 .padding(.horizontal, 6)
                                 .padding(.vertical, 2)
-                                .background(accent, in: Capsule())
+                                .background(forest, in: Capsule())
                         }
                     }
                     .foregroundStyle(segment == seg ? accent : .secondary)
@@ -213,7 +215,7 @@ private struct ApprovalCard: View {
                     .font(.title3)
                     .foregroundStyle(accent)
                     .frame(width: 32, height: 32)
-                    .background(accent.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
+                    .background(Color.nobsSagePale, in: RoundedRectangle(cornerRadius: 8))
 
                 VStack(alignment: .leading, spacing: 3) {
                     Text(approval.toolName.replacingOccurrences(of: "_", with: " ").capitalized)
@@ -280,7 +282,7 @@ private struct ApprovalCard: View {
             .controlSize(.regular)
         }
         .padding(18)
-        .background(accent.opacity(0.06), in: RoundedRectangle(cornerRadius: 16))
+        .background(Color.nobsSagePale, in: RoundedRectangle(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
                 .strokeBorder(riskColor(for: approval.risk).opacity(0.25), lineWidth: 1.5)
@@ -319,7 +321,7 @@ private struct ProposalCard: View {
                     .font(.title3)
                     .foregroundStyle(accent)
                     .frame(width: 32, height: 32)
-                    .background(accent.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
+                    .background(Color.nobsSagePale, in: RoundedRectangle(cornerRadius: 8))
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(proposal.title)
@@ -367,10 +369,10 @@ private struct ProposalCard: View {
             .controlSize(.regular)
         }
         .padding(18)
-        .background(accent.opacity(0.06), in: RoundedRectangle(cornerRadius: 16))
+        .background(Color.nobsSagePale, in: RoundedRectangle(cornerRadius: 16))
         .overlay(
             RoundedRectangle(cornerRadius: 16)
-                .strokeBorder(accent.opacity(0.2), lineWidth: 1.5)
+                .strokeBorder(Color.nobsGreen.opacity(0.35), lineWidth: 1.5)
         )
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Proposal: \(proposal.title). \(proposal.description)")
@@ -425,7 +427,7 @@ private struct ProposalTypeBadge: View {
             .foregroundStyle(accent)
             .padding(.horizontal, 8)
             .padding(.vertical, 3)
-            .background(accent.opacity(0.1), in: Capsule())
+            .background(Color.nobsSagePale, in: Capsule())
     }
 }
 

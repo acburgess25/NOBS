@@ -9,6 +9,8 @@ struct ConversationView: View {
 
     private let accent = Color.nobsAccent
     private let canvas = Color.nobsCanvas
+    private let forest = Color.nobsForest
+    private let surface = Color.nobsSagePale
 
     var body: some View {
         ZStack {
@@ -89,10 +91,10 @@ struct ConversationView: View {
                     systemImage: model.tankAvailable ? "server.rack" : "iphone"
                 )
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(accent)
+                .foregroundStyle(forest)
                 .padding(.horizontal, 11)
                 .padding(.vertical, 8)
-                .background(accent.opacity(0.11), in: Capsule())
+                .background(surface, in: Capsule())
             }
             .accessibilityHint("Checks the current processing connection")
         }
@@ -151,7 +153,7 @@ struct ConversationView: View {
                     .foregroundStyle(.white)
                     .padding(.horizontal, 16)
                     .frame(height: 44)
-                    .background(accent, in: RoundedRectangle(cornerRadius: 12))
+                    .background(forest, in: RoundedRectangle(cornerRadius: 12))
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -164,7 +166,7 @@ struct ConversationView: View {
                 .font(.body)
                 .lineSpacing(3)
                 .padding(entry.role == .user ? 12 : 0)
-                .background(entry.role == .user ? accent.opacity(0.15) : .clear, in: RoundedRectangle(cornerRadius: 18))
+                .background(entry.role == .user ? surface : .clear, in: RoundedRectangle(cornerRadius: 18))
             if let route = entry.route {
                 Button {
                     selectedReceipt = entry.receipt
@@ -188,7 +190,7 @@ struct ConversationView: View {
                         .font(.caption.weight(.medium))
                         .padding(.horizontal, 14)
                         .padding(.vertical, 9)
-                        .overlay(Capsule().stroke(accent.opacity(0.35)))
+                        .overlay(Capsule().stroke(Color.nobsGreen.opacity(0.45)))
                 }
             }
             .padding(.horizontal, 16)
@@ -210,7 +212,7 @@ struct ConversationView: View {
                     .font(.headline)
                     .foregroundStyle(.white)
                     .frame(width: 44, height: 44)
-                    .background(accent, in: Circle())
+                    .background(forest, in: Circle())
             }
             .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || model.isSending)
             .opacity(draft.isEmpty ? 0.5 : 1)

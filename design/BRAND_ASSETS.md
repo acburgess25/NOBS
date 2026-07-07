@@ -25,16 +25,15 @@ Single reference for logos, colors, typography, and store assets used across NOB
 
 | Token | Hex | Use |
 |-------|-----|-----|
-| Ink | `#172818` | Headlines, primary text |
-| Cream | `#F8F6EF` | Canvas / page background |
-| Sage | `#5D7D4A` | Secondary accent, status dots |
-| Sage dark | `#31562F` | Primary accent, **app icon background** |
-| Sage pale | `#E8EDE2` | Cards, subtle surfaces |
-| Muted | `#657064` | Body secondary |
+| Ink | `#2A3328` | Soft charcoal-green text |
+| Cream | `#F5F3ED` | Warm canvas background |
+| Sage | `#9CAF88` | Decorative highlights |
+| Forest | `#4A5D45` | Headlines, primary buttons |
+| Accent | `#6E8B62` | Links, interactive text |
+| Sage pale | `#EAEEE6` | Cards, chat bubbles |
+| Sage mist | `#F2F4F0` | Section washes |
 
-App icon: cream **NOBS** serif on **sage-dark** background (matches website workshop palette).
-
-**Legacy:** `design/nobs-brand-guide.png` (alternate palette — superseded by workshop tokens)
+Trend: 2026 digital-naturalism — muted layers, low saturation, forest anchor only where emphasis is needed.
 
 ### Typography
 

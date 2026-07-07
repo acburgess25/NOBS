@@ -5,6 +5,8 @@ struct TodayView: View {
     @EnvironmentObject private var model: AppModel
     let onShowReceipt: (PrivacyReceipt) -> Void
     private let accent = Color.nobsAccent
+    private let forest = Color.nobsForest
+    private let surface = Color.nobsSagePale
 
     var body: some View {
         ScrollView {
@@ -35,7 +37,7 @@ struct TodayView: View {
                             .tint(accent)
                     }
                     .padding(18)
-                    .background(accent.opacity(0.09), in: RoundedRectangle(cornerRadius: 16))
+                    .background(surface, in: RoundedRectangle(cornerRadius: 16))
                 }
                 reminderSection
             }
@@ -83,7 +85,7 @@ struct TodayView: View {
             }
         }
         .padding(18)
-        .background(accent.opacity(0.09), in: RoundedRectangle(cornerRadius: 16))
+        .background(surface, in: RoundedRectangle(cornerRadius: 16))
     }
 
     private var reminderSection: some View {
@@ -113,7 +115,7 @@ struct TodayView: View {
             }
         }
         .padding(18)
-        .background(accent.opacity(0.06), in: RoundedRectangle(cornerRadius: 16))
+        .background(surface, in: RoundedRectangle(cornerRadius: 16))
     }
 
     private func briefingParagraph(_ title: String, text: String) -> some View {
