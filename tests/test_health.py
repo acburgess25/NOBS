@@ -36,6 +36,7 @@ def test_dashboard_status_is_room_safe(tmp_path) -> None:
         agent_database_path=":memory:",
         agent_workspace_path=tmp_path,
         dashboard_name="Workshop Tank",
+        device_token="pairing-test-token",
     )
     app = create_app(settings)
     app.state.ollama_transport = httpx.MockTransport(
@@ -52,6 +53,11 @@ def test_dashboard_status_is_room_safe(tmp_path) -> None:
     assert payload["workspaces"] == {"personal": 0, "business": 0, "shared": 0}
     assert "conversations" in payload["privacy"].lower()
     assert "messages" not in payload
+    pairing = payload["pairing"]
+    assert pairing is not None
+    assert pairing["url"].startswith("http://")
+    assert pairing["url"].endswith(":8000")
+    assert pairing["token"] == "pairing-test-token"
 
 
 def test_dashboard_status_includes_gpu_when_available(monkeypatch) -> None:

@@ -1,22 +1,24 @@
 const root = document.documentElement;
 root.dataset.theme = "dark"; // Force premium dark mode
 
-function initQRCode() {
+function renderPairingQR(pairing) {
   const container = document.getElementById("qrcode");
-  if (!container) return;
-  // If we are on localhost, recommend tank.local or the actual IP
-  const hostname = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1" 
-    ? "tank.local" 
-    : window.location.hostname;
-  
-  const pairingUri = `nobs://pair?device=${hostname}`;
+  if (!container || !pairing?.url || !pairing?.token) return;
+
+  const params = new URLSearchParams({
+    url: pairing.url,
+    token: pairing.token,
+  });
+  const pairingUri = `nobs://pair?${params.toString()}`;
+
+  container.replaceChildren();
   new QRCode(container, {
     text: pairingUri,
     width: 72,
     height: 72,
-    colorDark : "#101510",
-    colorLight : "#ffffff",
-    correctLevel : QRCode.CorrectLevel.L
+    colorDark: "#101510",
+    colorLight: "#ffffff",
+    correctLevel: QRCode.CorrectLevel.L,
   });
 }
 
@@ -68,6 +70,7 @@ async function refresh() {
     setText("attention-detail", attention.detail);
     connection.textContent = "Live from Tank";
     setText("last-refresh", `Updated ${new Date(data.generated_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit" })}`);
+    renderPairingQR(data.pairing);
 
     const gpu = data.gpu;
     if (gpu) {
@@ -93,7 +96,6 @@ function shiftForBurnIn() {
   shell.style.transform = `translate(${offset}px, ${offset}px)`;
 }
 
-initQRCode();
 updateClock();
 refresh();
 shiftForBurnIn();
