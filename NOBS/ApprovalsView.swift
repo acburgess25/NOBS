@@ -83,15 +83,23 @@ struct ApprovalsView: View {
 
     @ViewBuilder
     private var approvalsContent: some View {
-        if model.isLoadingApprovals && model.approvals.isEmpty {
+        if model.approvalsFetchState == .idle || (model.isLoadingApprovals && model.approvals.isEmpty) {
             loadingView("Checking Tank for pending approvals…")
+        } else if model.approvalsFetchState == .unavailable {
+            emptyState(
+                symbol: "checkmark.shield",
+                title: "Tank is offline",
+                detail: "Reconnect Tank to see pending approvals."
+            )
+        } else if let message = model.approvalsFetchState.errorMessage {
+            errorState(message: message) {
+                Task { await model.loadApprovals() }
+            }
         } else if model.approvals.filter({ $0.status == "pending" }).isEmpty {
             emptyState(
                 symbol: "checkmark.shield",
-                title: model.tankAvailable ? "No pending approvals" : "Tank is offline",
-                detail: model.tankAvailable
-                    ? "Tank has no tool actions waiting on your decision."
-                    : "Reconnect Tank to see pending approvals."
+                title: "No pending approvals",
+                detail: "Tank has no tool actions waiting on your decision."
             )
         } else {
             ForEach(model.approvals.filter { $0.status == "pending" }) { approval in
@@ -107,15 +115,23 @@ struct ApprovalsView: View {
 
     @ViewBuilder
     private var proposalsContent: some View {
-        if model.isLoadingProposals && model.proposals.isEmpty {
+        if model.proposalsFetchState == .idle || (model.isLoadingProposals && model.proposals.isEmpty) {
             loadingView("Checking Tank for proposals…")
+        } else if model.proposalsFetchState == .unavailable {
+            emptyState(
+                symbol: "lightbulb",
+                title: "Tank is offline",
+                detail: "Reconnect Tank to see proposals from the agent."
+            )
+        } else if let message = model.proposalsFetchState.errorMessage {
+            errorState(message: message) {
+                Task { await model.loadProposals() }
+            }
         } else if model.proposals.filter({ $0.status == "pending" }).isEmpty {
             emptyState(
                 symbol: "lightbulb",
-                title: model.tankAvailable ? "No pending proposals" : "Tank is offline",
-                detail: model.tankAvailable
-                    ? "Tank has no new ideas waiting for your approval."
-                    : "Reconnect Tank to see proposals from the agent."
+                title: "No pending proposals",
+                detail: "Tank has no new ideas waiting for your approval."
             )
         } else {
             ForEach(model.proposals.filter { $0.status == "pending" }) { proposal in
@@ -144,6 +160,21 @@ struct ApprovalsView: View {
             systemImage: symbol,
             description: Text(detail)
         )
+        .padding(.top, 30)
+    }
+
+    private func errorState(message: String, retry: @escaping () -> Void) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            ContentUnavailableView(
+                "Could not load",
+                systemImage: "exclamationmark.triangle",
+                description: Text(message)
+            )
+            Button("Retry", action: retry)
+                .buttonStyle(.bordered)
+                .tint(accent)
+                .frame(maxWidth: .infinity, alignment: .trailing)
+        }
         .padding(.top, 30)
     }
 

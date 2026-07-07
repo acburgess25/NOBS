@@ -14,14 +14,25 @@
 		A10000000000000000000005 /* ApprovalsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000006 /* ApprovalsView.swift */; };
 		A10000000000000000000006 /* SignInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000007 /* SignInView.swift */; };
 		A10000000000000000000007 /* Color+NOBS.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000008 /* Color+NOBS.swift */; };
+		B10000000000000000000001 /* NOBSModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000001 /* NOBSModels.swift */; };
+		B10000000000000000000002 /* TankConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000002 /* TankConfiguration.swift */; };
+		B10000000000000000000003 /* TankClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000003 /* TankClient.swift */; };
+		B10000000000000000000004 /* CalendarService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000004 /* CalendarService.swift */; };
+		B10000000000000000000005 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000005 /* OnboardingView.swift */; };
+		B10000000000000000000006 /* TodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000006 /* TodayView.swift */; };
+		B10000000000000000000007 /* ActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000007 /* ActivityView.swift */; };
+		B10000000000000000000008 /* PrivacyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000008 /* PrivacyView.swift */; };
+		B10000000000000000000009 /* ComingSoonView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000009 /* ComingSoonView.swift */; };
+		B10000000000000000000010 /* PrivacyReceiptView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000010 /* PrivacyReceiptView.swift */; };
 		C10000000000000000000001 /* KeychainAccess in Frameworks */ = {isa = PBXBuildFile; productRef = C30000000000000000000001 /* KeychainAccess */; };
 		C10000000000000000000002 /* AnyCodable in Frameworks */ = {isa = PBXBuildFile; productRef = C30000000000000000000002 /* AnyCodable */; };
-		D10000000000000000000001 /* NOBSTankApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20000000000000000000001 /* NOBSTankApp.swift */; };
-		D10000000000000000000002 /* TankSupervisor.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20000000000000000000002 /* TankSupervisor.swift */; };
-		D10000000000000000000003 /* TankClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20000000000000000000003 /* TankClient.swift */; };
-		D10000000000000000000004 /* LocalAssistant.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20000000000000000000004 /* LocalAssistant.swift */; };
-		D10000000000000000000005 /* MenuContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20000000000000000000005 /* MenuContentView.swift */; };
-		D10000000000000000000006 /* AskNOBSIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = D20000000000000000000006 /* AskNOBSIntent.swift */; };
+		E10000000000000000000001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000001 /* Assets.xcassets */; };
+		F10000000000000000000001 /* NOBSTankApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20000000000000000000001 /* NOBSTankApp.swift */; };
+		F10000000000000000000002 /* TankSupervisor.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20000000000000000000002 /* TankSupervisor.swift */; };
+		F10000000000000000000003 /* TankClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20000000000000000000003 /* TankClient.swift */; };
+		F10000000000000000000004 /* LocalAssistant.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20000000000000000000004 /* LocalAssistant.swift */; };
+		F10000000000000000000005 /* MenuContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20000000000000000000005 /* MenuContentView.swift */; };
+		F10000000000000000000006 /* AskNOBSIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20000000000000000000006 /* AskNOBSIntent.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -34,13 +45,24 @@
 		A20000000000000000000007 /* SignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInView.swift; sourceTree = "<group>"; };
 		A20000000000000000000008 /* Color+NOBS.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+NOBS.swift"; sourceTree = "<group>"; };
 		A20000000000000000000009 /* NOBS.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = NOBS.entitlements; sourceTree = "<group>"; };
-		D20000000000000000000001 /* NOBSTankApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NOBSTankApp.swift; sourceTree = "<group>"; };
-		D20000000000000000000002 /* TankSupervisor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TankSupervisor.swift; sourceTree = "<group>"; };
-		D20000000000000000000003 /* TankClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TankClient.swift; sourceTree = "<group>"; };
-		D20000000000000000000004 /* LocalAssistant.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalAssistant.swift; sourceTree = "<group>"; };
-		D20000000000000000000005 /* MenuContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuContentView.swift; sourceTree = "<group>"; };
-		D20000000000000000000006 /* AskNOBSIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AskNOBSIntent.swift; sourceTree = "<group>"; };
-		D20000000000000000000007 /* NOBSTank.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NOBSTank.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B20000000000000000000001 /* NOBSModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NOBSModels.swift; sourceTree = "<group>"; };
+		B20000000000000000000002 /* TankConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TankConfiguration.swift; sourceTree = "<group>"; };
+		B20000000000000000000003 /* TankClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TankClient.swift; sourceTree = "<group>"; };
+		B20000000000000000000004 /* CalendarService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarService.swift; sourceTree = "<group>"; };
+		B20000000000000000000005 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
+		B20000000000000000000006 /* TodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayView.swift; sourceTree = "<group>"; };
+		B20000000000000000000007 /* ActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityView.swift; sourceTree = "<group>"; };
+		B20000000000000000000008 /* PrivacyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyView.swift; sourceTree = "<group>"; };
+		B20000000000000000000009 /* ComingSoonView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComingSoonView.swift; sourceTree = "<group>"; };
+		B20000000000000000000010 /* PrivacyReceiptView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyReceiptView.swift; sourceTree = "<group>"; };
+		E20000000000000000000001 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		F20000000000000000000001 /* NOBSTankApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NOBSTankApp.swift; sourceTree = "<group>"; };
+		F20000000000000000000002 /* TankSupervisor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TankSupervisor.swift; sourceTree = "<group>"; };
+		F20000000000000000000003 /* TankClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TankClient.swift; sourceTree = "<group>"; };
+		F20000000000000000000004 /* LocalAssistant.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalAssistant.swift; sourceTree = "<group>"; };
+		F20000000000000000000005 /* MenuContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuContentView.swift; sourceTree = "<group>"; };
+		F20000000000000000000006 /* AskNOBSIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AskNOBSIntent.swift; sourceTree = "<group>"; };
+		F20000000000000000000007 /* NOBSTank.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NOBSTank.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -53,7 +75,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		D30000000000000000000001 /* Frameworks */ = {
+		F30000000000000000000001 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -67,22 +89,9 @@
 			isa = PBXGroup;
 			children = (
 				A40000000000000000000002 /* NOBS */,
-				D40000000000000000000001 /* NOBSTankMac */,
+				F40000000000000000000001 /* NOBSTankMac */,
 				A40000000000000000000003 /* Products */,
 			);
-			sourceTree = "<group>";
-		};
-		D40000000000000000000001 /* NOBSTankMac */ = {
-			isa = PBXGroup;
-			children = (
-				D20000000000000000000001 /* NOBSTankApp.swift */,
-				D20000000000000000000002 /* TankSupervisor.swift */,
-				D20000000000000000000003 /* TankClient.swift */,
-				D20000000000000000000004 /* LocalAssistant.swift */,
-				D20000000000000000000005 /* MenuContentView.swift */,
-				D20000000000000000000006 /* AskNOBSIntent.swift */,
-			);
-			path = NOBSTankMac;
 			sourceTree = "<group>";
 		};
 		A40000000000000000000002 /* NOBS */ = {
@@ -95,18 +104,66 @@
 				A20000000000000000000006 /* ApprovalsView.swift */,
 				A20000000000000000000007 /* SignInView.swift */,
 				A20000000000000000000008 /* Color+NOBS.swift */,
+				B40000000000000000000004 /* Models */,
+				B40000000000000000000005 /* Services */,
+				B40000000000000000000006 /* Views */,
+				E20000000000000000000001 /* Assets.xcassets */,
 				A20000000000000000000009 /* NOBS.entitlements */,
 			);
 			path = NOBS;
+			sourceTree = "<group>";
+		};
+		B40000000000000000000004 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				B20000000000000000000001 /* NOBSModels.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		B40000000000000000000005 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				B20000000000000000000002 /* TankConfiguration.swift */,
+				B20000000000000000000003 /* TankClient.swift */,
+				B20000000000000000000004 /* CalendarService.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		B40000000000000000000006 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				B20000000000000000000005 /* OnboardingView.swift */,
+				B20000000000000000000006 /* TodayView.swift */,
+				B20000000000000000000007 /* ActivityView.swift */,
+				B20000000000000000000008 /* PrivacyView.swift */,
+				B20000000000000000000009 /* ComingSoonView.swift */,
+				B20000000000000000000010 /* PrivacyReceiptView.swift */,
+			);
+			path = Views;
 			sourceTree = "<group>";
 		};
 		A40000000000000000000003 /* Products */ = {
 			isa = PBXGroup;
 			children = (
 				A20000000000000000000003 /* NOBS.app */,
-				D20000000000000000000007 /* NOBSTank.app */,
+				F20000000000000000000007 /* NOBSTank.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		F40000000000000000000001 /* NOBSTankMac */ = {
+			isa = PBXGroup;
+			children = (
+				F20000000000000000000001 /* NOBSTankApp.swift */,
+				F20000000000000000000002 /* TankSupervisor.swift */,
+				F20000000000000000000003 /* TankClient.swift */,
+				F20000000000000000000004 /* LocalAssistant.swift */,
+				F20000000000000000000005 /* MenuContentView.swift */,
+				F20000000000000000000006 /* AskNOBSIntent.swift */,
+			);
+			path = NOBSTankMac;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -133,13 +190,13 @@
 			productReference = A20000000000000000000003 /* NOBS.app */;
 			productType = "com.apple.product-type.application";
 		};
-		D50000000000000000000001 /* NOBSTank */ = {
+		F50000000000000000000001 /* NOBSTank */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = D90000000000000000000001 /* Build configuration list for PBXNativeTarget "NOBSTank" */;
+			buildConfigurationList = F90000000000000000000001 /* Build configuration list for PBXNativeTarget "NOBSTank" */;
 			buildPhases = (
-				D60000000000000000000001 /* Sources */,
-				D30000000000000000000001 /* Frameworks */,
-				D70000000000000000000001 /* Resources */,
+				F60000000000000000000001 /* Sources */,
+				F30000000000000000000001 /* Frameworks */,
+				F70000000000000000000001 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -147,7 +204,7 @@
 			);
 			name = NOBSTank;
 			productName = NOBSTank;
-			productReference = D20000000000000000000007 /* NOBSTank.app */;
+			productReference = F20000000000000000000007 /* NOBSTank.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -183,7 +240,7 @@
 			projectRoot = "";
 			targets = (
 				A50000000000000000000001 /* NOBS */,
-				D50000000000000000000001 /* NOBSTank */,
+				F50000000000000000000001 /* NOBSTank */,
 			);
 		};
 /* End PBXProject section */
@@ -193,10 +250,11 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E10000000000000000000001 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		D70000000000000000000001 /* Resources */ = {
+		F70000000000000000000001 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -217,19 +275,29 @@
 				A10000000000000000000005 /* ApprovalsView.swift in Sources */,
 				A10000000000000000000006 /* SignInView.swift in Sources */,
 				A10000000000000000000007 /* Color+NOBS.swift in Sources */,
+				B10000000000000000000001 /* NOBSModels.swift in Sources */,
+				B10000000000000000000002 /* TankConfiguration.swift in Sources */,
+				B10000000000000000000003 /* TankClient.swift in Sources */,
+				B10000000000000000000004 /* CalendarService.swift in Sources */,
+				B10000000000000000000005 /* OnboardingView.swift in Sources */,
+				B10000000000000000000006 /* TodayView.swift in Sources */,
+				B10000000000000000000007 /* ActivityView.swift in Sources */,
+				B10000000000000000000008 /* PrivacyView.swift in Sources */,
+				B10000000000000000000009 /* ComingSoonView.swift in Sources */,
+				B10000000000000000000010 /* PrivacyReceiptView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		D60000000000000000000001 /* Sources */ = {
+		F60000000000000000000001 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D10000000000000000000001 /* NOBSTankApp.swift in Sources */,
-				D10000000000000000000002 /* TankSupervisor.swift in Sources */,
-				D10000000000000000000003 /* TankClient.swift in Sources */,
-				D10000000000000000000004 /* LocalAssistant.swift in Sources */,
-				D10000000000000000000005 /* MenuContentView.swift in Sources */,
-				D10000000000000000000006 /* AskNOBSIntent.swift in Sources */,
+				F10000000000000000000001 /* NOBSTankApp.swift in Sources */,
+				F10000000000000000000002 /* TankSupervisor.swift in Sources */,
+				F10000000000000000000003 /* TankClient.swift in Sources */,
+				F10000000000000000000004 /* LocalAssistant.swift in Sources */,
+				F10000000000000000000005 /* MenuContentView.swift in Sources */,
+				F10000000000000000000006 /* AskNOBSIntent.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -268,7 +336,7 @@
 /* End XCSwiftPackageProductDependency section */
 
 /* Begin XCBuildConfiguration section */
-		B10000000000000000000001 /* Debug */ = {
+		D10000000000000000000001 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CLANG_ENABLE_MODULES = YES;
@@ -282,7 +350,7 @@
 			};
 			name = Debug;
 		};
-		B10000000000000000000002 /* Release */ = {
+		D10000000000000000000002 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CLANG_ENABLE_MODULES = YES;
@@ -295,11 +363,12 @@
 			};
 			name = Release;
 		};
-		B10000000000000000000003 /* Debug */ = {
+		D10000000000000000000003 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 12;
 				DEVELOPMENT_TEAM = K853LKQLAS;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = NOBS/Info.plist;
@@ -313,7 +382,7 @@
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.nobsdash.nobs;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -322,12 +391,13 @@
 			};
 			name = Debug;
 		};
-		B10000000000000000000004 /* Release */ = {
+		D10000000000000000000004 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_IDENTITY = "Apple Distribution";
 				CODE_SIGN_STYLE = Manual;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 12;
 				DEVELOPMENT_TEAM = K853LKQLAS;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = NOBS/Info.plist;
@@ -341,7 +411,7 @@
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				MARKETING_VERSION = 0.1.0;
+				MARKETING_VERSION = 3.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.nobsdash.nobs;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SWIFT_EMIT_LOC_STRINGS = YES;
@@ -350,7 +420,7 @@
 			};
 			name = Release;
 		};
-		D80000000000000000000001 /* Debug */ = {
+		F80000000000000000000001 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
@@ -374,7 +444,7 @@
 			};
 			name = Debug;
 		};
-		D80000000000000000000002 /* Release */ = {
+		F80000000000000000000002 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
@@ -404,8 +474,8 @@
 		A90000000000000000000001 /* Build configuration list for PBXProject "NOBS" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				B10000000000000000000001 /* Debug */,
-				B10000000000000000000002 /* Release */,
+				D10000000000000000000001 /* Debug */,
+				D10000000000000000000002 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -413,17 +483,17 @@
 		A90000000000000000000002 /* Build configuration list for PBXNativeTarget "NOBS" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				B10000000000000000000003 /* Debug */,
-				B10000000000000000000004 /* Release */,
+				D10000000000000000000003 /* Debug */,
+				D10000000000000000000004 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		D90000000000000000000001 /* Build configuration list for PBXNativeTarget "NOBSTank" */ = {
+		F90000000000000000000001 /* Build configuration list for PBXNativeTarget "NOBSTank" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				D80000000000000000000001 /* Debug */,
-				D80000000000000000000002 /* Release */,
+				F80000000000000000000001 /* Debug */,
+				F80000000000000000000002 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

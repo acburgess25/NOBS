@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>NOBS Brand & Partner Logos</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,600&family=Newsreader:opsz,wght@6..72,500;6..72,700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --cream: #f9f7f1;
+      --ink: #1e2b22;
+      --muted: #5c6b5f;
+      --sage: #4f6e33;
+      --sage-light: #e8efe0;
+      --card: #fff;
+      --border: rgba(30, 43, 34, 0.1);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "DM Sans", system-ui, sans-serif;
+      background: var(--cream);
+      color: var(--ink);
+      line-height: 1.5;
+    }
+    header {
+      padding: 48px 32px 32px;
+      border-bottom: 1px solid var(--border);
+      background: linear-gradient(180deg, #fff 0%, var(--cream) 100%);
+    }
+    h1, h2, h3 {
+      font-family: Newsreader, Georgia, serif;
+      font-weight: 700;
+      margin: 0 0 12px;
+    }
+    h1 { font-size: clamp(2rem, 5vw, 3rem); }
+    h2 { font-size: 1.5rem; margin-top: 48px; }
+    .lede { max-width: 62ch; color: var(--muted); font-size: 1.05rem; }
+    main { max-width: 1200px; margin: 0 auto; padding: 32px; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 16px;
+      margin-top: 20px;
+    }
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px 16px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      min-height: 160px;
+      justify-content: center;
+    }
+    .card img, .card .logo-svg {
+      width: 56px;
+      height: 56px;
+      object-fit: contain;
+    }
+    .card.nobs-primary img {
+      width: 96px;
+      height: 96px;
+      border-radius: 22%;
+      box-shadow: 0 8px 24px rgba(30, 43, 34, 0.12);
+    }
+    .card strong { font-size: 0.95rem; }
+    .card span { font-size: 0.8rem; color: var(--muted); }
+    .swatches {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 16px;
+    }
+    .swatch {
+      flex: 1 1 140px;
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      background: var(--card);
+    }
+    .swatch .chip { height: 72px; }
+    .swatch div:last-child { padding: 10px 12px; font-size: 0.82rem; }
+    .swatch code { display: block; color: var(--muted); margin-top: 4px; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+      margin-top: 16px;
+      background: var(--card);
+      border-radius: 12px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    th, td {
+      text-align: left;
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border);
+    }
+    th { background: var(--sage-light); font-weight: 600; }
+    tr:last-child td { border-bottom: 0; }
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      background: var(--sage-light);
+      color: var(--sage);
+    }
+    .badge.shipped { background: #e0f0e4; color: #2d5a3d; }
+    .badge.next { background: #f5f0e0; color: #7a6520; }
+    footer {
+      margin-top: 64px;
+      padding: 24px 32px 48px;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+    a { color: var(--sage); }
+  </style>
+</head>
+<body>
+  <header>
+    <p class="badge">Internal reference</p>
+    <h1>NOBS brand & partner logos</h1>
+    <p class="lede">Every logo, color, and store asset in one board. Use official vendor marks per their guidelines before public marketing.</p>
+  </header>
+
+  <main>
+    <section>
+      <h2>NOBS</h2>
+      <div class="grid">
+        <div class="card nobs-primary">
+          <img src="../NOBS/Assets.xcassets/AppIcon.appiconset/icon-ios-marketing-1024x1024@1x.png" alt="NOBS app icon" />
+          <strong>NOBS</strong>
+          <span>App icon · Process Green</span>
+        </div>
+        <div class="card">
+          <img src="nobs-brand-guide.png" alt="Brand guide" style="width:120px;height:auto;border-radius:8px;" />
+          <strong>Brand guide</strong>
+          <span>design/nobs-brand-guide.png</span>
+        </div>
+      </div>
+
+      <h3 style="margin-top:28px;font-family:Newsreader,serif;">Brand colors</h3>
+      <div class="swatches">
+        <div class="swatch"><div class="chip" style="background:#103449"></div><div><strong>Deep Obsidian</strong><code>#103449</code></div></div>
+        <div class="swatch"><div class="chip" style="background:#0B2560"></div><div><strong>Dark Moss</strong><code>#0B2560</code></div></div>
+        <div class="swatch"><div class="chip" style="background:#99DEBE"></div><div><strong>Process Green</strong><code>#99DEBE</code></div></div>
+        <div class="swatch"><div class="chip" style="background:#FFF7AC;border-bottom:1px solid var(--border)"></div><div><strong>Ivory Chalk</strong><code>#FFF7AC</code></div></div>
+      </div>
+
+      <h3 style="margin-top:28px;font-family:Newsreader,serif;">Typography</h3>
+      <p><strong style="font-family:Newsreader,serif;font-size:1.8rem;">NOBS</strong> — serif headlines / wordmark<br />
+      <strong>DM Sans</strong> — UI and body copy</p>
+      <p style="color:var(--muted)">Tagline: <em>Your technology. Finally working for you.</em></p>
+    </section>
+
+    <section>
+      <h2>Ecosystem & partners</h2>
+      <div class="grid">
+        <div class="card"><img class="logo-svg" src="https://cdn.simpleicons.org/apple/000000" alt="Apple" /><strong>Apple</strong><span>iOS · Sign in with Apple · EventKit</span></div>
+        <div class="card"><img class="logo-svg" src="https://cdn.simpleicons.org/google/4285F4" alt="Google" /><strong>Google</strong><span>Future assistant surface</span></div>
+        <div class="card"><img class="logo-svg" src="https://cdn.simpleicons.org/amazon/FF9900" alt="Amazon" /><strong>Amazon / Alexa</strong><span>Future voice surface</span></div>
+        <div class="card"><img class="logo-svg" src="https://cdn.simpleicons.org/github/181717" alt="GitHub" /><strong>GitHub</strong><span>Sync · CI · open dev</span></div>
+        <div class="card"><img class="logo-svg" src="https://cdn.simpleicons.org/cloudflare/F38020" alt="Cloudflare" /><strong>Cloudflare</strong><span>nobsdash tunnel</span></div>
+        <div class="card"><img class="logo-svg" src="https://cdn.simpleicons.org/homeassistant/41BDF5" alt="Home Assistant" /><strong>Home Assistant</strong><span>Smart home (Tank)</span></div>
+        <div class="card"><img class="logo-svg" src="https://cdn.simpleicons.org/ollama/000000" alt="Ollama" /><strong>Ollama</strong><span>Local models on Tank</span></div>
+        <div class="card"><img class="logo-svg" src="https://cdn.simpleicons.org/ubuntu/E95420" alt="Ubuntu" /><strong>Ubuntu</strong><span>Tank host OS</span></div>
+        <div class="card"><img class="logo-svg" src="https://cdn.simpleicons.org/python/3776AB" alt="Python" /><strong>Python</strong><span>FastAPI backend</span></div>
+        <div class="card"><img class="logo-svg" src="https://cdn.simpleicons.org/fastapi/009688" alt="FastAPI" /><strong>FastAPI</strong><span>Tank API</span></div>
+        <div class="card"><img class="logo-svg" src="https://cdn.simpleicons.org/swift/F05138" alt="Swift" /><strong>Swift / SwiftUI</strong><span>iPhone app</span></div>
+        <div class="card"><img class="logo-svg" src="https://cdn.simpleicons.org/docker/2496ED" alt="Docker" /><strong>Docker</strong><span>Optional services</span></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>App Store & TestFlight</h2>
+      <table>
+        <thead>
+          <tr><th>Asset</th><th>Spec</th><th>Status</th><th>Path</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>App icon</td><td>1024×1024 PNG</td><td><span class="badge shipped">Ready</span></td><td>NOBS/Assets.xcassets/AppIcon.appiconset/</td></tr>
+          <tr><td>iPhone screenshots</td><td>6.7" 1290×2796</td><td><span class="badge shipped">Captures exist</span></td><td>outputs/device-hub-live-audit/</td></tr>
+          <tr><td>iPad screenshots</td><td>12.9" 2048×2732</td><td><span class="badge shipped">Captures exist</span></td><td>outputs/device-hub-qa/</td></tr>
+          <tr><td>Export compliance</td><td>ITSAppUsesNonExemptEncryption</td><td><span class="badge shipped">false</span></td><td>NOBS/Info.plist</td></tr>
+          <tr><td>Marketing version</td><td>3.0 (11)</td><td><span class="badge shipped">Uploaded</span></td><td>NOBS.xcodeproj</td></tr>
+          <tr><td>Social / OG image</td><td>1200×630</td><td><span class="badge next">TODO</span></td><td>design/</td></tr>
+          <tr><td>Favicon</td><td>32×32, 180×180</td><td><span class="badge next">TODO</span></td><td>website/public/</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>Screenshots on disk</h2>
+      <div class="grid">
+        <div class="card"><img src="../outputs/device-hub-live-audit/01-onboarding-start.png" alt="" style="width:72px;height:auto;border-radius:6px;" /><strong>Onboarding</strong><span>device-hub-live-audit</span></div>
+        <div class="card"><img src="../outputs/device-hub-live-audit/05-phone-tank-chat.png" alt="" style="width:72px;height:auto;border-radius:6px;" /><strong>Tank chat</strong><span>device-hub-live-audit</span></div>
+        <div class="card"><img src="../outputs/dashboard-qa/dashboard-light.png" alt="" style="width:72px;height:auto;border-radius:6px;" /><strong>Dashboard</strong><span>dashboard-qa</span></div>
+        <div class="card"><img src="../website/qa-hero.png" alt="" style="width:72px;height:auto;border-radius:6px;" /><strong>Website hero</strong><span>website/qa-hero.png</span></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Official brand links</h2>
+      <table>
+        <tbody>
+          <tr><td>Apple</td><td><a href="https://developer.apple.com/app-store/marketing/guidelines/">App Store marketing guidelines</a></td></tr>
+          <tr><td>Google</td><td><a href="https://about.google/brand-resource-center/">Brand resource center</a></td></tr>
+          <tr><td>GitHub</td><td><a href="https://github.com/logos">Logos & trademarks</a></td></tr>
+          <tr><td>Cloudflare</td><td><a href="https://www.cloudflare.com/trademark/">Trademark policy</a></td></tr>
+          <tr><td>Home Assistant</td><td><a href="https://www.home-assistant.io/branding/">Branding</a></td></tr>
+          <tr><td>Ubuntu</td><td><a href="https://design.ubuntu.com/brand/">Brand assets</a></td></tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+
+  <footer>
+  Internal use only. Third-party logos are trademarks of their respective owners. See <a href="BRAND_ASSETS.md">BRAND_ASSETS.md</a> for paths and regeneration commands.
+  </footer>
+</body>
+</html>

@@ -13,6 +13,7 @@ import httpx
 from app.agent_store import AgentStore
 from app.agent_tools import ToolRegistry
 from app.config import Settings
+from app.networking import local_lan_ip
 
 
 async def build_dashboard_status(
@@ -21,6 +22,7 @@ async def build_dashboard_status(
     tools: ToolRegistry,
     process_started_at: float,
     transport: httpx.AsyncBaseTransport | None = None,
+    device_token: str | None = None,
 ) -> dict[str, Any]:
     system = _system_status(settings.agent_workspace_path, process_started_at)
     ollama = await _ollama_status(settings, transport)
@@ -77,6 +79,7 @@ async def build_dashboard_status(
     agent_for_frontend["pending_approvals"] = frontend_pending
 
     gpu_status = _gpu_status()
+    pairing = _pairing_payload(device_token)
     return {
         "generated_at": datetime.now(UTC).isoformat(),
         "display_name": settings.dashboard_name,
@@ -90,6 +93,17 @@ async def build_dashboard_status(
         "attention": attention,
         "privacy": "Room-safe summary only. No conversations or private event details are shown.",
         "gpu": gpu_status,
+        "pairing": pairing,
+    }
+
+
+def _pairing_payload(device_token: str | None) -> dict[str, str] | None:
+    if not device_token:
+        return None
+    ip = local_lan_ip()
+    return {
+        "url": f"http://{ip}:8000",
+        "token": device_token,
     }
 
 
