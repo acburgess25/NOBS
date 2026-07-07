@@ -2,7 +2,6 @@ import SwiftUI
 
 struct ConversationView: View {
     @EnvironmentObject private var model: AppModel
-    @AppStorage("nobs.onboarding.complete") private var onboardingComplete = false
     @State private var draft = ""
     @State private var selectedReceipt: PrivacyReceipt?
     @State private var showNavigation = false
@@ -15,22 +14,36 @@ struct ConversationView: View {
     var body: some View {
         ZStack {
             canvas.ignoresSafeArea()
-            if onboardingComplete {
-                mainContent
+            if model.needsOnboarding {
+                OnboardingView(onComplete: { model.completeOnboarding() })
             } else {
-                OnboardingView(onComplete: { onboardingComplete = true })
+                mainContent
             }
         }
         .task { await model.start() }
+        .onChange(of: model.needsOnboarding) { _, needsOnboarding in
+            guard !needsOnboarding, let prompt = model.consumePendingChatPrompt() else { return }
+            draft = prompt
+        }
+        .onChange(of: model.pendingChatPrompt) { _, prompt in
+            guard let prompt, !prompt.isEmpty else { return }
+            draft = prompt
+        }
         .onOpenURL { url in
-            model.section = .privacy
-            model.applyTankPayload(from: url)
-            Task { await model.saveTankConnection() }
+            model.handleDeepLink(url)
         }
         .sheet(isPresented: $showNavigation) { navigationSheet }
         .sheet(item: $selectedReceipt) { receipt in
             PrivacyReceiptView(receipt: receipt)
                 .presentationDetents([.medium])
+        }
+        .sheet(isPresented: $model.showConflictSheet) {
+            if let conflict = model.clarifyingConflict {
+                ConflictResolutionSheet(conflict: conflict) { option in
+                    model.resolveConflict(choosing: option)
+                }
+                .presentationDetents([.medium])
+            }
         }
         .alert("NOBS", isPresented: Binding(
             get: { model.lastError != nil },
@@ -138,11 +151,9 @@ struct ConversationView: View {
 
     private var welcome: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Good \(dayPart).")
+            Text(model.personalizedDayPartGreeting)
                 .font(.system(size: 30, weight: .regular, design: .serif))
-            Text(model.tankAvailable
-                 ? "Tank is connected. Ask me something, or let's make today realistic."
-                 : "I'm working locally. Calendar planning still works; Tank chat will reconnect when available.")
+            Text(welcomeDetail)
                 .foregroundStyle(.secondary)
                 .lineSpacing(3)
             Button {
@@ -250,18 +261,17 @@ struct ConversationView: View {
         .presentationDetents([.medium, .large])
     }
 
+    private var welcomeDetail: String {
+        if model.tankAvailable {
+            return "Tank is connected. Ask me something, or let's make today realistic."
+        }
+        return "I'm working locally. Calendar planning still works; Tank chat will reconnect when available."
+    }
+
     private func sendDraft() {
         let text = draft
         draft = ""
         Task { await model.send(text) }
-    }
-
-    private var dayPart: String {
-        switch Calendar.current.component(.hour, from: Date()) {
-        case 5..<12: "morning"
-        case 12..<18: "afternoon"
-        default: "evening"
-        }
     }
 }
 

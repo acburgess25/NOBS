@@ -1,6 +1,6 @@
 # NOBS Current State
 
-**Last updated:** July 6, 2026 (P0 integration fixes)
+**Last updated:** July 6, 2026 (Tier 1 PR D — App Intents + Siri)
 **Purpose:** Tool-neutral handoff for any contributor entering without prior chat history.
 
 This records implementation state, not product direction. [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md) remains the approved product source of truth. Verify the branch, tests, and live services before treating deployment facts as current.
@@ -10,6 +10,16 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 ### Apple app
 
 - SwiftUI conversation-first prototype with onboarding and focused Chat, Today, Memory, Activity, Home, and Privacy surfaces.
+- Conversational onboarding collects name, mental-load sources, working hours, proactivity level, and one immediate problem before optional Sign in with Apple.
+- `UserProfile` persisted locally (App Group `group.com.nobsdash.nobs` with Application Support fallback) drives personalized greetings and proactivity defaults.
+- `BriefingSnapshot` written to shared storage after briefing generation for upcoming WidgetKit work.
+- Home Screen and Lock Screen **Today's plan** widget (`NOBSWidgets` extension) reads `widget-snapshot.json` offline; tap opens `nobs://today`.
+- Widget timelines reload when briefings update; cached briefing restores on app launch.
+- Focus-aware briefings use system Focus status (`INFocusStatusCenter`) for concise toplines, business-first priorities, and suppressed proactive notifications.
+- One clarifying-question local notification per day when proactivity is not Quiet; overlap actions open chat without silent calendar edits.
+- Today highlights the clarifying question when notifications are denied; `ConflictResolutionSheet` supports overlap resolution.
+- Siri and Shortcuts expose four App Intents: Prepare my day, Explain schedule, Ask NOBS, Show privacy receipt — with App Group cache fallback when the app is not running.
+- `nobs://` deep links route to Today, Chat (with optional prompt), Privacy, and Tank pairing.
 - Local EventKit calendar permission flow and same-day event display.
 - EventKit calendar and reminders sync to Tank (`/sync/calendar`, `/sync/reminders`) using the same Keychain-backed device-token auth as chat.
 - Configurable Tank address, KeychainAccess-backed device token storage, and

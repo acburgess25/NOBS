@@ -55,7 +55,22 @@ struct TodayView: View {
                 briefingListSection("Conflicts or risks", items: briefing.conflictsOrRisks)
                 briefingListSection("Recommended plan", items: briefing.recommendedPlan)
                 if let question = briefing.oneUsefulQuestion, !question.isEmpty {
-                    briefingParagraph("One useful question", text: question)
+                    VStack(alignment: .leading, spacing: 6) {
+                        briefingParagraph("One useful question", text: question)
+                        if model.highlightClarifyingQuestion {
+                            Text("Notifications are off — answer here when you have a moment.")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(accent)
+                                .padding(10)
+                                .background(Color.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
+                        }
+                        if model.clarifyingConflict != nil {
+                            Button("Resolve overlap") {
+                                model.showConflictSheet = true
+                            }
+                            .font(.caption.weight(.semibold))
+                        }
+                    }
                 }
                 briefingListSection("Suggested next actions", items: briefing.suggestedNextActions)
                 HStack(spacing: 10) {

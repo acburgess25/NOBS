@@ -249,6 +249,12 @@ This combination is the moat: NOBS should feel like the operating system got sma
 
 This file defines **Apple framework integration strategy**.
 
+For a ranked backlog focused on average-user value and per-user adaptation, see:
+- [`docs/APPLE_PLATFORM_BRAINSTORM.md`](APPLE_PLATFORM_BRAINSTORM.md)
+
+For Tier 1 implementation detail (onboarding, widgets, Siri, Focus, notifications), see:
+- [`docs/TIER1_APPLE_SLICE_SPEC.md`](TIER1_APPLE_SLICE_SPEC.md)
+
 For build sequencing and backend implementation details, see:
 - [`docs/NOBS_TANK_BUILD.md`](NOBS_TANK_BUILD.md)
 - [`docs/PRD.md`](PRD.md)

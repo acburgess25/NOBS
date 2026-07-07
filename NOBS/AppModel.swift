@@ -1,9 +1,13 @@
 import Combine
 @preconcurrency import EventKit
 import Foundation
+import UserNotifications
 
 @MainActor
 final class AppModel: ObservableObject {
+    /// Set from the running app so App Intents can reach live state. Intents fall back to App Group cache when nil.
+    static weak var shared: AppModel?
+
     @Published var section: AppSection = .chat
     @Published var entries: [ConversationEntry] = []
     @Published var events: [DayEvent] = []
@@ -34,11 +38,20 @@ final class AppModel: ObservableObject {
     @Published var approvalsFetchState: TankFetchState = .idle
     @Published var proposalsFetchState: TankFetchState = .idle
     @Published var schedulesFetchState: TankFetchState = .idle
+    @Published var profile: UserProfile = UserProfile()
+    @Published var pendingChatPrompt: String?
+    @Published var clarifyingConflict: ClarifyingConflict?
+    @Published var showConflictSheet = false
+    @Published var highlightClarifyingQuestion = false
+    @Published var notificationAuthorizationStatus: UNAuthorizationStatus = .notDetermined
 
     var appleUserID: String? { TankConfiguration.savedAppleUserID }
 
     private let calendar = CalendarService()
     private let tank = TankClient()
+    private let profileStore = UserProfileStore()
+    private let briefingSnapshotWriter = BriefingSnapshotWriter()
+    private let focusContext = FocusContextService()
     private var refreshTask: Task<Void, Never>?
 
     var activeRoute: ProcessingRoute { tankAvailable ? .tank : .local }
@@ -56,11 +69,38 @@ final class AppModel: ObservableObject {
         proposals.filter { $0.status == "pending" }.count
     }
 
+    var needsOnboarding: Bool {
+        !profile.isOnboardingComplete
+    }
+
+    var personalizedDayPartGreeting: String {
+        let part: String
+        switch Calendar.current.component(.hour, from: Date()) {
+        case 5..<12: part = "morning"
+        case 12..<18: part = "afternoon"
+        default: part = "evening"
+        }
+        if let name = profile.greetingName {
+            return "Good \(part), \(name)."
+        }
+        return "Good \(part)."
+    }
+
     deinit {
         refreshTask?.cancel()
     }
 
     func start() async {
+        profile = profileStore.load()
+        if briefing == nil, let cached: DailyBriefing = try? AppGroupStore.readJSON(DailyBriefing.self, from: AppGroupStore.latestBriefingFile) {
+            briefing = cached
+            clarifyingConflict = cached.clarifyingConflict
+            persistBriefingSnapshot()
+        }
+        if clarifyingConflict == nil {
+            clarifyingConflict = try? AppGroupStore.readJSON(ClarifyingConflict.self, from: AppGroupStore.clarifyingConflictFile)
+        }
+        notificationAuthorizationStatus = await NotificationScheduler.refreshAuthorizationStatus()
         async let health: Void = refreshTankStatus()
         async let approvals: Void = loadApprovals()
         async let proposals: Void = loadProposals()
@@ -214,6 +254,139 @@ final class AppModel: ObservableObject {
         }
     }
 
+    func handleDeepLink(_ url: URL) {
+        guard let destination = DeepLinkRouter.destination(for: url) else { return }
+        switch destination {
+        case .today:
+            section = .today
+        case .chat(let prompt):
+            section = .chat
+            if let prompt, !prompt.isEmpty {
+                pendingChatPrompt = prompt
+            }
+        case .privacy:
+            section = .privacy
+        case .conflict:
+            section = .today
+            if clarifyingConflict != nil {
+                showConflictSheet = true
+            } else {
+                pendingChatPrompt = "Help me resolve today's schedule conflict."
+                section = .chat
+            }
+        case .tankPairing(let pairingURL):
+            section = .privacy
+            applyTankPayload(from: pairingURL)
+            Task { await saveTankConnection() }
+        }
+    }
+
+    func handleDeepLink(chatPrompt: String) {
+        section = .chat
+        if !chatPrompt.isEmpty {
+            pendingChatPrompt = chatPrompt
+        }
+    }
+
+    func resolveConflict(choosing option: ClarifyingConflict.Option) {
+        showConflictSheet = false
+        handleDeepLink(chatPrompt: "Help me keep \(option.label) as must-attend for today's overlap.")
+    }
+
+    func consumePendingChatPrompt() -> String? {
+        defer { pendingChatPrompt = nil }
+        return pendingChatPrompt
+    }
+
+    func updateProfile(_ update: (inout UserProfile) -> Void) {
+        update(&profile)
+        persistProfile()
+    }
+
+    func completeOnboarding() {
+        updateProfile { profile in
+            profile.onboardingCompletedAt = Date()
+        }
+        seedPostOnboardingChatIfNeeded()
+    }
+
+    private func persistProfile() {
+        do {
+            try profileStore.save(profile)
+        } catch {
+            lastError = "Your preferences could not be saved on this iPhone."
+        }
+    }
+
+    private func seedPostOnboardingChatIfNeeded() {
+        guard entries.isEmpty else { return }
+        if let problem = profile.immediateProblem?.trimmingCharacters(in: .whitespacesAndNewlines), !problem.isEmpty {
+            entries.append(
+                ConversationEntry(
+                    role: .assistant,
+                    text: "You mentioned \"\(problem).\" Want me to draft a plan? Open Today when you're ready to connect your calendar — I'll ask only when it's useful.",
+                    route: .local,
+                    receipt: .localOnly
+                )
+            )
+        }
+    }
+
+    private func persistBriefingSnapshot() {
+        briefingSnapshotWriter.write(from: briefing)
+        if let conflict = briefing?.clarifyingConflict ?? clarifyingConflict {
+            clarifyingConflict = conflict
+            try? AppGroupStore.writeJSON(conflict, to: AppGroupStore.clarifyingConflictFile)
+        }
+    }
+
+    private func scheduleClarifyingNotificationIfNeeded() async {
+        let snapshot = focusContext.currentSnapshot()
+        let allows = focusContext.allowsProactiveNotifications(profile: profile, snapshot: snapshot)
+        notificationAuthorizationStatus = await NotificationScheduler.refreshAuthorizationStatus()
+
+        guard let question = briefing?.oneUsefulQuestion, !question.isEmpty else {
+            highlightClarifyingQuestion = false
+            await NotificationScheduler.cancelClarifyingNotification()
+            return
+        }
+
+        if !allows {
+            highlightClarifyingQuestion = true
+            await NotificationScheduler.cancelClarifyingNotification()
+            return
+        }
+
+        let scheduled = await NotificationScheduler.scheduleClarifyingNotification(
+            question: question,
+            conflict: clarifyingConflict ?? briefing?.clarifyingConflict,
+            allowsSchedule: allows
+        )
+        highlightClarifyingQuestion = !scheduled && notificationAuthorizationStatus == .denied
+        if scheduled {
+            logActivity("Clarifying question surfaced")
+        }
+    }
+
+    private func maybeOfferFocusMismatchPrompt() {
+        let key = "nobs.focusMismatchOffered"
+        guard !UserDefaults.standard.bool(forKey: key) else { return }
+        let snapshot = focusContext.currentSnapshot()
+        guard snapshot.isFocusActive else { return }
+        let personal = events.filter { $0.context == .personal }.count
+        let business = events.filter { $0.context == .business }.count
+        guard personal > business, personal >= 2 else { return }
+        UserDefaults.standard.set(true, forKey: key)
+        entries.append(
+            ConversationEntry(
+                role: .assistant,
+                text: "You're in Focus mode but most of today's load looks personal. Want me to stay concise and work-focused anyway? Reply \"stay work focused\" or \"keep personal priority\".",
+                route: .local,
+                receipt: .localOnly
+            )
+        )
+    }
+
     func saveTankConnection() async {
         guard let url = TankConfiguration.normalizedURL(from: tankAddress) else {
             lastError = "Enter a valid Tank address beginning with http:// or https://."
@@ -280,20 +453,44 @@ final class AppModel: ObservableObject {
         defer { isGeneratingBriefing = false }
         let local = generateOnDeviceBriefing()
         briefing = local
+        clarifyingConflict = local.clarifyingConflict
+        persistBriefingSnapshot()
         activity.insert("Created an on-device morning briefing", at: 0)
 
-        guard tankAvailable else { return }
-        do {
-            briefing = try await tank.createBriefing(events: events, reminders: reminders)
-            logActivity("Tank refined your morning briefing with synced context")
-        } catch {
-            if shouldMarkTankUnavailable(for: error) {
-                tankAvailable = false
-                lastError = "Tank went offline while creating the briefing. Your calendar remains available locally."
-            } else {
-                lastError = "Tank could not create the briefing. Your calendar remains available locally."
+        if tankAvailable {
+            do {
+                let tankBriefing = try await tank.createBriefing(events: events, reminders: reminders)
+                briefing = mergeTankBriefing(tankBriefing, preserving: local.clarifyingConflict)
+                persistBriefingSnapshot()
+                logActivity("Tank refined your morning briefing with synced context")
+            } catch {
+                if shouldMarkTankUnavailable(for: error) {
+                    tankAvailable = false
+                    lastError = "Tank went offline while creating the briefing. Your calendar remains available locally."
+                } else {
+                    lastError = "Tank could not create the briefing. Your calendar remains available locally."
+                }
             }
         }
+
+        maybeOfferFocusMismatchPrompt()
+        await scheduleClarifyingNotificationIfNeeded()
+    }
+
+    private func mergeTankBriefing(_ tank: DailyBriefing, preserving conflict: ClarifyingConflict?) -> DailyBriefing {
+        DailyBriefing(
+            date: tank.date,
+            topline: applyFocusToTopline(tank.topline),
+            priorities: tank.priorities,
+            conflictsOrRisks: tank.conflictsOrRisks,
+            recommendedPlan: tank.recommendedPlan,
+            oneUsefulQuestion: tank.oneUsefulQuestion ?? briefing?.oneUsefulQuestion,
+            suggestedNextActions: tank.suggestedNextActions,
+            generatedAt: tank.generatedAt,
+            route: tank.route,
+            privacyReceipt: tank.privacyReceipt,
+            clarifyingConflict: conflict
+        )
     }
 
     func loadApprovals() async {
@@ -535,7 +732,36 @@ final class AppModel: ObservableObject {
         let normalized = text.lowercased()
         let response: String
 
-        if normalized.contains("calendar") || normalized.contains("today") || normalized.contains("agenda") {
+        if normalized.contains("reset focus") {
+            updateProfile { $0.focusPolicies = [] }
+            response = "Focus behavior reset. I'll use standard planning unless you teach me another preference."
+        } else if normalized.contains("stay work focused") {
+            updateProfile { profile in
+                profile.focusPolicies = [
+                    FocusPolicy(
+                        focusIdentifier: FocusContextService.systemFocusIdentifier,
+                        displayName: "Focus",
+                        responseStyle: .concise,
+                        allowProactiveNotifications: false,
+                        preferredContext: .business
+                    ),
+                ]
+            }
+            response = "Got it — I'll stay concise and work-focused while Focus is on."
+        } else if normalized.contains("keep personal priority") {
+            updateProfile { profile in
+                profile.focusPolicies = [
+                    FocusPolicy(
+                        focusIdentifier: FocusContextService.systemFocusIdentifier,
+                        displayName: "Focus",
+                        responseStyle: .standard,
+                        allowProactiveNotifications: false,
+                        preferredContext: .personal
+                    ),
+                ]
+            }
+            response = "Understood — I'll keep personal priorities visible even during Focus."
+        } else if normalized.contains("calendar") || normalized.contains("today") || normalized.contains("agenda") {
             if hasCalendarAccess {
                 response = localAgendaSummary
             } else {
@@ -543,6 +769,8 @@ final class AppModel: ObservableObject {
             }
         } else if normalized.contains("google") || normalized.contains("alexa") {
             response = "Google Home and Alexa unification is coming soon. Today I can help you design the routine without claiming it has run."
+        } else if focusContext.shouldUseTomorrowFraming(profile: profile) {
+            response = "Tank is unavailable, so I kept this local. We can pick this up tomorrow — open Today if you want to preview the day."
         } else {
             response = "Tank is unavailable, so I kept this request local. I can still help with your calendar and planning; open Privacy to see exactly what was used."
         }
@@ -595,6 +823,7 @@ final class AppModel: ObservableObject {
         let formatter = DateFormatter()
         formatter.timeStyle = .short
         let contextCounts = Dictionary(grouping: events, by: \.context).mapValues(\.count)
+        let conflict = buildClarifyingConflict()
 
         let topline: String = {
             if events.isEmpty && reminders.isEmpty {
@@ -611,7 +840,7 @@ final class AppModel: ObservableObject {
 
         let priorities = buildPriorities(formatter: formatter)
         let recommendedPlan = buildRecommendedPlan(formatter: formatter)
-        let question = buildClarifyingQuestion(formatter: formatter)
+        let question = conflict?.question ?? buildClarifyingQuestion(formatter: formatter)
         let actions = buildSuggestedActions(formatter: formatter, risks: risks)
 
         let dateFormatter = DateFormatter()
@@ -620,7 +849,7 @@ final class AppModel: ObservableObject {
 
         return DailyBriefing(
             date: dateFormatter.string(from: .now),
-            topline: topline,
+            topline: applyFocusToTopline(topline),
             priorities: priorities,
             conflictsOrRisks: risks.isEmpty ? ["No major schedule collisions detected."] : risks,
             recommendedPlan: recommendedPlan,
@@ -632,17 +861,42 @@ final class AppModel: ObservableObject {
                 used: [
                     "\(events.count) visible calendar event\(events.count == 1 ? "" : "s")",
                     "\(reminders.count) local reminder\(reminders.count == 1 ? "" : "s")",
+                    focusContext.currentSnapshot().isFocusActive ? "Focus mode" : "standard mode",
                 ],
                 processed: "Local on this iPhone",
                 shared: [],
                 changed: []
-            )
+            ),
+            clarifyingConflict: conflict
         )
+    }
+
+    private func applyFocusToTopline(_ topline: String) -> String {
+        if focusContext.effectiveResponseStyle(profile: profile) == .concise, topline.count > 120 {
+            return String(topline.prefix(117)) + "..."
+        }
+        return topline
+    }
+
+    private func buildClarifyingConflict() -> ClarifyingConflict? {
+        for (current, next) in zip(events, events.dropFirst()) where current.end > next.start {
+            return ClarifyingConflict(
+                question: "You have overlap between \(current.title) and \(next.title). Which one is must-attend?",
+                optionA: .init(id: "a", label: current.title, eventID: current.id),
+                optionB: .init(id: "b", label: next.title, eventID: next.id)
+            )
+        }
+        return nil
     }
 
     private func buildPriorities(formatter: DateFormatter) -> [String] {
         let importantWords = ["deadline", "interview", "presentation", "review", "flight", "doctor", "launch"]
+        let preferredContext = focusContext.preferredContext(profile: profile)
         let rankedEvents = events.sorted { lhs, rhs in
+            if let preferredContext {
+                if lhs.context == preferredContext && rhs.context != preferredContext { return true }
+                if rhs.context == preferredContext && lhs.context != preferredContext { return false }
+            }
             let lhsImportant = importantWords.contains { lhs.title.lowercased().contains($0) }
             let rhsImportant = importantWords.contains { rhs.title.lowercased().contains($0) }
             if lhsImportant != rhsImportant { return lhsImportant }
@@ -750,5 +1004,99 @@ final class AppModel: ObservableObject {
 
     private func contextLabel(_ context: BriefingContextBucket) -> String {
         context.title
+    }
+
+    func prepareDayIntentDialog() async -> String {
+        if needsOnboarding {
+            return "Finish NOBS onboarding in the app first."
+        }
+        if !hasCalendarAccess {
+            if calendarStatus == .notDetermined {
+                await requestCalendarAccess()
+            }
+            if !hasCalendarAccess {
+                return "I need Calendar access to build a real plan. Open Today in NOBS when you're ready."
+            }
+        }
+
+        await refreshTankStatus()
+        await loadToday()
+        if hasReminderReadAccess {
+            await loadReminders()
+        }
+
+        let today = currentDayStamp()
+        if briefing?.date != today {
+            await generateBriefing()
+        } else if briefing == nil {
+            await generateBriefing()
+        }
+
+        guard let briefing else {
+            return "I couldn't build a briefing right now. Open Today in NOBS."
+        }
+        return AppIntentSupport.formatPrepareDay(briefing)
+    }
+
+    func explainScheduleIntentDialog() async -> String {
+        if needsOnboarding {
+            return "Finish NOBS onboarding in the app first."
+        }
+
+        if let briefing {
+            return AppIntentSupport.formatExplainSchedule(briefing)
+        }
+
+        if !hasCalendarAccess {
+            return "Open Today in NOBS and connect your calendar to scan for unrealistic days."
+        }
+
+        await loadToday()
+        let risks = detectBriefingRisks()
+        if risks.isEmpty {
+            return "Nothing unrealistic stood out from today's calendar. Processed on this iPhone."
+        }
+        return "\(risks.prefix(2).joined(separator: " ")) Processed on this iPhone."
+    }
+
+    func askNOBSIntentDialog(prompt: String) async -> String {
+        if needsOnboarding {
+            return "Finish NOBS onboarding in the app first."
+        }
+
+        section = .chat
+        pendingChatPrompt = prompt
+
+        await refreshTankStatus()
+        if tankAvailable {
+            await send(prompt)
+            if let last = entries.last(where: { $0.role == .assistant }) {
+                let route = last.route.map { AppIntentSupport.routeLabel($0) } ?? "Processed on this iPhone"
+                return "\(last.text) \(route)."
+            }
+        }
+
+        return "Opened NOBS with your question."
+    }
+
+    func showPrivacyReceiptIntentDialog() async -> String {
+        section = .privacy
+
+        if let receipt = briefing?.privacyReceipt {
+            return AppIntentSupport.formatReceipt(receipt)
+        }
+
+        if let receipt = entries.last(where: { $0.receipt != nil })?.receipt {
+            return AppIntentSupport.formatReceipt(receipt)
+        }
+
+        return "Open NOBS Privacy to see what was used and where it was processed."
+    }
+
+    private func currentDayStamp() -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: Date())
     }
 }
