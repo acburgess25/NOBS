@@ -14,6 +14,16 @@
 		A10000000000000000000005 /* ApprovalsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000006 /* ApprovalsView.swift */; };
 		A10000000000000000000006 /* SignInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000007 /* SignInView.swift */; };
 		A10000000000000000000007 /* Color+NOBS.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000008 /* Color+NOBS.swift */; };
+		B10000000000000000000001 /* NOBSModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000001 /* NOBSModels.swift */; };
+		B10000000000000000000002 /* TankConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000002 /* TankConfiguration.swift */; };
+		B10000000000000000000003 /* TankClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000003 /* TankClient.swift */; };
+		B10000000000000000000004 /* CalendarService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000004 /* CalendarService.swift */; };
+		B10000000000000000000005 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000005 /* OnboardingView.swift */; };
+		B10000000000000000000006 /* TodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000006 /* TodayView.swift */; };
+		B10000000000000000000007 /* ActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000007 /* ActivityView.swift */; };
+		B10000000000000000000008 /* PrivacyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000008 /* PrivacyView.swift */; };
+		B10000000000000000000009 /* ComingSoonView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000009 /* ComingSoonView.swift */; };
+		B10000000000000000000010 /* PrivacyReceiptView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000010 /* PrivacyReceiptView.swift */; };
 		C10000000000000000000001 /* KeychainAccess in Frameworks */ = {isa = PBXBuildFile; productRef = C30000000000000000000001 /* KeychainAccess */; };
 		C10000000000000000000002 /* AnyCodable in Frameworks */ = {isa = PBXBuildFile; productRef = C30000000000000000000002 /* AnyCodable */; };
 /* End PBXBuildFile section */
@@ -28,6 +38,16 @@
 		A20000000000000000000007 /* SignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInView.swift; sourceTree = "<group>"; };
 		A20000000000000000000008 /* Color+NOBS.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+NOBS.swift"; sourceTree = "<group>"; };
 		A20000000000000000000009 /* NOBS.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = NOBS.entitlements; sourceTree = "<group>"; };
+		B20000000000000000000001 /* NOBSModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NOBSModels.swift; sourceTree = "<group>"; };
+		B20000000000000000000002 /* TankConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TankConfiguration.swift; sourceTree = "<group>"; };
+		B20000000000000000000003 /* TankClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TankClient.swift; sourceTree = "<group>"; };
+		B20000000000000000000004 /* CalendarService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarService.swift; sourceTree = "<group>"; };
+		B20000000000000000000005 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
+		B20000000000000000000006 /* TodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayView.swift; sourceTree = "<group>"; };
+		B20000000000000000000007 /* ActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityView.swift; sourceTree = "<group>"; };
+		B20000000000000000000008 /* PrivacyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyView.swift; sourceTree = "<group>"; };
+		B20000000000000000000009 /* ComingSoonView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComingSoonView.swift; sourceTree = "<group>"; };
+		B20000000000000000000010 /* PrivacyReceiptView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyReceiptView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -61,9 +81,43 @@
 				A20000000000000000000006 /* ApprovalsView.swift */,
 				A20000000000000000000007 /* SignInView.swift */,
 				A20000000000000000000008 /* Color+NOBS.swift */,
+				B40000000000000000000004 /* Models */,
+				B40000000000000000000005 /* Services */,
+				B40000000000000000000006 /* Views */,
 				A20000000000000000000009 /* NOBS.entitlements */,
 			);
 			path = NOBS;
+			sourceTree = "<group>";
+		};
+		B40000000000000000000004 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				B20000000000000000000001 /* NOBSModels.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		B40000000000000000000005 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				B20000000000000000000002 /* TankConfiguration.swift */,
+				B20000000000000000000003 /* TankClient.swift */,
+				B20000000000000000000004 /* CalendarService.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
+		B40000000000000000000006 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				B20000000000000000000005 /* OnboardingView.swift */,
+				B20000000000000000000006 /* TodayView.swift */,
+				B20000000000000000000007 /* ActivityView.swift */,
+				B20000000000000000000008 /* PrivacyView.swift */,
+				B20000000000000000000009 /* ComingSoonView.swift */,
+				B20000000000000000000010 /* PrivacyReceiptView.swift */,
+			);
+			path = Views;
 			sourceTree = "<group>";
 		};
 		A40000000000000000000003 /* Products */ = {
@@ -157,6 +211,16 @@
 				A10000000000000000000005 /* ApprovalsView.swift in Sources */,
 				A10000000000000000000006 /* SignInView.swift in Sources */,
 				A10000000000000000000007 /* Color+NOBS.swift in Sources */,
+				B10000000000000000000001 /* NOBSModels.swift in Sources */,
+				B10000000000000000000002 /* TankConfiguration.swift in Sources */,
+				B10000000000000000000003 /* TankClient.swift in Sources */,
+				B10000000000000000000004 /* CalendarService.swift in Sources */,
+				B10000000000000000000005 /* OnboardingView.swift in Sources */,
+				B10000000000000000000006 /* TodayView.swift in Sources */,
+				B10000000000000000000007 /* ActivityView.swift in Sources */,
+				B10000000000000000000008 /* PrivacyView.swift in Sources */,
+				B10000000000000000000009 /* ComingSoonView.swift in Sources */,
+				B10000000000000000000010 /* PrivacyReceiptView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
