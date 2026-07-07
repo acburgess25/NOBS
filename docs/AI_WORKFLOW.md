@@ -9,7 +9,8 @@ Before changing code:
 1. Read [`docs/PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md). It is the approved product source of truth.
 2. Read [`docs/CURRENT_STATE.md`](CURRENT_STATE.md) for the implemented-versus-planned boundary.
 3. For iPhone work, read [`docs/IOS_SESSION_HANDOFF.md`](IOS_SESSION_HANDOFF.md).
-4. Read the relevant implementation document under `docs/`.
+4. For smart-home / Google Home work, read [`docs/GOOGLE_HOME_INTEGRATION.md`](GOOGLE_HOME_INTEGRATION.md).
+5. Read the relevant implementation document under `docs/`.
 4. Run `git status --short --branch` and `git pull --ff-only`.
 5. Inspect nearby code and tests before proposing a new pattern.
 6. State the intended files, validation, and branch before making broad changes.

@@ -42,6 +42,7 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 - Today shows a local evening wrap-up after 5pm from calendar, reminders, and briefing context.
 - Shared `NOBSTheme` modifiers (`nobsScreenBackground`, `nobsSectionCard`, `NOBSEmptyState`, `NOBSBetaBadge`) and `Color+NOBS` tokens unify Chat, Today, onboarding, Privacy, Activity, and the briefing widget palette.
 - App Store beta prep: metadata templates in `docs/app-store/`, checklist in `docs/APP_STORE_BETA_CHECKLIST.md`, privacy policy at `website/public/privacy.html`.
+- Smart-home direction documented in `docs/GOOGLE_HOME_INTEGRATION.md` (Home Assistant bridge first; Google Home APIs later).
 
 - iOS 27 simulator build verified with Xcode 27 beta (`scripts/build-ios-simulator.sh` or `CODE_SIGNING_ALLOWED=NO`).
 
@@ -97,7 +98,7 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 - No household identity, subscription, or NOBScloud implementation.
 - No arbitrary MCP server is trusted or installed by the NOBS agent.
 - mDNS (`tank.local`) may not resolve on every LAN; clients can use the Tank host IP directly (for example `http://192.168.1.100:8000`).
-- Physical iPhone validation and TestFlight upload remain pending (simulator build verified; archive requires home signing).
+- Physical iPhone validation and TestFlight upload remain pending (simulator build verified; archive requires home signing). See [`docs/CI_TROUBLESHOOTING.md`](CI_TROUBLESHOOTING.md) for current CI failure modes.
 
 ## Recommended next vertical slice
 
