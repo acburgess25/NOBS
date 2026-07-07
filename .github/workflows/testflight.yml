@@ -37,6 +37,16 @@ jobs:
           p12-file-base64: ${{ secrets.DIST_CERT_P12 }}
           p12-password: ${{ secrets.DIST_CERT_PASSWORD }}
 
+      - name: Prepare signing keychain for headless runner
+        env:
+          KEYCHAIN_PASSWORD: ${{ secrets.DIST_CERT_PASSWORD }}
+        run: |
+          set -euo pipefail
+          keychain="${RUNNER_TEMP}/app-signing.keychain-db"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$keychain"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$keychain"
+          security list-keychains -d user -s "$keychain" "$HOME/Library/Keychains/login.keychain-db"
+
       - name: Install App Store Connect API key
         env:
           ASC_API_KEY_CONTENT: ${{ secrets.ASC_API_KEY_CONTENT }}
@@ -68,6 +78,7 @@ jobs:
             -archivePath "$archive_path" \
             "${auth[@]}" \
             CODE_SIGN_STYLE=Automatic \
+            CODE_SIGN_IDENTITY="Apple Distribution" \
             DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM"
           xcodebuild -exportArchive \
             -archivePath "$archive_path" \
