@@ -141,7 +141,7 @@ final class AppModel: ObservableObject {
         let reachable = await tank.isReachable()
         if !reachable {
             tankConnectStatus = "Tank is not reachable at \(tankAddress)."
-            lastError = "Could not reach Tank. If tank.local does not resolve, enter your Tank IP in Privacy (for example http://192.168.0.59:8000)."
+            lastError = "Could not reach Tank. If tank.local does not resolve, enter your Tank IP in Privacy (for example http://192.168.1.100:8000)."
             return
         }
 

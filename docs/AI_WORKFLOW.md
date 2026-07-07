@@ -115,6 +115,7 @@ Tool-specific memory and chat history are hints, not shared project truth.
 ## Security and Privacy
 
 - Never commit `.env`, keys, tokens, certificates, personal data, production logs, or database files.
+- Before making the repository public, follow [`docs/PUBLIC_RELEASE.md`](PUBLIC_RELEASE.md).
 - Use `.env.example` only for blank or clearly fake values.
 - Treat calendar, messages, contacts, health, location, home, research, and memory as sensitive.
 - Minimize collection and retention.

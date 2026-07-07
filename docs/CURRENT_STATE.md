@@ -71,14 +71,14 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 - Responsive 16:9 and narrow-screen layouts with connection-loss behavior.
 - LIVE on Tank's HDMI display: GNOME minimal desktop + Firefox kiosk autostart, auto-login, survives reboot. GUI session is on tty2 (Ctrl+Alt+F2); text console on tty3.
 
-### Tank host (live deployment facts, July 3 2026)
+### Tank host (reference deployment)
 
-- Ubuntu 24.04, RTX 3060. Wi-Fi wlp5s0 = 192.168.0.59; ethernet enp6s0 also configured (`/etc/netplan/99-rescue.yaml`, renderer forced to networkd after a desktop-install outage).
-- UFW: port 22 open; LAN (192.168.0.0/24) allowed to all ports.
-- systemd user services (linger on): `nobs-api` (:8000), `nobsdash` (:4173), `cloudflared-nobsdash` (public tunnel), `open-webui` (:8080 local AI chat, `~/.openwebui` uv venv).
+- Ubuntu 24.04 homelab host with an NVIDIA GPU for local models.
+- UFW allows SSH and LAN access; Tank API is intended for private-network use.
+- systemd user services (with linger enabled): `nobs-api` (:8000), `nobsdash` (:4173), `cloudflared-nobsdash` (public tunnel), optional `open-webui` (:8080).
 - Ollama models: `qwen3:8b` (app chat), `qwen2.5-coder:14b` (coding).
-- No passwordless sudo; root changes need the console.
-- Repository-standard local AI stack setup scripts are available for Tank and dev hosts (`scripts/setup-local-ai.sh`, `scripts/setup-local-ai.ps1`) plus a tracked Tank `open-webui.service` template under `deploy/tank/`.
+- No passwordless sudo; host administration stays at the console.
+- Repository-standard local AI stack setup scripts are available for Tank and dev hosts (`scripts/setup-local-ai.sh`, `scripts/setup-local-ai.ps1`) plus tracked service templates under `deploy/tank/`.
 
 ### Local-model coding pipeline
 
@@ -90,7 +90,7 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 - No approved long-term memory workflow.
 - No household identity, subscription, or NOBScloud implementation.
 - No arbitrary MCP server is trusted or installed by the NOBS agent.
-- mDNS (`tank.local`) does not resolve from the LAN; clients use the Tank LAN IP directly (for example `http://192.168.0.59:8000`).
+- mDNS (`tank.local`) may not resolve on every LAN; clients can use the Tank host IP directly (for example `http://192.168.1.100:8000`).
 - Physical iPhone validation remains pending (simulator build verified; Tank pairing and sync need on-device QA).
 
 ## Recommended next vertical slice
