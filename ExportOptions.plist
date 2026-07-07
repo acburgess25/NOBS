@@ -4,21 +4,12 @@
 <dict>
 	<key>method</key>
 	<string>app-store-connect</string>
-	<key>provisioningProfiles</key>
-	<dict>
-		<key>com.nobsdash.nobs</key>
-		<string>NOBS App Store CI</string>
-	</dict>
-	<key>signingCertificate</key>
-	<string>Apple Distribution</string>
 	<key>signingStyle</key>
-	<string>manual</string>
+	<string>automatic</string>
 	<key>teamID</key>
 	<string>K853LKQLAS</string>
 	<key>uploadSymbols</key>
 	<true/>
-	<key>compileBitcode</key>
-	<false/>
 	<key>stripSwiftSymbols</key>
 	<true/>
 </dict>

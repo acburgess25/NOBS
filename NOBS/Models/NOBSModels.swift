@@ -125,6 +125,7 @@ struct DailyBriefing: Codable, Sendable {
     let generatedAt: String
     let route: ProcessingRoute
     let privacyReceipt: PrivacyReceipt
+    let clarifyingConflict: ClarifyingConflict?
 
     enum CodingKeys: String, CodingKey {
         case date, topline, priorities, route
@@ -134,6 +135,33 @@ struct DailyBriefing: Codable, Sendable {
         case suggestedNextActions = "suggested_next_actions"
         case generatedAt = "generated_at"
         case privacyReceipt = "privacy_receipt"
+        case clarifyingConflict = "clarifying_conflict"
+    }
+
+    init(
+        date: String,
+        topline: String,
+        priorities: [String],
+        conflictsOrRisks: [String],
+        recommendedPlan: [String],
+        oneUsefulQuestion: String?,
+        suggestedNextActions: [String],
+        generatedAt: String,
+        route: ProcessingRoute,
+        privacyReceipt: PrivacyReceipt,
+        clarifyingConflict: ClarifyingConflict? = nil
+    ) {
+        self.date = date
+        self.topline = topline
+        self.priorities = priorities
+        self.conflictsOrRisks = conflictsOrRisks
+        self.recommendedPlan = recommendedPlan
+        self.oneUsefulQuestion = oneUsefulQuestion
+        self.suggestedNextActions = suggestedNextActions
+        self.generatedAt = generatedAt
+        self.route = route
+        self.privacyReceipt = privacyReceipt
+        self.clarifyingConflict = clarifyingConflict
     }
 }
 

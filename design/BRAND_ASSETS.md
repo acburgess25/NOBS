@@ -21,14 +21,19 @@ Single reference for logos, colors, typography, and store assets used across NOB
 
 ### Colors
 
+**Canonical source:** [`design/tokens.json`](tokens.json) — shared by iOS (`Color+NOBS.swift`), website (`website/src/nobs-tokens.css`), and icon generator.
+
 | Token | Hex | Use |
 |-------|-----|-----|
-| Deep Obsidian | `#103449` | Primary ink, icon lettering |
-| Dark Moss | `#0B2560` | Secondary accent |
-| Process Green | `#99DEBE` | Icon background, positive surfaces |
-| Ivory Chalk | `#FFF7AC` | App / canvas background |
+| Ink | `#2A3328` | Soft charcoal-green text |
+| Cream | `#F5F3ED` | Warm canvas background |
+| Sage | `#9CAF88` | Decorative highlights |
+| Forest | `#4A5D45` | Headlines, primary buttons |
+| Accent | `#6E8B62` | Links, interactive text |
+| Sage pale | `#EAEEE6` | Cards, chat bubbles |
+| Sage mist | `#F2F4F0` | Section washes |
 
-**Source of truth:** `design/nobs-brand-guide.png`
+Trend: 2026 digital-naturalism — muted layers, low saturation, forest anchor only where emphasis is needed.
 
 ### Typography
 

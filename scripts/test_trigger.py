@@ -10,7 +10,7 @@ from app.scheduler import trigger_autonomous_idea
 
 async def main():
     settings = get_settings()
-    db_path = os.environ.get("NOBS_AGENT_DB_PATH", "/home/alex/nobs/data/nobs-agent.db")
+    db_path = os.environ.get("NOBS_AGENT_DB_PATH", "data/nobs-agent.db")
     settings.agent_database_path = Path(db_path)
     store = AgentStore(settings.agent_database_path)
     tools = ToolRegistry(

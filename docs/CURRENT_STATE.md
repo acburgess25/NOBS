@@ -1,6 +1,6 @@
 # NOBS Current State
 
-**Last updated:** July 6, 2026 (P0 integration fixes)
+**Last updated:** July 6, 2026 (Tier 1 PR D — App Intents + Siri)
 **Purpose:** Tool-neutral handoff for any contributor entering without prior chat history.
 
 This records implementation state, not product direction. [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md) remains the approved product source of truth. Verify the branch, tests, and live services before treating deployment facts as current.
@@ -10,6 +10,16 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 ### Apple app
 
 - SwiftUI conversation-first prototype with onboarding and focused Chat, Today, Memory, Activity, Home, and Privacy surfaces.
+- Conversational onboarding collects name, mental-load sources, working hours, proactivity level, and one immediate problem before optional Sign in with Apple.
+- `UserProfile` persisted locally (App Group `group.com.nobsdash.nobs` with Application Support fallback) drives personalized greetings and proactivity defaults.
+- `BriefingSnapshot` written to shared storage after briefing generation for upcoming WidgetKit work.
+- Home Screen and Lock Screen **Today's plan** widget (`NOBSWidgets` extension) reads `widget-snapshot.json` offline; tap opens `nobs://today`.
+- Widget timelines reload when briefings update; cached briefing restores on app launch.
+- Focus-aware briefings use system Focus status (`INFocusStatusCenter`) for concise toplines, business-first priorities, and suppressed proactive notifications.
+- One clarifying-question local notification per day when proactivity is not Quiet; overlap actions open chat without silent calendar edits.
+- Today highlights the clarifying question when notifications are denied; `ConflictResolutionSheet` supports overlap resolution.
+- Siri and Shortcuts expose four App Intents: Prepare my day, Explain schedule, Ask NOBS, Show privacy receipt — with App Group cache fallback when the app is not running.
+- `nobs://` deep links route to Today, Chat (with optional prompt), Privacy, and Tank pairing.
 - Local EventKit calendar permission flow and same-day event display.
 - EventKit calendar and reminders sync to Tank (`/sync/calendar`, `/sync/reminders`) using the same Keychain-backed device-token auth as chat.
 - Configurable Tank address, KeychainAccess-backed device token storage, and
@@ -61,14 +71,14 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 - Responsive 16:9 and narrow-screen layouts with connection-loss behavior.
 - LIVE on Tank's HDMI display: GNOME minimal desktop + Firefox kiosk autostart, auto-login, survives reboot. GUI session is on tty2 (Ctrl+Alt+F2); text console on tty3.
 
-### Tank host (live deployment facts, July 3 2026)
+### Tank host (reference deployment)
 
-- Ubuntu 24.04, RTX 3060. Wi-Fi wlp5s0 = 192.168.0.59; ethernet enp6s0 also configured (`/etc/netplan/99-rescue.yaml`, renderer forced to networkd after a desktop-install outage).
-- UFW: port 22 open; LAN (192.168.0.0/24) allowed to all ports.
-- systemd user services (linger on): `nobs-api` (:8000), `nobsdash` (:4173), `cloudflared-nobsdash` (public tunnel), `open-webui` (:8080 local AI chat, `~/.openwebui` uv venv).
+- Ubuntu 24.04 homelab host with an NVIDIA GPU for local models.
+- UFW allows SSH and LAN access; Tank API is intended for private-network use.
+- systemd user services (with linger enabled): `nobs-api` (:8000), `nobsdash` (:4173), `cloudflared-nobsdash` (public tunnel), optional `open-webui` (:8080).
 - Ollama models: `qwen3:8b` (app chat), `qwen2.5-coder:14b` (coding).
-- No passwordless sudo; root changes need the console.
-- Repository-standard local AI stack setup scripts are available for Tank and dev hosts (`scripts/setup-local-ai.sh`, `scripts/setup-local-ai.ps1`) plus a tracked Tank `open-webui.service` template under `deploy/tank/`.
+- No passwordless sudo; host administration stays at the console.
+- Repository-standard local AI stack setup scripts are available for Tank and dev hosts (`scripts/setup-local-ai.sh`, `scripts/setup-local-ai.ps1`) plus tracked service templates under `deploy/tank/`.
 
 ### Local-model coding pipeline
 
@@ -80,7 +90,7 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 - No approved long-term memory workflow.
 - No household identity, subscription, or NOBScloud implementation.
 - No arbitrary MCP server is trusted or installed by the NOBS agent.
-- mDNS (`tank.local`) does not resolve from the LAN; clients use the Tank LAN IP directly (for example `http://192.168.0.59:8000`).
+- mDNS (`tank.local`) may not resolve on every LAN; clients can use the Tank host IP directly (for example `http://192.168.1.100:8000`).
 - Physical iPhone validation remains pending (simulator build verified; Tank pairing and sync need on-device QA).
 
 ## Recommended next vertical slice

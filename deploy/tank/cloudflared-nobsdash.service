@@ -6,7 +6,7 @@ Requires=nobsdash.service
 
 [Service]
 Type=simple
-ExecStart=/home/alex/.local/bin/cloudflared tunnel --no-autoupdate --config /home/alex/.config/nobs/cloudflared-nobsdash.yml run
+ExecStart=%h/.local/bin/cloudflared tunnel --no-autoupdate --config %h/.config/nobs/cloudflared-nobsdash.yml run
 Restart=always
 RestartSec=5
 NoNewPrivileges=true

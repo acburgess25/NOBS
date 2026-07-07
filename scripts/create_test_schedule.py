@@ -13,8 +13,8 @@ def resolve_db_path() -> Path:
         return Path(env_path)
 
     for candidate in (
-        Path("/home/alex/nobs/data/nobs-agent.db"),
         Path("data/nobs-agent.db"),
+        Path.home() / "nobs" / "data" / "nobs-agent.db",
     ):
         if candidate.exists():
             return candidate

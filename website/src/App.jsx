@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import { ArrowRight, Check, Cloud, DeviceMobile, Copy, GithubLogo, HardDrives, List, LockKey, Monitor, X } from "@phosphor-icons/react";
+import { ArrowRight, Check, Cloud, DeviceMobile, Copy, GithubLogo, HardDrives, Heart, List, LockKey, Monitor, Repeat, X } from "@phosphor-icons/react";
 
 const githubUrl = "https://github.com/acburgess25/NOBS";
-const navItems = [["Vision", "vision"], ["Work so far", "work"], ["Architecture", "architecture"], ["Roadmap", "roadmap"]];
+const navItems = [["Vision", "vision"], ["Work so far", "work"], ["Architecture", "architecture"], ["Roadmap", "roadmap"], ["Support", "support"]];
 const milestones = [
-  { label: "iPhone app (SwiftUI)", detail: "Authenticated chat with visible Local/Tank routing, day-at-a-glance, and privacy receipts.", icon: DeviceMobile },
+  { label: "iPhone app (SwiftUI)", detail: "Authenticated chat with visible Local/Tank routing, day-at-a-glance, privacy receipts, and conversational onboarding.", icon: DeviceMobile },
+  { label: "Apple-native day surface", detail: "Home Screen and Lock Screen briefing widget, Siri shortcuts, and Focus-aware planning that respects Do Not Disturb.", icon: DeviceMobile },
   { label: "Tank agent core", detail: "A local model with allowlisted tools. Nothing state-changing runs without explicit approval.", icon: HardDrives },
   { label: "Room-safe dashboard", detail: "Always-on status display for a shared screen—live on Tank today, private details stay on the phone.", icon: Monitor },
   { label: "Local-first contract", detail: "Token-authenticated boundary between devices. Anonymous requests are rejected, keys live in the Keychain.", icon: LockKey },
@@ -12,8 +13,9 @@ const milestones = [
 const roadmap = [
   ["Make the conversation real", "The iPhone app talks to a local model on Tank with clear processing receipts—no cloud in the loop.", "shipped"],
   ["Connect the private Tank", "Authenticated local-network routing with honest offline fallback when Tank is unreachable.", "shipped"],
+  ["Personalize on Apple", "Conversational onboarding, briefing widget, Focus-aware priorities, clarifying notifications, and Siri shortcuts.", "shipped"],
   ["Earn trust through action", "The agent core proposes, you approve. Approvals queue is live; the in-app review screen is being built now.", "in progress"],
-  ["Understand the day", "A scheduled daily briefing from calendar and reminders, with progressive permission prompts.", "next"],
+  ["Understand the day", "Scheduled daily briefing from calendar and reminders, with progressive permission prompts.", "in progress"],
   ["Grow without lock-in", "Optional cloud capacity and integrations while useful local features stay free.", "later"],
 ];
 
@@ -22,11 +24,23 @@ function goTo(id, done) {
   done?.();
 }
 
+function hasSupportLinks(links) {
+  return Boolean(links?.githubSponsors || links?.donateOneTime || links?.donateMonthly || links?.supportInApp);
+}
+
 export function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [openRoadmap, setOpenRoadmap] = useState(0);
   const [activeSection, setActiveSection] = useState("vision");
+  const [supportLinks, setSupportLinks] = useState(null);
+
+  useEffect(() => {
+    fetch("/support.json")
+      .then((response) => (response.ok ? response.json() : {}))
+      .then((data) => setSupportLinks(data))
+      .catch(() => setSupportLinks({}));
+  }, []);
 
   useEffect(() => {
     const sections = navItems.map(([, id]) => document.getElementById(id)).filter(Boolean);
@@ -126,6 +140,59 @@ export function App() {
             </button>;
           })}</div>
         </section>
+
+        {hasSupportLinks(supportLinks) && (
+          <section className="support section" id="support">
+            <div className="section-heading">
+              <div>
+                <p className="eyebrow">Support the build</p>
+                <h2>Help NOBS stay local-first.</h2>
+              </div>
+              <p>Optional tips and sponsorships fund open development. Tips and NOBScloud subscriptions are available in the NOBS iPhone app through Apple In-App Purchase. Core features stay free.</p>
+            </div>
+            <div className="support-grid">
+              {supportLinks.supportInApp && (
+                <article className="support-card support-card-static" aria-label="Support in the NOBS iPhone app">
+                  <DeviceMobile />
+                  <span>
+                    <strong>Support in the NOBS app</strong>
+                    <small>Open Privacy → Support NOBS for Apple tips and NOBScloud subscription.</small>
+                  </span>
+                </article>
+              )}
+              {supportLinks.donateOneTime && (
+                <a className="support-card" href={supportLinks.donateOneTime} target="_blank" rel="noreferrer">
+                  <Heart weight="fill" />
+                  <span>
+                    <strong>Send a tip</strong>
+                    <small>One-time contribution through Stripe.</small>
+                  </span>
+                  <ArrowRight />
+                </a>
+              )}
+              {supportLinks.donateMonthly && (
+                <a className="support-card" href={supportLinks.donateMonthly} target="_blank" rel="noreferrer">
+                  <Repeat />
+                  <span>
+                    <strong>Support monthly</strong>
+                    <small>Recurring sponsorship through Stripe.</small>
+                  </span>
+                  <ArrowRight />
+                </a>
+              )}
+              {supportLinks.githubSponsors && (
+                <a className="support-card" href={supportLinks.githubSponsors} target="_blank" rel="noreferrer">
+                  <GithubLogo weight="fill" />
+                  <span>
+                    <strong>Sponsor on GitHub</strong>
+                    <small>Follow the build and back the project there.</small>
+                  </span>
+                  <ArrowRight />
+                </a>
+              )}
+            </div>
+          </section>
+        )}
 
         <section className="closing section">
           <div><p className="eyebrow">Built by Alexander Burgess</p><h2>This is a personal project,<br />built in the open.</h2><p>I document decisions, share code as it’s ready, and welcome thoughtful feedback.</p></div>
