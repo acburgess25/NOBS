@@ -40,6 +40,9 @@ struct TodayView: View {
                     .background(surface, in: RoundedRectangle(cornerRadius: 16))
                 }
                 reminderSection
+                if model.shouldShowEveningWrapUp {
+                    eveningWrapUpCard
+                }
             }
             .padding(20)
         }
@@ -140,6 +143,45 @@ struct TodayView: View {
         let relative = RelativeDateTimeFormatter()
         relative.unitsStyle = .full
         return "Updated \(relative.localizedString(for: date, relativeTo: .now))"
+    }
+
+    private var eveningWrapUpCard: some View {
+        let wrapUp = model.generateEveningWrapUp()
+        return VStack(alignment: .leading, spacing: 12) {
+            Label("Evening wrap-up", systemImage: "moon.stars")
+                .font(.headline)
+            Text(wrapUp.headline)
+                .font(.subheadline.weight(.medium))
+            if !wrapUp.completedItems.isEmpty {
+                eveningListSection("What you moved forward", items: wrapUp.completedItems)
+            }
+            if !wrapUp.stillOpen.isEmpty {
+                eveningListSection("Can wait or carry forward", items: wrapUp.stillOpen)
+            }
+            Text(wrapUp.gentleClose)
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .lineSpacing(3)
+        }
+        .padding(18)
+        .background(surface, in: RoundedRectangle(cornerRadius: 16))
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Evening wrap-up")
+    }
+
+    @ViewBuilder
+    private func eveningListSection(_ title: String, items: [String]) -> some View {
+        let visible = Array(items.prefix(listItemLimit))
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title).font(.caption.weight(.bold)).foregroundStyle(accent)
+            ForEach(Array(visible.enumerated()), id: \.offset) { _, item in
+                HStack(alignment: .top, spacing: 6) {
+                    Text("•").foregroundStyle(accent)
+                    Text(item).font(.subheadline)
+                }
+            }
+        }
+        .accessibilityElement(children: .combine)
     }
 
     private var reminderSection: some View {

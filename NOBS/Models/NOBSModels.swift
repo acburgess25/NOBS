@@ -76,6 +76,13 @@ struct DayReminder: Identifiable, Hashable {
     let context: BriefingContextBucket
 }
 
+struct EveningWrapUp: Sendable {
+    let headline: String
+    let completedItems: [String]
+    let stillOpen: [String]
+    let gentleClose: String
+}
+
 struct TankSchedule: Identifiable, Codable, Sendable {
     let id: String
     let timeOfDay: String

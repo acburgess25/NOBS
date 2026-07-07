@@ -310,6 +310,51 @@ final class AppModel: ObservableObject {
         seedPostOnboardingChatIfNeeded()
     }
 
+    var shouldShowEveningWrapUp: Bool {
+        Calendar.current.component(.hour, from: Date()) >= 17
+    }
+
+    func generateEveningWrapUp() -> EveningWrapUp {
+        let now = Date()
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+
+        let completed = events.filter { $0.end <= now }.map {
+            "\($0.title) (\(formatter.string(from: $0.start)))"
+        }
+        var stillOpen: [String] = events.filter { $0.start > now }.map {
+            "\($0.title) at \(formatter.string(from: $0.start))"
+        }
+        stillOpen.append(contentsOf: reminders.prefix(4).map(\.title))
+
+        if stillOpen.isEmpty, let actions = briefing?.suggestedNextActions.prefix(2) {
+            stillOpen = Array(actions)
+        }
+
+        let headline: String = {
+            if completed.isEmpty && stillOpen.isEmpty {
+                return "You made it through the day. Tomorrow can start fresh."
+            }
+            if completed.count >= 3 {
+                return "You moved \(completed.count) commitments forward today."
+            }
+            if !stillOpen.isEmpty {
+                return "A few items can wait until tomorrow — no guilt required."
+            }
+            return "Today is winding down. Here's an honest snapshot."
+        }()
+
+        let gentleClose = briefing?.recommendedPlan.first
+            ?? "Rest counts. I'll have a morning briefing ready when you are."
+
+        return EveningWrapUp(
+            headline: headline,
+            completedItems: Array(completed.prefix(5)),
+            stillOpen: Array(stillOpen.prefix(5)),
+            gentleClose: gentleClose
+        )
+    }
+
     private func persistProfile() {
         do {
             try profileStore.save(profile)

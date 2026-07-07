@@ -43,6 +43,9 @@ struct OnboardingChatView: View {
                         if step.showsProactivityChips {
                             proactivityChipArea
                         }
+                        if step.showsResponseLengthChips {
+                            responseLengthChipArea
+                        }
                     }
                     .padding(20)
                 }
@@ -132,6 +135,18 @@ struct OnboardingChatView: View {
         .padding(.top, 8)
     }
 
+    private var responseLengthChipArea: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            ForEach(ResponseLength.allCases, id: \.self) { length in
+                Button(length.title) { advanceFromResponseLength(length) }
+                    .buttonStyle(.bordered)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .accessibilityHint(responseLengthHint(length))
+            }
+        }
+        .padding(.top, 8)
+    }
+
     private var currentDraft: String {
         step == .name ? nameDraft : problemDraft
     }
@@ -180,6 +195,13 @@ struct OnboardingChatView: View {
     private func advanceFromProactivity(_ level: ProactivityLevel) {
         appendUser(level.title)
         model.updateProfile { $0.proactivityLevel = level }
+        step = .responseLength
+        appendAssistant("How much detail do you want in plans and answers — brief, standard, or detailed?")
+    }
+
+    private func advanceFromResponseLength(_ length: ResponseLength) {
+        appendUser(length.title)
+        model.updateProfile { $0.accessibilityPreferences.responseLength = length }
         step = .immediateProblem
         appendAssistant("What's one thing I could help with today?")
     }
@@ -187,7 +209,8 @@ struct OnboardingChatView: View {
     private func finishOnboarding() {
         step = .done
         let name = model.profile.greetingName ?? "there"
-        appendAssistant("Good to meet you, \(name). I'll keep things \(model.profile.proactivityLevel.title.lowercased()) and private by default.")
+        let detail = model.profile.accessibilityPreferences.responseLength.title.lowercased()
+        appendAssistant("Good to meet you, \(name). I'll keep things \(model.profile.proactivityLevel.title.lowercased()) with \(detail) answers, and private by default.")
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
             onComplete()
         }
@@ -195,6 +218,14 @@ struct OnboardingChatView: View {
 
     private func appendAssistant(_ text: String) {
         messages.append(OnboardingMessage(role: .assistant, text: text))
+    }
+
+    private func responseLengthHint(_ length: ResponseLength) -> String {
+        switch length {
+        case .brief: "Shows fewer items in Today and shorter summaries"
+        case .standard: "Balanced detail for most days"
+        case .detailed: "Shows more context in plans and lists"
+        }
     }
 
     private func appendUser(_ text: String) {
@@ -218,6 +249,7 @@ private enum Step {
     case mentalLoad
     case workingHours
     case proactivity
+    case responseLength
     case immediateProblem
     case done
 
@@ -228,6 +260,7 @@ private enum Step {
     var showsLoadChips: Bool { self == .mentalLoad }
     var showsHourChips: Bool { self == .workingHours }
     var showsProactivityChips: Bool { self == .proactivity }
+    var showsResponseLengthChips: Bool { self == .responseLength }
 
     var placeholder: String {
         switch self {

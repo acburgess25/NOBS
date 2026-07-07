@@ -38,6 +38,8 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 - Activity lists pending Tank changes and provides explicit Approve and Deny actions.
 - Activity shows Tank schedules and supports pause/revoke actions, plus sync action receipts with Local/Tank processing labels.
 - Today briefing lists respect `UserProfile.accessibilityPreferences.responseLength`; refresh control and relative timestamp shown when a briefing exists.
+- Onboarding collects response length (brief / standard / detailed) conversationally.
+- Today shows a local evening wrap-up after 5pm from calendar, reminders, and briefing context.
 
 - iOS 27 simulator build verified with Xcode 27 beta (`scripts/build-ios-simulator.sh` or `CODE_SIGNING_ALLOWED=NO`).
 

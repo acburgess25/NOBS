@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ConversationView: View {
     @EnvironmentObject private var model: AppModel
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var draft = ""
     @State private var selectedReceipt: PrivacyReceipt?
     @State private var showNavigation = false
@@ -140,7 +141,11 @@ struct ConversationView: View {
                 }
                 .onChange(of: model.entries.count) { _, _ in
                     if let last = model.entries.last {
-                        withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
+                        if reduceMotion {
+                            proxy.scrollTo(last.id, anchor: .bottom)
+                        } else {
+                            withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
+                        }
                     }
                 }
             }
@@ -153,6 +158,7 @@ struct ConversationView: View {
         VStack(alignment: .leading, spacing: 12) {
             Text(model.personalizedDayPartGreeting)
                 .font(.system(size: 30, weight: .regular, design: .serif))
+                .accessibilityAddTraits(.isHeader)
             Text(welcomeDetail)
                 .foregroundStyle(.secondary)
                 .lineSpacing(3)

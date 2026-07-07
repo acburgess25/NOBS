@@ -93,9 +93,9 @@ Simulator defaults Tank address to `http://127.0.0.1:8000` when none is saved. W
 ## Recommended next slices
 
 1. **Physical iPhone validation** — pairing, Tank reconnect, widget on Lock Screen (see [`CURRENT_STATE.md`](CURRENT_STATE.md)).
-2. **Accessibility** — wire `UserProfile.accessibilityPreferences` through chat and briefing density.
-3. **Memory view** — replace `ComingSoonView` when approval workflow is ready.
-4. **Evening wrap-up** — second daily anchor per product decisions.
+2. **Accessibility** — response length collected in onboarding; Today lists and evening wrap-up respect `accessibilityPreferences.responseLength`.
+3. **Evening wrap-up** — local on-device card on Today after 5pm (no Tank).
+4. **Memory view** — replace `ComingSoonView` when approval workflow is ready.
 
 ## Handoff rule
 
