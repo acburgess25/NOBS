@@ -38,7 +38,7 @@ extension View {
     }
 
     func nobsSectionCard() -> some View {
-        modifier(NOBSectionCardModifier())
+        modifier(NOBSSectionCardModifier())
     }
 
     func nobsListScreen() -> some View {
