@@ -1,6 +1,7 @@
 @import url("https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap");
+@import "./nobs-tokens.css";
 
-:root { color: #172818; background: #f8f6ef; font-family: "DM Sans", -apple-system, BlinkMacSystemFont, sans-serif; font-synthesis: none; --ink:#172818; --muted:#657064; --sage:#5d7d4a; --sage-dark:#31562f; --sage-pale:#e8ede2; --cream:#f8f6ef; --line:rgba(23,40,24,.14); }
+:root { color: var(--ink); background: var(--cream); font-family: "DM Sans", -apple-system, BlinkMacSystemFont, sans-serif; font-synthesis: none; }
 * { box-sizing: border-box; }
 html { scroll-behavior: auto; }
 body { margin:0; min-width:320px; min-height:100vh; background:var(--cream); color:var(--ink); -webkit-font-smoothing:antialiased; }

@@ -21,14 +21,20 @@ Single reference for logos, colors, typography, and store assets used across NOB
 
 ### Colors
 
+**Canonical source:** [`design/tokens.json`](tokens.json) — shared by iOS (`Color+NOBS.swift`), website (`website/src/nobs-tokens.css`), and icon generator.
+
 | Token | Hex | Use |
 |-------|-----|-----|
-| Deep Obsidian | `#103449` | Primary ink, icon lettering |
-| Dark Moss | `#0B2560` | Secondary accent |
-| Process Green | `#99DEBE` | Icon background, positive surfaces |
-| Ivory Chalk | `#FFF7AC` | App / canvas background |
+| Ink | `#172818` | Headlines, primary text |
+| Cream | `#F8F6EF` | Canvas / page background |
+| Sage | `#5D7D4A` | Secondary accent, status dots |
+| Sage dark | `#31562F` | Primary accent, **app icon background** |
+| Sage pale | `#E8EDE2` | Cards, subtle surfaces |
+| Muted | `#657064` | Body secondary |
 
-**Source of truth:** `design/nobs-brand-guide.png`
+App icon: cream **NOBS** serif on **sage-dark** background (matches website workshop palette).
+
+**Legacy:** `design/nobs-brand-guide.png` (alternate palette — superseded by workshop tokens)
 
 ### Typography
 

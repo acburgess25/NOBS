@@ -1,0 +1,10 @@
+/* Canonical NOBS tokens — keep in sync with design/tokens.json */
+:root {
+  --ink: #172818;
+  --muted: #657064;
+  --sage: #5d7d4a;
+  --sage-dark: #31562f;
+  --sage-pale: #e8ede2;
+  --cream: #f8f6ef;
+  --line: rgba(23, 40, 24, 0.14);
+}
