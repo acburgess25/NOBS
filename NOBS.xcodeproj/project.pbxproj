@@ -7,6 +7,12 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		DA0000000000000000000001 /* NOBSTankApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB0000000000000000000001 /* NOBSTankApp.swift */; };
+		DA0000000000000000000002 /* TankSupervisor.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB0000000000000000000002 /* TankSupervisor.swift */; };
+		DA0000000000000000000003 /* TankClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB0000000000000000000003 /* TankClient.swift */; };
+		DA0000000000000000000004 /* LocalAssistant.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB0000000000000000000004 /* LocalAssistant.swift */; };
+		DA0000000000000000000005 /* MenuContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB0000000000000000000005 /* MenuContentView.swift */; };
+		DA0000000000000000000006 /* AskNOBSIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB0000000000000000000006 /* AskNOBSIntent.swift */; };
 		A10000000000000000000001 /* NOBSApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000001 /* NOBSApp.swift */; };
 		A10000000000000000000002 /* ConversationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000002 /* ConversationView.swift */; };
 		A10000000000000000000003 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000004 /* AppModel.swift */; };
@@ -58,6 +64,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		DB0000000000000000000001 /* NOBSTankApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NOBSTankApp.swift; sourceTree = "<group>"; };
+		DB0000000000000000000002 /* TankSupervisor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TankSupervisor.swift; sourceTree = "<group>"; };
+		DB0000000000000000000003 /* TankClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TankClient.swift; sourceTree = "<group>"; };
+		DB0000000000000000000004 /* LocalAssistant.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalAssistant.swift; sourceTree = "<group>"; };
+		DB0000000000000000000005 /* MenuContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuContentView.swift; sourceTree = "<group>"; };
+		DB0000000000000000000006 /* AskNOBSIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AskNOBSIntent.swift; sourceTree = "<group>"; };
+		DB00000000000000000000007 /* NOBSTank.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NOBSTank.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A20000000000000000000001 /* NOBSApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NOBSApp.swift; sourceTree = "<group>"; };
 		A20000000000000000000002 /* ConversationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationView.swift; sourceTree = "<group>"; };
 		A20000000000000000000003 /* NOBS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NOBS.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -132,6 +145,13 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFrameworksBuildPhase section */
+		DC00000000000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		F30000000000000000000002 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -151,11 +171,25 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		DD00000000000000000000001 /* NOBSTankMac */ = {
+			isa = PBXGroup;
+			children = (
+				DB0000000000000000000001 /* NOBSTankApp.swift */,
+				DB0000000000000000000002 /* TankSupervisor.swift */,
+				DB0000000000000000000003 /* TankClient.swift */,
+				DB0000000000000000000004 /* LocalAssistant.swift */,
+				DB0000000000000000000005 /* MenuContentView.swift */,
+				DB0000000000000000000006 /* AskNOBSIntent.swift */,
+			);
+			path = NOBSTankMac;
+			sourceTree = "<group>";
+		};
 		A40000000000000000000001 = {
 			isa = PBXGroup;
 			children = (
 				A40000000000000000000002 /* NOBS */,
 				F40000000000000000000001 /* NOBSWidgets */,
+				DD00000000000000000000001 /* NOBSTankMac */,
 				A40000000000000000000003 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -256,6 +290,7 @@
 			children = (
 				A20000000000000000000003 /* NOBS.app */,
 				F20000000000000000000006 /* NOBSWidgets.appex */,
+				DB00000000000000000000007 /* NOBSTank.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -263,6 +298,23 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		DE00000000000000000000001 /* NOBSTank */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CC00000000000000000000001 /* Build configuration list for PBXNativeTarget "NOBSTank" */;
+			buildPhases = (
+				DF00000000000000000000001 /* Sources */,
+				DC00000000000000000000001 /* Frameworks */,
+				CA00000000000000000000001 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = NOBSTank;
+			productName = NOBSTank;
+			productReference = DB00000000000000000000007 /* NOBSTank.app */;
+			productType = "com.apple.product-type.application";
+		};
 		F50000000000000000000001 /* NOBSWidgets */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = A90000000000000000000003 /* Build configuration list for PBXNativeTarget "NOBSWidgets" */;
@@ -319,6 +371,9 @@
 					F50000000000000000000001 = {
 						CreatedOnToolsVersion = 27.0;
 					};
+					DE00000000000000000000001 = {
+						CreatedOnToolsVersion = 27.0;
+					};
 				};
 			};
 			buildConfigurationList = A90000000000000000000001 /* Build configuration list for PBXProject "NOBS" */;
@@ -340,11 +395,19 @@
 			targets = (
 				A50000000000000000000001 /* NOBS */,
 				F50000000000000000000001 /* NOBSWidgets */,
+				DE00000000000000000000001 /* NOBSTank */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		CA00000000000000000000001 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		A70000000000000000000001 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -367,6 +430,19 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		DF00000000000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DA0000000000000000000001 /* NOBSTankApp.swift in Sources */,
+				DA0000000000000000000002 /* TankSupervisor.swift in Sources */,
+				DA0000000000000000000003 /* TankClient.swift in Sources */,
+				DA0000000000000000000004 /* LocalAssistant.swift in Sources */,
+				DA0000000000000000000005 /* MenuContentView.swift in Sources */,
+				DA0000000000000000000006 /* AskNOBSIntent.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		F60000000000000000000002 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -467,6 +543,54 @@
 /* End XCSwiftPackageProductDependency section */
 
 /* Begin XCBuildConfiguration section */
+		CB00000000000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = K853LKQLAS;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "NOBS Tank";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_LSUIElement = YES;
+				INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsLocalNetworking = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = "";
+				MACOSX_DEPLOYMENT_TARGET = 27.0;
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.nobsdash.nobstank;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		CB00000000000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = K853LKQLAS;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "NOBS Tank";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
+				INFOPLIST_KEY_LSUIElement = YES;
+				INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsLocalNetworking = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = "";
+				MACOSX_DEPLOYMENT_TARGET = 27.0;
+				MARKETING_VERSION = 0.1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.nobsdash.nobstank;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
 		D10000000000000000000001 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -609,6 +733,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		CC00000000000000000000001 /* Build configuration list for PBXNativeTarget "NOBSTank" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CB00000000000000000000001 /* Debug */,
+				CB00000000000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 		A90000000000000000000001 /* Build configuration list for PBXProject "NOBS" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

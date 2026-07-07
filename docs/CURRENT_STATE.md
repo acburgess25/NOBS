@@ -1,6 +1,6 @@
 # NOBS Current State
 
-**Last updated:** July 7, 2026 (App Store beta polish + unified NOBS theme)
+**Last updated:** July 7, 2026 (App Store beta polish + unified NOBS theme; macOS mobile Tank menu-bar app + App Intents/Siri)
 **Purpose:** Tool-neutral handoff for any contributor entering without prior chat history.
 
 This records implementation state, not product direction. [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md) remains the approved product source of truth. Verify the branch, tests, and live services before treating deployment facts as current.
@@ -44,6 +44,29 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 - App Store beta prep: metadata templates in `docs/app-store/`, checklist in `docs/APP_STORE_BETA_CHECKLIST.md`, privacy policy at `website/public/privacy.html`.
 
 - iOS 27 simulator build verified with Xcode 27 beta (`scripts/build-ios-simulator.sh` or `CODE_SIGNING_ALLOWED=NO`).
+
+### macOS mobile Tank (NOBSTank menu-bar app)
+
+- New `NOBSTank` target in `NOBS.xcodeproj` (`NOBSTankMac/`): a macOS 27
+  menu-bar app that turns the Mac into a portable Tank.
+- Shows Tank API, Ollama, on-device model, and network status; restarts the
+  `com.nobs.tank` LaunchAgent on demand.
+- Quick-ask box routes Tank-first with honest fallback to the on-device
+  Foundation Models `SystemLanguageModel` (macOS 27 beta framework); every
+  answer is labeled Local or Tank.
+- Displays the `nobs://pair` QR code (same payload as `scripts/pairing.py`)
+  so the iPhone can pair with the Mac directly.
+- `AskNOBSIntent` App Intent exposes "Ask NOBS Tank" to Siri, Spotlight, and
+  Shortcuts on macOS 27.
+- Reads the device token from `~/Documents/NOBS/.env` (path overridable via
+  `nobs.tank.rootPath` user default).
+- Security posture: Hardened Runtime enabled (`flags=0x10000(runtime)`
+  verified on the signed build), which is the requirement for notarized
+  direct distribution. App Sandbox is deliberately off: the app's purpose is
+  supervising the user's own LaunchAgent (`launchctl`) and reading the local
+  server's `.env`, both of which the sandbox forbids. Revisit only if App
+  Store distribution is ever wanted.
+- macOS Debug build and iOS simulator build both verified with Xcode 27 beta.
 
 ### Tank API and agent
 
