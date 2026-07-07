@@ -203,13 +203,17 @@ final class AppModel: ObservableObject {
     }
 
     func applyTankPayload(from url: URL) {
-        guard let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return }
-        if let tankURL = components.queryItems?.first(where: { $0.name == "url" })?.value {
+        guard url.scheme?.lowercased() == "nobs",
+              let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return }
+        if let tankURL = components.queryItems?.first(where: { $0.name == "url" })?.value,
+           !tankURL.isEmpty {
             tankAddress = tankURL
-        } else if let device = components.queryItems?.first(where: { $0.name == "device" })?.value {
+        } else if let device = components.queryItems?.first(where: { $0.name == "device" })?.value,
+                  !device.isEmpty {
             tankAddress = "http://\(device):8000"
         }
-        if let token = components.queryItems?.first(where: { $0.name == "token" })?.value {
+        if let token = components.queryItems?.first(where: { $0.name == "token" })?.value,
+           !token.isEmpty {
             tankToken = token
         }
     }

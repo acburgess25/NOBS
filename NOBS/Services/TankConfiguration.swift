@@ -11,12 +11,19 @@ enum TankConfiguration {
             .accessibility(.afterFirstUnlockThisDeviceOnly)
     }
 
+    static var hasSavedAddress: Bool {
+        guard let saved = UserDefaults.standard.string(forKey: addressKey) else { return false }
+        return normalizedURL(from: saved) != nil
+    }
+
     static var savedAddress: String {
-        if let saved = UserDefaults.standard.string(forKey: addressKey) { return saved }
+        if let saved = UserDefaults.standard.string(forKey: addressKey), !saved.isEmpty {
+            return saved
+        }
         #if targetEnvironment(simulator)
         return "http://127.0.0.1:8000"
         #else
-        return "http://tank.local:8000"
+        return ""
         #endif
     }
 

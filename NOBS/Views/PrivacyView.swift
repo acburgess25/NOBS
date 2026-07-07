@@ -21,7 +21,7 @@ struct PrivacyView: View {
                 Text("Sign in once and NOBS automatically reconnects to Tank whenever you're home.")
             }
 
-            Section("Manual Tank Setup") {
+            Section {
                 TextField("Tank address", text: $model.tankAddress)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
@@ -49,6 +49,12 @@ struct PrivacyView: View {
                     systemImage: model.tankAvailable ? "checkmark.circle.fill" : "iphone"
                 )
                 .foregroundStyle(model.tankAvailable ? accent : .secondary)
+            } header: {
+                Text("Manual Tank Setup")
+            } footer: {
+                if !TankConfiguration.hasSavedAddress {
+                    Text("Scan the QR code on your Tank display, or enter its LAN address (for example http://192.168.0.59:8000). tank.local does not resolve on iPhone.")
+                }
             }
             Section("Boundaries") {
                 Label("Passwords are off-limits", systemImage: "key.slash")
