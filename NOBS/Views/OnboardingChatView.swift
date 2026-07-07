@@ -2,6 +2,7 @@ import SwiftUI
 
 struct OnboardingChatView: View {
     @EnvironmentObject private var model: AppModel
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let onComplete: () -> Void
 
     @State private var step: Step = .name
@@ -51,7 +52,11 @@ struct OnboardingChatView: View {
                 }
                 .onChange(of: messages.count) { _, _ in
                     if let last = messages.last {
-                        withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
+                        if reduceMotion {
+                            proxy.scrollTo(last.id, anchor: .bottom)
+                        } else {
+                            withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
+                        }
                     }
                 }
             }

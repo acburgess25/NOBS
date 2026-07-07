@@ -12,6 +12,10 @@ struct ConversationView: View {
     private let forest = Color.nobsForest
     private let surface = Color.nobsSagePale
 
+    private var responseLength: ResponseLength {
+        model.profile.accessibilityPreferences.responseLength
+    }
+
     var body: some View {
         ZStack {
             canvas.ignoresSafeArea()
@@ -180,8 +184,8 @@ struct ConversationView: View {
     private func message(_ entry: ConversationEntry) -> some View {
         VStack(alignment: entry.role == .user ? .trailing : .leading, spacing: 6) {
             Text(entry.text)
-                .font(.body)
-                .lineSpacing(3)
+                .font(entry.role == .assistant ? assistantMessageFont : .body)
+                .lineSpacing(messageLineSpacing)
                 .padding(entry.role == .user ? 12 : 0)
                 .background(entry.role == .user ? surface : .clear, in: RoundedRectangle(cornerRadius: 18))
                 .accessibilityLabel(entry.role == .user ? "You said: \(entry.text)" : "NOBS says: \(entry.text)")
@@ -203,17 +207,34 @@ struct ConversationView: View {
     private var suggestionStrip: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                ForEach(["What's on my calendar?", "Help me prioritize today", "Is Tank online?"], id: \.self) { text in
+                ForEach(model.chatSuggestions, id: \.self) { text in
                     Button(text) { Task { await model.send(text) } }
                         .font(.caption.weight(.medium))
                         .padding(.horizontal, 14)
                         .padding(.vertical, 9)
                         .overlay(Capsule().stroke(Color.nobsGreen.opacity(0.45)))
+                        .accessibilityHint("Sends this prompt to NOBS")
                 }
             }
             .padding(.horizontal, 16)
         }
         .padding(.vertical, 9)
+        .accessibilityLabel("Suggested prompts")
+    }
+
+    private var assistantMessageFont: Font {
+        switch responseLength {
+        case .brief: .subheadline
+        case .standard, .detailed: .body
+        }
+    }
+
+    private var messageLineSpacing: CGFloat {
+        switch responseLength {
+        case .brief: 2
+        case .standard: 3
+        case .detailed: 5
+        }
     }
 
     private var composer: some View {
@@ -270,6 +291,12 @@ struct ConversationView: View {
     }
 
     private var welcomeDetail: String {
+        if responseLength == .brief {
+            if model.tankAvailable {
+                return "Tank connected. Ask anything or open Today."
+            }
+            return "Working locally. Calendar planning on Today still works."
+        }
         if model.tankAvailable {
             return "Tank is connected. Ask me something, or let's make today realistic."
         }

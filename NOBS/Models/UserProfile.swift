@@ -39,23 +39,6 @@ enum ResponseStyle: String, Codable, CaseIterable, Sendable {
     var title: String { rawValue.capitalized }
 }
 
-enum ResponseLength: String, Codable, CaseIterable, Sendable {
-    case brief
-    case standard
-    case detailed
-
-    var title: String { rawValue.capitalized }
-
-    /// Caps list density in Today and chat-adjacent surfaces.
-    var maxListItems: Int {
-        switch self {
-        case .brief: 3
-        case .standard: 6
-        case .detailed: 10
-        }
-    }
-}
-
 struct FocusPolicy: Codable, Hashable, Sendable {
     var focusIdentifier: String
     var displayName: String

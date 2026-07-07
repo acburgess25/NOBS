@@ -66,7 +66,7 @@ These work without Tank:
 3. **Widget** — after a briefing exists, add the Home Screen / Lock Screen **Today's plan** widget; tap should open `nobs://today`.
 4. **App Intents** — Shortcuts app → NOBS intents (Prepare my day, Explain schedule, Ask NOBS, Show privacy receipt).
 5. **Deep links** — Safari `nobs://today`, `nobs://chat?prompt=...`, `nobs://privacy`.
-6. **Accessibility** — VoiceOver labels on chat, onboarding, Today, and approvals; Dynamic Type on briefing lists.
+6. **Accessibility** — VoiceOver labels on chat, onboarding, Today, widget, and approvals; Dynamic Type on briefing lists; response length shapes chat, Today, and widget density.
 
 ## Tank-dependent paths (skip at work)
 

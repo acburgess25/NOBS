@@ -217,7 +217,9 @@ struct TodayView: View {
     private func briefingParagraph(_ title: String, text: String) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title).font(.caption.weight(.bold)).foregroundStyle(accent)
-            Text(text).font(.subheadline)
+            Text(text)
+                .font(.subheadline)
+                .lineLimit(model.profile.accessibilityPreferences.responseLength == .brief ? 3 : nil)
         }
     }
 

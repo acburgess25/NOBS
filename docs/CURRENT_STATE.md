@@ -13,7 +13,7 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 - Conversational onboarding collects name, mental-load sources, working hours, proactivity level, and one immediate problem before optional Sign in with Apple.
 - `UserProfile` persisted locally (App Group `group.com.nobsdash.nobs` with Application Support fallback) drives personalized greetings and proactivity defaults.
 - `BriefingSnapshot` written to shared storage after briefing generation for upcoming WidgetKit work.
-- Home Screen and Lock Screen **Today's plan** widget (`NOBSWidgets` extension) reads `widget-snapshot.json` offline; tap opens `nobs://today`.
+- Home Screen and Lock Screen **Today's plan** widget reads `widget-snapshot.json` offline; respects response length and shows evening context after 5pm; tap opens `nobs://today`.
 - Widget timelines reload when briefings update; cached briefing restores on app launch.
 - Focus-aware briefings use system Focus status (`INFocusStatusCenter`) for concise toplines, business-first priorities, and suppressed proactive notifications.
 - One clarifying-question local notification per day when proactivity is not Quiet; overlap actions open chat without silent calendar edits.
