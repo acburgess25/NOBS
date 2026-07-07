@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate NOBS AppIcon asset catalog entries for TestFlight."""
+"""Generate NOBS AppIcon asset catalog entries from approved brand colors."""
 
 from __future__ import annotations
 
@@ -17,8 +17,16 @@ except ImportError:
 ROOT = Path(__file__).resolve().parents[1]
 ICON_SET = ROOT / "NOBS" / "Assets.xcassets" / "AppIcon.appiconset"
 
-BG = (79, 110, 51)
-FG = (248, 247, 241)
+# Approved brand guide (design/nobs-brand-guide.png)
+PROCESS_GREEN = (153, 222, 190)  # #99DEBE
+DEEP_OBSIDIAN = (16, 52, 73)  # #103449
+
+SERIF_CANDIDATES = [
+    "/System/Library/Fonts/Supplemental/Baskerville-Bold.ttf",
+    "/System/Library/Fonts/Supplemental/Georgia Bold.ttf",
+    "/System/Library/Fonts/Times.ttc",
+    "/Library/Fonts/NewYork.ttf",
+]
 
 SIZES = [
     ("iphone", "20x20", 20, 2),
@@ -42,6 +50,20 @@ SIZES = [
 ]
 
 
+def load_serif(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
+    for path in SERIF_CANDIDATES:
+        if Path(path).exists():
+            try:
+                return ImageFont.truetype(path, size)
+            except OSError:
+                continue
+    return ImageFont.load_default()
+
+
+def label_for(px: int) -> str:
+    return "NOBS" if px >= 120 else "N"
+
+
 def main() -> None:
     ICON_SET.mkdir(parents=True, exist_ok=True)
     images: list[dict[str, str]] = []
@@ -53,25 +75,19 @@ def main() -> None:
         else:
             filename = f"icon-{idiom}-{size_str}@{scale}x.png"
 
-        img = Image.new("RGB", (px, px), BG)
+        text = label_for(px)
+        img = Image.new("RGB", (px, px), PROCESS_GREEN)
         draw = ImageDraw.Draw(img)
-        font_size = max(px // 2, 12)
-        try:
-            font = ImageFont.truetype(
-                "/System/Library/Fonts/Supplemental/Avenir Next Bold.ttf",
-                font_size,
-            )
-        except OSError:
-            font = ImageFont.load_default()
+        font_size = max(int(px * (0.34 if text == "NOBS" else 0.52)), 10)
+        font = load_serif(font_size)
 
-        text = "N"
         bbox = draw.textbbox((0, 0), text, font=font)
         tw = bbox[2] - bbox[0]
         th = bbox[3] - bbox[1]
         draw.text(
             ((px - tw) // 2 - bbox[0], (px - th) // 2 - bbox[1]),
             text,
-            fill=FG,
+            fill=DEEP_OBSIDIAN,
             font=font,
         )
         img.save(ICON_SET / filename)
