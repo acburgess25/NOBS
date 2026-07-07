@@ -26,6 +26,11 @@ enum TankConfiguration {
     static var currentToken: String? { try? keychain.get(tokenAccount) }
     static var savedAppleUserID: String? { try? keychain.get(appleUserAccount) }
 
+    static var hasSavedConnection: Bool {
+        guard let token = currentToken, !token.isEmpty else { return false }
+        return currentURL != nil
+    }
+
     static func normalizedURL(from value: String) -> URL? {
         let clean = value.trimmingCharacters(in: .whitespacesAndNewlines)
         guard let url = URL(string: clean),

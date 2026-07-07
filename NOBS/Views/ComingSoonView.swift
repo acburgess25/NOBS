@@ -6,6 +6,6 @@ struct ComingSoonView: View {
     let detail: String
 
     var body: some View {
-        ContentUnavailableView(title, systemImage: symbol, description: Text(detail))
+        NOBSEmptyState(symbol: symbol, title: title, detail: detail)
     }
 }

@@ -100,7 +100,7 @@ struct ActivityView: View {
                 }
             }
         }
-        .scrollContentBackground(.hidden)
+        .nobsListScreen()
         .task { await model.loadSchedules() }
     }
 

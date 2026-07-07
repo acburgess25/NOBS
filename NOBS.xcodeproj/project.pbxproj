@@ -59,6 +59,8 @@
 		F10000000000000000000004 /* AppGroupStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000013 /* AppGroupStore.swift */; };
 		F10000000000000000000005 /* BriefingSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000012 /* BriefingSnapshot.swift */; };
 		F10000000000000000000006 /* NOBSWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = F20000000000000000000006 /* NOBSWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		F10000000000000000000007 /* Color+NOBS.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000008 /* Color+NOBS.swift */; };
+		B10000000000000000000031 /* NOBSTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000031 /* NOBSTheme.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -107,6 +109,7 @@
 		B20000000000000000000028 /* StoreProducts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreProducts.swift; sourceTree = "<group>"; };
 		B20000000000000000000029 /* StoreKitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreKitService.swift; sourceTree = "<group>"; };
 		B20000000000000000000030 /* SupportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupportView.swift; sourceTree = "<group>"; };
+		B20000000000000000000031 /* NOBSTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NOBSTheme.swift; sourceTree = "<group>"; };
 		G20000000000000000000001 /* NOBS.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = NOBS.storekit; sourceTree = "<group>"; };
 		E20000000000000000000001 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		F20000000000000000000001 /* NOBSWidgetsBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NOBSWidgetsBundle.swift; sourceTree = "<group>"; };
@@ -277,6 +280,7 @@
 				B20000000000000000000010 /* PrivacyReceiptView.swift */,
 				B20000000000000000000023 /* ConflictResolutionSheet.swift */,
 				B20000000000000000000030 /* SupportView.swift */,
+				B20000000000000000000031 /* NOBSTheme.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -448,6 +452,7 @@
 				F10000000000000000000003 /* BriefingSnapshotReader.swift in Sources */,
 				F10000000000000000000004 /* AppGroupStore.swift in Sources */,
 				F10000000000000000000005 /* BriefingSnapshot.swift in Sources */,
+				F10000000000000000000007 /* Color+NOBS.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -491,6 +496,7 @@
 				B10000000000000000000028 /* StoreProducts.swift in Sources */,
 				B10000000000000000000029 /* StoreKitService.swift in Sources */,
 				B10000000000000000000030 /* SupportView.swift in Sources */,
+				B10000000000000000000031 /* NOBSTheme.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

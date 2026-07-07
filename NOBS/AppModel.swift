@@ -310,9 +310,81 @@ final class AppModel: ObservableObject {
         seedPostOnboardingChatIfNeeded()
     }
 
+    var shouldShowEveningWrapUp: Bool {
+        Calendar.current.component(.hour, from: Date()) >= 17
+    }
+
+    func generateEveningWrapUp() -> EveningWrapUp {
+        let now = Date()
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+
+        let completed = events.filter { $0.end <= now }.map {
+            "\($0.title) (\(formatter.string(from: $0.start)))"
+        }
+        var stillOpen: [String] = events.filter { $0.start > now }.map {
+            "\($0.title) at \(formatter.string(from: $0.start))"
+        }
+        stillOpen.append(contentsOf: reminders.prefix(4).map(\.title))
+
+        if stillOpen.isEmpty, let actions = briefing?.suggestedNextActions.prefix(2) {
+            stillOpen = Array(actions)
+        }
+
+        let headline: String = {
+            if completed.isEmpty && stillOpen.isEmpty {
+                return "You made it through the day. Tomorrow can start fresh."
+            }
+            if completed.count >= 3 {
+                return "You moved \(completed.count) commitments forward today."
+            }
+            if !stillOpen.isEmpty {
+                return "A few items can wait until tomorrow — no guilt required."
+            }
+            return "Today is winding down. Here's an honest snapshot."
+        }()
+
+        let gentleClose = briefing?.recommendedPlan.first
+            ?? "Rest counts. I'll have a morning briefing ready when you are."
+
+        return EveningWrapUp(
+            headline: headline,
+            completedItems: Array(completed.prefix(5)),
+            stillOpen: Array(stillOpen.prefix(5)),
+            gentleClose: gentleClose
+        )
+    }
+
+    var chatSuggestions: [String] {
+        var options: [String] = []
+        if shouldShowEveningWrapUp {
+            options.append("How did today go?")
+        }
+        options.append(contentsOf: [
+            "What's on my calendar?",
+            "Help me prioritize today",
+            tankAvailable ? "Is Tank online?" : "Open my day plan",
+        ])
+        let limit = profile.accessibilityPreferences.responseLength.maxChatSuggestions
+        return Array(options.prefix(limit))
+    }
+
+    func formattedAssistantText(_ text: String) -> String {
+        let limit = profile.accessibilityPreferences.responseLength.maxCharacters
+        guard text.count > limit else { return text }
+        let prefix = String(text.prefix(limit))
+        if let lastSpace = prefix.lastIndex(of: " ") {
+            return String(prefix[..<lastSpace]) + "… Open Today for more."
+        }
+        return prefix + "…"
+    }
+
     private func persistProfile() {
         do {
             try profileStore.save(profile)
+            if briefing != nil {
+                persistBriefingSnapshot()
+            }
         } catch {
             lastError = "Your preferences could not be saved on this iPhone."
         }
@@ -333,7 +405,12 @@ final class AppModel: ObservableObject {
     }
 
     private func persistBriefingSnapshot() {
-        briefingSnapshotWriter.write(from: briefing)
+        let eveningHeadline = shouldShowEveningWrapUp ? generateEveningWrapUp().headline : nil
+        briefingSnapshotWriter.write(
+            from: briefing,
+            profile: profile,
+            eveningHeadline: eveningHeadline
+        )
         if let conflict = briefing?.clarifyingConflict ?? clarifyingConflict {
             clarifyingConflict = conflict
             try? AppGroupStore.writeJSON(conflict, to: AppGroupStore.clarifyingConflictFile)
@@ -426,7 +503,7 @@ final class AppModel: ObservableObject {
                 entries.append(
                     ConversationEntry(
                         role: .assistant,
-                        text: result.message,
+                        text: formattedAssistantText(result.message),
                         route: result.route,
                         receipt: result.receipt
                     )
@@ -761,6 +838,13 @@ final class AppModel: ObservableObject {
                 ]
             }
             response = "Understood — I'll keep personal priorities visible even during Focus."
+        } else if normalized.contains("evening") || normalized.contains("how did today") || normalized.contains("wrap up") {
+            if shouldShowEveningWrapUp {
+                let wrapUp = generateEveningWrapUp()
+                response = [wrapUp.headline, wrapUp.gentleClose].joined(separator: " ")
+            } else {
+                response = "Evening wrap-up appears on Today after 5pm with an honest snapshot of your day."
+            }
         } else if normalized.contains("calendar") || normalized.contains("today") || normalized.contains("agenda") {
             if hasCalendarAccess {
                 response = localAgendaSummary
@@ -777,7 +861,7 @@ final class AppModel: ObservableObject {
 
         return ConversationEntry(
             role: .assistant,
-            text: response,
+            text: formattedAssistantText(response),
             route: .local,
             receipt: .localOnly
         )
