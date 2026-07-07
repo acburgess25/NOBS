@@ -206,12 +206,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
 
     @app.get("/dashboard/status", tags=["operations"])
     async def dashboard_status() -> dict[str, object]:
+        store: AgentStore = app.state.agent_store
         return await build_dashboard_status(
             settings,
-            app.state.agent_store,
+            store,
             app.state.agent_tools,
             app.state.process_started_at,
             getattr(app.state, "ollama_transport", None),
+            resolve_device_token(store),
         )
 
     def resolve_device_token(store: AgentStore) -> str | None:
