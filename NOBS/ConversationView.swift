@@ -178,6 +178,7 @@ struct ConversationView: View {
                 .lineSpacing(3)
                 .padding(entry.role == .user ? 12 : 0)
                 .background(entry.role == .user ? surface : .clear, in: RoundedRectangle(cornerRadius: 18))
+                .accessibilityLabel(entry.role == .user ? "You said: \(entry.text)" : "NOBS says: \(entry.text)")
             if let route = entry.route {
                 Button {
                     selectedReceipt = entry.receipt
@@ -227,6 +228,7 @@ struct ConversationView: View {
             }
             .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || model.isSending)
             .opacity(draft.isEmpty ? 0.5 : 1)
+            .accessibilityLabel("Send message")
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)

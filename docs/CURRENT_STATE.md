@@ -1,6 +1,6 @@
 # NOBS Current State
 
-**Last updated:** July 6, 2026 (Tier 1 PR D — App Intents + Siri)
+**Last updated:** July 7, 2026 (iOS session handoff + Today accessibility polish)
 **Purpose:** Tool-neutral handoff for any contributor entering without prior chat history.
 
 This records implementation state, not product direction. [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md) remains the approved product source of truth. Verify the branch, tests, and live services before treating deployment facts as current.
@@ -37,7 +37,9 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
   calendar events in briefing context.
 - Activity lists pending Tank changes and provides explicit Approve and Deny actions.
 - Activity shows Tank schedules and supports pause/revoke actions, plus sync action receipts with Local/Tank processing labels.
-- iOS 27 simulator build verified with Xcode 27 beta.
+- Today briefing lists respect `UserProfile.accessibilityPreferences.responseLength`; refresh control and relative timestamp shown when a briefing exists.
+
+- iOS 27 simulator build verified with Xcode 27 beta (`scripts/build-ios-simulator.sh` or `CODE_SIGNING_ALLOWED=NO`).
 
 ### Tank API and agent
 
@@ -108,6 +110,8 @@ Do not connect email, messages, health, location, purchases, deletion, or accoun
 ```bash
 python3 scripts/dev.py check
 
+./scripts/build-ios-simulator.sh
+# or:
 DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer \
   xcodebuild -project NOBS.xcodeproj -scheme NOBS \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=27.0' \

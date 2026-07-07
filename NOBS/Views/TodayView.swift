@@ -47,9 +47,34 @@ struct TodayView: View {
 
     private var briefingCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Label("Morning briefing", systemImage: "sunrise")
-                .font(.headline)
+            HStack(alignment: .firstTextBaseline) {
+                Label("Morning briefing", systemImage: "sunrise")
+                    .font(.headline)
+                Spacer()
+                if model.briefing != nil {
+                    Button {
+                        Task { await model.generateBriefing() }
+                    } label: {
+                        if model.isGeneratingBriefing {
+                            ProgressView()
+                                .controlSize(.small)
+                        } else {
+                            Label("Refresh", systemImage: "arrow.clockwise")
+                                .font(.caption.weight(.semibold))
+                        }
+                    }
+                    .buttonStyle(.borderless)
+                    .disabled(model.isGeneratingBriefing)
+                    .accessibilityLabel("Refresh morning briefing")
+                }
+            }
             if let briefing = model.briefing {
+                if let generatedLabel = briefingGeneratedLabel(briefing.generatedAt) {
+                    Text(generatedLabel)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .accessibilityLabel("Briefing generated \(generatedLabel)")
+                }
                 briefingParagraph("Topline", text: briefing.topline)
                 briefingListSection("Priorities", items: briefing.priorities)
                 briefingListSection("Conflicts or risks", items: briefing.conflictsOrRisks)
@@ -77,6 +102,7 @@ struct TodayView: View {
                     Label(briefing.route.rawValue, systemImage: briefing.route == .tank ? "server.rack" : "iphone")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(accent)
+                        .accessibilityLabel("Processed on \(briefing.route.rawValue)")
                     Spacer()
                     Button("Privacy receipt") { onShowReceipt(briefing.privacyReceipt) }
                         .font(.caption.weight(.semibold))
@@ -101,6 +127,19 @@ struct TodayView: View {
         }
         .padding(18)
         .background(surface, in: RoundedRectangle(cornerRadius: 16))
+        .accessibilityElement(children: .contain)
+        .accessibilityLabel("Morning briefing")
+    }
+
+    private var listItemLimit: Int {
+        model.profile.accessibilityPreferences.responseLength.maxListItems
+    }
+
+    private func briefingGeneratedLabel(_ isoString: String) -> String? {
+        guard let date = ISO8601DateFormatter().date(from: isoString) else { return nil }
+        let relative = RelativeDateTimeFormatter()
+        relative.unitsStyle = .full
+        return "Updated \(relative.localizedString(for: date, relativeTo: .now))"
     }
 
     private var reminderSection: some View {
@@ -140,15 +179,26 @@ struct TodayView: View {
         }
     }
 
+    @ViewBuilder
     private func briefingListSection(_ title: String, items: [String]) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title).font(.caption.weight(.bold)).foregroundStyle(accent)
-            ForEach(Array(items.prefix(6).enumerated()), id: \.offset) { _, item in
-                HStack(alignment: .top, spacing: 6) {
-                    Text("•").foregroundStyle(accent)
-                    Text(item).font(.subheadline)
+        let visible = Array(items.prefix(listItemLimit))
+        if !visible.isEmpty {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(title).font(.caption.weight(.bold)).foregroundStyle(accent)
+                ForEach(Array(visible.enumerated()), id: \.offset) { _, item in
+                    HStack(alignment: .top, spacing: 6) {
+                        Text("•").foregroundStyle(accent)
+                        Text(item).font(.subheadline)
+                    }
+                }
+                if items.count > visible.count {
+                    Text("\(items.count - visible.count) more in chat")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
             }
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("\(title): \(visible.joined(separator: ", "))")
         }
     }
 
