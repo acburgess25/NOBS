@@ -436,7 +436,7 @@ private struct ProposalTypeBadge: View {
 private func riskColor(for risk: String) -> Color {
     switch risk.lowercased() {
     case "low": return .nobsAccent
-    case "medium": return .orange
+    case "medium": return .nobsWarning
     case "high", "critical": return .red
     default: return .secondary
     }

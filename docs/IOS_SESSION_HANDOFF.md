@@ -3,7 +3,7 @@
 **Last updated:** July 7, 2026  
 **Purpose:** Fast context for any agent or contributor picking up NOBS iPhone work mid-stream.
 
-Read first: [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md) (product truth) and [`CURRENT_STATE.md`](CURRENT_STATE.md) (Apple app section for what ships today).
+Read first: [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md) (product truth), [`CURRENT_STATE.md`](CURRENT_STATE.md) (Apple app section), and [`APP_STORE_BETA_CHECKLIST.md`](APP_STORE_BETA_CHECKLIST.md) (TestFlight / review prep).
 
 ## Environment snapshot
 
@@ -86,15 +86,17 @@ Simulator defaults Tank address to `http://127.0.0.1:8000` when none is saved. W
 | Today / briefing | `NOBS/Views/TodayView.swift`, `NOBS/AppModel.swift` (`generateBriefing`) |
 | Onboarding | `NOBS/Views/OnboardingChatView.swift` |
 | Widget | `NOBSWidgets/BriefingWidget.swift`, `NOBS/Services/BriefingSnapshotWriter.swift` |
+| Design tokens | `NOBS/Color+NOBS.swift`, `NOBS/Views/NOBSTheme.swift`, `design/tokens.json` |
+| App Store prep | `docs/APP_STORE_BETA_CHECKLIST.md`, `docs/app-store/*`, `website/public/privacy.html` |
 | Tank client | `NOBS/Services/TankClient.swift`, `NOBS/Services/TankConfiguration.swift` |
 | Intents | `NOBS/Intents/NOBSAppIntents.swift` |
 | Shared storage | `NOBS/Services/AppGroupStore.swift` |
 
 ## Recommended next slices
 
-1. **Physical iPhone validation** — pairing, Tank reconnect, widget on Lock Screen (see [`CURRENT_STATE.md`](CURRENT_STATE.md)).
-2. **Accessibility** — response length collected in onboarding; Today lists and evening wrap-up respect `accessibilityPreferences.responseLength`.
-3. **Evening wrap-up** — local on-device card on Today after 5pm (no Tank).
+1. **TestFlight at home** — signing, archive, upload, external beta review (see [`APP_STORE_BETA_CHECKLIST.md`](APP_STORE_BETA_CHECKLIST.md)).
+2. **Physical iPhone validation** — pairing, Tank reconnect, widget on Lock Screen.
+3. **Fresh marketing screenshot** — Simulator capture for `website/public/nobs-app-preview.png`.
 4. **Memory view** — replace `ComingSoonView` when approval workflow is ready.
 
 ## Handoff rule

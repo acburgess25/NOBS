@@ -59,7 +59,7 @@ struct OnboardingView: View {
             .accessibilityHint(index + 1 < pages.count ? "Next introduction screen" : "Start conversational setup")
         }
         .padding(28)
-        .accessibilityElement(children: .contain)
+        .nobsScreenBackground()
     }
 
     private func applyPhaseChange(_ next: Phase) {

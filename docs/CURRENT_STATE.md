@@ -1,6 +1,6 @@
 # NOBS Current State
 
-**Last updated:** July 7, 2026 (iOS session handoff + Today accessibility polish)
+**Last updated:** July 7, 2026 (App Store beta polish + unified NOBS theme)
 **Purpose:** Tool-neutral handoff for any contributor entering without prior chat history.
 
 This records implementation state, not product direction. [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md) remains the approved product source of truth. Verify the branch, tests, and live services before treating deployment facts as current.
@@ -40,6 +40,8 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 - Today briefing lists respect `UserProfile.accessibilityPreferences.responseLength`; refresh control and relative timestamp shown when a briefing exists.
 - Onboarding collects response length (brief / standard / detailed) conversationally.
 - Today shows a local evening wrap-up after 5pm from calendar, reminders, and briefing context.
+- Shared `NOBSTheme` modifiers (`nobsScreenBackground`, `nobsSectionCard`, `NOBSEmptyState`, `NOBSBetaBadge`) and `Color+NOBS` tokens unify Chat, Today, onboarding, Privacy, Activity, and the briefing widget palette.
+- App Store beta prep: metadata templates in `docs/app-store/`, checklist in `docs/APP_STORE_BETA_CHECKLIST.md`, privacy policy at `website/public/privacy.html`.
 
 - iOS 27 simulator build verified with Xcode 27 beta (`scripts/build-ios-simulator.sh` or `CODE_SIGNING_ALLOWED=NO`).
 
@@ -62,7 +64,7 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 
 - Vite/React build-in-public portfolio under `website/`.
 - Approved Personal Workshop visual direction under `design/`.
-- Content updated July 3 to describe the shipped agent core, dashboard, and security boundary; roadmap items carry shipped/in-progress status. Deployed live to nobsdash.com.
+- Content updated for TestFlight public beta; roadmap and hero copy match the iPhone app; privacy policy linked from footer. Deployed live to nobsdash.com (refresh after merge).
 
 - Persistent background scheduler implemented, managing autonomous jobs, recurring schedules, and proactive idea generation.
 - Basic API routes for synchronizing calendar and reminders (`/sync/calendar`, `/sync/reminders`) and managing briefing schedules (`/schedules`).
@@ -95,15 +97,15 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 - No household identity, subscription, or NOBScloud implementation.
 - No arbitrary MCP server is trusted or installed by the NOBS agent.
 - mDNS (`tank.local`) may not resolve on every LAN; clients can use the Tank host IP directly (for example `http://192.168.1.100:8000`).
-- Physical iPhone validation remains pending (simulator build verified; Tank pairing and sync need on-device QA).
+- Physical iPhone validation and TestFlight upload remain pending (simulator build verified; archive requires home signing).
 
 ## Recommended next vertical slice
 
-**Physical iPhone validation and LAN discovery hardening:**
+**Physical iPhone validation, TestFlight upload, and App Store Connect submission:**
 
-1. Pair a physical iPhone using the Tank dashboard QR or `scripts/pairing.py` and confirm chat, briefing, approvals, and calendar/reminders sync end-to-end.
-2. Verify saved Tank URL persists across app restarts and reconnects when returning to the home network.
-3. Investigate Bonjour/mDNS advertisement on Tank so `tank.local` can resolve reliably, or document IP-based pairing as the supported path.
+1. Fix distribution signing for app + widget; archive with `./scripts/stage-testflight-ipa.sh`.
+2. Paste metadata from `docs/app-store/` into App Store Connect; host privacy at `https://nobsdash.com/privacy.html`.
+3. Pair a physical iPhone and confirm chat, briefing, widget, and optional Tank sync end-to-end.
 
 Do not connect email, messages, health, location, purchases, deletion, or account administration until the approval UI and revocation path are usable.
 

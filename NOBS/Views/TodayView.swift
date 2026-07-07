@@ -90,7 +90,7 @@ struct TodayView: View {
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(accent)
                                 .padding(10)
-                                .background(Color.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
+                                .background(Color.nobsWarning.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
                         }
                         if model.clarifyingConflict != nil {
                             Button("Resolve overlap") {
@@ -250,12 +250,12 @@ struct TodayView: View {
         HStack(alignment: .top, spacing: 14) {
             Text(event.start, format: .dateTime.hour().minute())
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(event.overlapsNext ? .orange : accent)
+                .foregroundStyle(event.overlapsNext ? Color.nobsWarning : accent)
                 .frame(width: 76, alignment: .leading)
             VStack(alignment: .leading, spacing: 3) {
                 HStack {
                     Text(event.title).font(.headline)
-                    if event.overlapsNext { Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange) }
+                    if event.overlapsNext { Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(Color.nobsWarning) }
                 }
                 Text(event.calendarName).font(.caption).foregroundStyle(.secondary)
                 if let location = event.location, !location.isEmpty {

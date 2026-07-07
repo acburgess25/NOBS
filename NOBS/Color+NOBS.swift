@@ -18,4 +18,6 @@ extension Color {
     static let nobsSagePale = Color(red: 234 / 255, green: 238 / 255, blue: 230 / 255)
     /// Subtle section wash (#F2F4F0)
     static let nobsSageMist = Color(red: 242 / 255, green: 244 / 255, blue: 240 / 255)
+    /// Schedule conflict / caution (#C17A3A)
+    static let nobsWarning = Color(red: 193 / 255, green: 122 / 255, blue: 58 / 255)
 }

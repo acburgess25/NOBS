@@ -62,6 +62,7 @@ struct OnboardingChatView: View {
             }
         }
         .onAppear(perform: begin)
+        .nobsScreenBackground()
     }
 
     private func begin() {

@@ -72,6 +72,7 @@ struct SignInView: View {
             }
         }
         .padding(28)
+        .nobsScreenBackground()
     }
 
     // MARK: Settings layout
@@ -139,7 +140,7 @@ struct SignInView: View {
     private var statusColor: Color {
         guard let status = model.tankConnectStatus else { return .secondary }
         if status.contains("Connected") { return accent }
-        if status.contains("not registered") || status.contains("failed") { return .orange }
+        if status.contains("not registered") || status.contains("failed") { return .nobsWarning }
         return .secondary
     }
 }
