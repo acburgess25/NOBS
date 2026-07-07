@@ -4,7 +4,8 @@ import { ArrowRight, Check, Cloud, DeviceMobile, Copy, GithubLogo, HardDrives, L
 const githubUrl = "https://github.com/acburgess25/NOBS";
 const navItems = [["Vision", "vision"], ["Work so far", "work"], ["Architecture", "architecture"], ["Roadmap", "roadmap"]];
 const milestones = [
-  { label: "iPhone app (SwiftUI)", detail: "Authenticated chat with visible Local/Tank routing, day-at-a-glance, and privacy receipts.", icon: DeviceMobile },
+  { label: "iPhone app (SwiftUI)", detail: "Authenticated chat with visible Local/Tank routing, day-at-a-glance, privacy receipts, and conversational onboarding.", icon: DeviceMobile },
+  { label: "Apple-native day surface", detail: "Home Screen and Lock Screen briefing widget, Siri shortcuts, and Focus-aware planning that respects Do Not Disturb.", icon: DeviceMobile },
   { label: "Tank agent core", detail: "A local model with allowlisted tools. Nothing state-changing runs without explicit approval.", icon: HardDrives },
   { label: "Room-safe dashboard", detail: "Always-on status display for a shared screen—live on Tank today, private details stay on the phone.", icon: Monitor },
   { label: "Local-first contract", detail: "Token-authenticated boundary between devices. Anonymous requests are rejected, keys live in the Keychain.", icon: LockKey },
@@ -12,8 +13,9 @@ const milestones = [
 const roadmap = [
   ["Make the conversation real", "The iPhone app talks to a local model on Tank with clear processing receipts—no cloud in the loop.", "shipped"],
   ["Connect the private Tank", "Authenticated local-network routing with honest offline fallback when Tank is unreachable.", "shipped"],
+  ["Personalize on Apple", "Conversational onboarding, briefing widget, Focus-aware priorities, clarifying notifications, and Siri shortcuts.", "shipped"],
   ["Earn trust through action", "The agent core proposes, you approve. Approvals queue is live; the in-app review screen is being built now.", "in progress"],
-  ["Understand the day", "A scheduled daily briefing from calendar and reminders, with progressive permission prompts.", "next"],
+  ["Understand the day", "Scheduled daily briefing from calendar and reminders, with progressive permission prompts.", "in progress"],
   ["Grow without lock-in", "Optional cloud capacity and integrations while useful local features stay free.", "later"],
 ];
 
