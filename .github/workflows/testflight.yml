@@ -1,8 +1,8 @@
 name: TestFlight
 
-# Secrets (Settings → Secrets → Actions):
-#   ASC_API_KEY_ID, ASC_API_ISSUER_ID, ASC_API_KEY_CONTENT (.p8 contents, raw or base64)
-#   DIST_CERT_P12 (base64), DIST_CERT_PASSWORD
+# Self-hosted Mac runner (free). Register with scripts/setup-github-runner-mac.sh
+# Secrets still required for App Store Connect upload:
+#   ASC_API_KEY_ID, ASC_API_ISSUER_ID, ASC_API_KEY_CONTENT
 
 on:
   push:
@@ -22,17 +22,13 @@ concurrency:
 jobs:
   upload:
     name: Archive & Upload
-    runs-on: macos-latest
+    runs-on: [self-hosted, macOS, ARM64, testflight]
     env:
       DEVELOPMENT_TEAM: K853LKQLAS
+      DEVELOPER_DIR: /Applications/Xcode-beta.app/Contents/Developer
 
     steps:
       - uses: actions/checkout@v4
-
-      - uses: apple-actions/import-codesign-certs@v3
-        with:
-          p12-file-base64: ${{ secrets.DIST_CERT_P12 }}
-          p12-password: ${{ secrets.DIST_CERT_PASSWORD }}
 
       - name: Install App Store Connect API key
         env:
@@ -49,6 +45,8 @@ jobs:
       - name: Archive & export
         run: |
           set -euo pipefail
+          export_dir="${RUNNER_TEMP:-/tmp}/nobs-export"
+          archive_path="${RUNNER_TEMP:-/tmp}/NOBS.xcarchive"
           auth=(
             -allowProvisioningUpdates
             -authenticationKeyPath ~/private_keys/AuthKey_${{ secrets.ASC_API_KEY_ID }}.p8
@@ -60,21 +58,22 @@ jobs:
             -scheme NOBS \
             -configuration Release \
             -destination 'generic/platform=iOS' \
-            -archivePath "$RUNNER_TEMP/NOBS.xcarchive" \
+            -archivePath "$archive_path" \
             "${auth[@]}" \
             CODE_SIGN_STYLE=Automatic \
             DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM"
           xcodebuild -exportArchive \
-            -archivePath "$RUNNER_TEMP/NOBS.xcarchive" \
+            -archivePath "$archive_path" \
             -exportOptionsPlist ExportOptions.plist \
-            -exportPath "$RUNNER_TEMP/export" \
+            -exportPath "$export_dir" \
             "${auth[@]}"
+          echo "EXPORT_DIR=$export_dir" >> "$GITHUB_ENV"
 
       - name: Upload to TestFlight
         run: |
           xcrun altool --upload-app \
             --type ios \
-            --file "$RUNNER_TEMP/export/NOBS.ipa" \
+            --file "$EXPORT_DIR/NOBS.ipa" \
             --apiKey ${{ secrets.ASC_API_KEY_ID }} \
             --apiIssuer ${{ secrets.ASC_API_ISSUER_ID }}
 

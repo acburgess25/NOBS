@@ -10,19 +10,43 @@ permissions:
   contents: read
 
 jobs:
-  backend:
-    name: Python ${{ matrix.python-version }} on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
+  backend-linux:
+    name: Python ${{ matrix.python-version }} on Tank
+    runs-on: [self-hosted, tank]
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, ubuntu-latest, windows-latest]
-        python-version: ["3.11", "3.12"]
+        python-version: ["3.12"]
 
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v6
+      - name: Set up Python ${{ matrix.python-version }}
+        run: |
+          if ! command -v "python${{ matrix.python-version }}" >/dev/null; then
+            echo "python${{ matrix.python-version }} not found on Tank runner host" >&2
+            exit 1
+          fi
+          echo "PYTHON=python${{ matrix.python-version }}" >> "$GITHUB_ENV"
+
+      - name: Set up NOBS
+        run: "$PYTHON scripts/dev.py setup"
+
+      - name: Test and lint
+        run: "$PYTHON scripts/dev.py check"
+
+  backend-macos:
+    name: Python ${{ matrix.python-version }} on Mac runner
+    runs-on: [self-hosted, macOS, ARM64]
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12"]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
