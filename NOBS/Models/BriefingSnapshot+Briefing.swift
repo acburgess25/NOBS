@@ -1,13 +1,19 @@
 import Foundation
 
 extension BriefingSnapshot {
-    init(briefing: DailyBriefing, redactDetailsOnLockScreen: Bool = true) {
+    init(
+        briefing: DailyBriefing,
+        profile: UserProfile,
+        eveningHeadline: String? = nil,
+        redactDetailsOnLockScreen: Bool = true
+    ) {
+        let responseLength = profile.accessibilityPreferences.responseLength
         let hasConflict = !briefing.conflictsOrRisks.isEmpty
             && !briefing.conflictsOrRisks.contains(where: { $0.localizedCaseInsensitiveContains("no major") })
         let conflictSummary: String? = hasConflict
             ? briefing.conflictsOrRisks.first
             : nil
-        let priorities = Array(briefing.priorities.prefix(2))
+        let priorities = Array(briefing.priorities.prefix(responseLength.maxWidgetPriorities))
         self.init(
             date: briefing.date,
             topline: briefing.topline,
@@ -18,7 +24,9 @@ extension BriefingSnapshot {
             conflictSummary: conflictSummary,
             route: briefing.route.rawValue,
             generatedAt: Self.parseGeneratedAt(briefing.generatedAt) ?? .now,
-            redactDetailsOnLockScreen: redactDetailsOnLockScreen
+            redactDetailsOnLockScreen: redactDetailsOnLockScreen,
+            responseLength: responseLength,
+            eveningHeadline: eveningHeadline
         )
     }
 

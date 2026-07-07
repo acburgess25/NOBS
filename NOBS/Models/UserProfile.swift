@@ -39,14 +39,6 @@ enum ResponseStyle: String, Codable, CaseIterable, Sendable {
     var title: String { rawValue.capitalized }
 }
 
-enum ResponseLength: String, Codable, CaseIterable, Sendable {
-    case brief
-    case standard
-    case detailed
-
-    var title: String { rawValue.capitalized }
-}
-
 struct FocusPolicy: Codable, Hashable, Sendable {
     var focusIdentifier: String
     var displayName: String

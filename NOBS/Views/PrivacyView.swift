@@ -8,9 +8,16 @@ struct PrivacyView: View {
     var body: some View {
         List {
             Section("Processing now") {
-                // TODO(feature): Add a persistent sync status indicator alongside the current processing route.
                 LabeledContent("Chat", value: model.tankAvailable ? "Tank available" : "Local fallback")
                 LabeledContent("Calendar", value: "On this iPhone")
+                if TankConfiguration.hasSavedConnection, !model.tankAvailable {
+                    Button {
+                        Task { await model.refreshTankStatus() }
+                    } label: {
+                        Label("Try reconnecting to Tank", systemImage: "arrow.clockwise")
+                    }
+                    .accessibilityHint("Checks whether your saved Tank is reachable on the network")
+                }
             }
 
             Section {
@@ -37,7 +44,6 @@ struct PrivacyView: View {
 
                     Spacer()
 
-                    // TODO(feature): Add an explicit Tank reconnect button when the saved connection is offline.
                     Button(action: openScanner) {
                         Label("Scan QR", systemImage: "qrcode.viewfinder")
                     }
@@ -58,7 +64,7 @@ struct PrivacyView: View {
                 Label("No data is sold or used for advertising", systemImage: "eye.slash")
             }
         }
-        .scrollContentBackground(.hidden)
+        .nobsListScreen()
         .sheet(isPresented: $isScanningQR) {
             NavigationStack {
                 ScannerView(
