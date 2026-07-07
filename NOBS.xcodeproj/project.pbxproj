@@ -259,7 +259,7 @@
 /* End XCSwiftPackageProductDependency section */
 
 /* Begin XCBuildConfiguration section */
-		B10000000000000000000001 /* Debug */ = {
+		D10000000000000000000001 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CLANG_ENABLE_MODULES = YES;
@@ -273,7 +273,7 @@
 			};
 			name = Debug;
 		};
-		B10000000000000000000002 /* Release */ = {
+		D10000000000000000000002 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CLANG_ENABLE_MODULES = YES;
@@ -286,7 +286,7 @@
 			};
 			name = Release;
 		};
-		B10000000000000000000003 /* Debug */ = {
+		D10000000000000000000003 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
@@ -313,7 +313,7 @@
 			};
 			name = Debug;
 		};
-		B10000000000000000000004 /* Release */ = {
+		D10000000000000000000004 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_IDENTITY = "Apple Distribution";
@@ -347,8 +347,8 @@
 		A90000000000000000000001 /* Build configuration list for PBXProject "NOBS" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				B10000000000000000000001 /* Debug */,
-				B10000000000000000000002 /* Release */,
+				D10000000000000000000001 /* Debug */,
+				D10000000000000000000002 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
@@ -356,8 +356,8 @@
 		A90000000000000000000002 /* Build configuration list for PBXNativeTarget "NOBS" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				B10000000000000000000003 /* Debug */,
-				B10000000000000000000004 /* Release */,
+				D10000000000000000000003 /* Debug */,
+				D10000000000000000000004 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
