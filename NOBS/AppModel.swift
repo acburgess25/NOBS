@@ -1,222 +1,6 @@
-import AnyCodable
 import Combine
 @preconcurrency import EventKit
 import Foundation
-@preconcurrency import KeychainAccess
-
-enum ProcessingRoute: String, Codable, Sendable {
-    case local = "Local"
-    case tank = "Tank"
-    case cloud = "NOBScloud"
-}
-
-struct PrivacyReceipt: Codable, Hashable, Sendable {
-    let used: [String]
-    let processed: String
-    let shared: [String]
-    let changed: [String]
-
-    static let localOnly = PrivacyReceipt(
-        used: ["text entered in this conversation"],
-        processed: "Local on this iPhone",
-        shared: [],
-        changed: []
-    )
-}
-
-struct ConversationEntry: Identifiable, Codable, Sendable {
-    enum Role: String, Codable {
-        case user
-        case assistant
-    }
-
-    let id: UUID
-    let role: Role
-    let text: String
-    let route: ProcessingRoute?
-    let receipt: PrivacyReceipt?
-
-    init(
-        id: UUID = UUID(),
-        role: Role,
-        text: String,
-        route: ProcessingRoute? = nil,
-        receipt: PrivacyReceipt? = nil
-    ) {
-        self.id = id
-        self.role = role
-        self.text = text
-        self.route = route
-        self.receipt = receipt
-    }
-}
-
-struct DayEvent: Identifiable, Hashable, Sendable {
-    let id: String
-    let title: String
-    let start: Date
-    let end: Date
-    let location: String?
-    let calendarName: String
-    let context: BriefingContextBucket
-
-    var overlapsNext: Bool = false
-}
-
-enum BriefingContextBucket: String, Codable, CaseIterable {
-    case personal
-    case business
-    case shared
-
-    var title: String { rawValue.capitalized }
-}
-
-struct DayReminder: Identifiable, Hashable {
-    let id: String
-    let title: String
-    let due: Date?
-    let calendarName: String
-    let context: BriefingContextBucket
-}
-
-struct TankSchedule: Identifiable, Codable, Sendable {
-    let id: String
-    let timeOfDay: String
-    let status: String
-    let createdAt: String
-
-    enum CodingKeys: String, CodingKey {
-        case id, status
-        case timeOfDay = "time_of_day"
-        case createdAt = "created_at"
-    }
-}
-
-struct SyncActivityEntry: Identifiable, Hashable, Sendable {
-    let id: UUID
-    let title: String
-    let detail: String
-    let route: ProcessingRoute
-    let receipt: PrivacyReceipt
-    let createdAt: Date
-
-    init(
-        id: UUID = UUID(),
-        title: String,
-        detail: String,
-        route: ProcessingRoute,
-        receipt: PrivacyReceipt,
-        createdAt: Date = Date()
-    ) {
-        self.id = id
-        self.title = title
-        self.detail = detail
-        self.route = route
-        self.receipt = receipt
-        self.createdAt = createdAt
-    }
-}
-
-struct DailyBriefing: Codable, Sendable {
-    let date: String
-    let topline: String
-    let priorities: [String]
-    let conflictsOrRisks: [String]
-    let recommendedPlan: [String]
-    let oneUsefulQuestion: String?
-    let suggestedNextActions: [String]
-    let generatedAt: String
-    let route: ProcessingRoute
-    let privacyReceipt: PrivacyReceipt
-
-    enum CodingKeys: String, CodingKey {
-        case date, topline, priorities, route
-        case conflictsOrRisks = "conflicts_or_risks"
-        case recommendedPlan = "recommended_plan"
-        case oneUsefulQuestion = "one_useful_question"
-        case suggestedNextActions = "suggested_next_actions"
-        case generatedAt = "generated_at"
-        case privacyReceipt = "privacy_receipt"
-    }
-}
-
-struct PendingApproval: Identifiable, Codable, @unchecked Sendable {
-    let id: String
-    let runId: String
-    let toolName: String
-    let arguments: [String: AnyCodable]
-    let risk: String
-    let reason: String
-    let status: String
-    let createdAt: String
-    let decidedAt: String?
-
-    enum CodingKeys: String, CodingKey {
-        case id, risk, reason, status, arguments
-        case runId = "run_id"
-        case toolName = "tool_name"
-        case createdAt = "created_at"
-        case decidedAt = "decided_at"
-    }
-}
-
-struct AgentProposal: Identifiable, Codable, Sendable {
-    let id: String
-    let title: String
-    let description: String
-    let proposalType: String
-    let status: String
-    let createdAt: String
-    let decidedAt: String?
-
-    enum CodingKeys: String, CodingKey {
-        case id, title, description, status
-        case proposalType = "proposal_type"
-        case createdAt = "created_at"
-        case decidedAt = "decided_at"
-    }
-}
-
-extension AnyCodable {
-    var displayString: String {
-        switch value {
-        case let value as String:
-            return value
-        case let value as Bool:
-            return value ? "true" : "false"
-        case let value as Int:
-            return "\(value)"
-        case let value as Double:
-            return "\(value)"
-        default:
-            return String(describing: value)
-        }
-    }
-}
-
-enum AppSection: String, CaseIterable, Identifiable {
-    case chat = "Chat"
-    case today = "Today"
-    case approvals = "Approvals"
-    case memory = "Memory"
-    case activity = "Activity"
-    case home = "Home"
-    case privacy = "Privacy"
-
-    var id: String { rawValue }
-
-    var symbol: String {
-        switch self {
-        case .chat: "message"
-        case .today: "sun.max"
-        case .approvals: "checkmark.shield"
-        case .memory: "brain"
-        case .activity: "clock.arrow.circlepath"
-        case .home: "house"
-        case .privacy: "hand.raised"
-        }
-    }
-}
 
 @MainActor
 final class AppModel: ObservableObject {
@@ -247,8 +31,10 @@ final class AppModel: ObservableObject {
     @Published var tankConnectStatus: String?
     @Published var tankAddress = TankConfiguration.savedAddress
     @Published var tankToken = TankConfiguration.savedToken
+    @Published var approvalsFetchState: TankFetchState = .idle
+    @Published var proposalsFetchState: TankFetchState = .idle
+    @Published var schedulesFetchState: TankFetchState = .idle
 
-    /// The Apple user identifier stored in keychain after Sign in with Apple.
     var appleUserID: String? { TankConfiguration.savedAppleUserID }
 
     private let calendar = CalendarService()
@@ -265,7 +51,6 @@ final class AppModel: ObservableObject {
         reminderStatus == .fullAccess || reminderStatus == .authorized
     }
 
-    /// Total count of items needing a decision (shown as badge).
     var pendingDecisionCount: Int {
         approvals.filter { $0.status == "pending" }.count +
         proposals.filter { $0.status == "pending" }.count
@@ -304,14 +89,21 @@ final class AppModel: ObservableObject {
         startAutoRefresh()
     }
 
-    /// Called from SignInView after Apple returns a credential.
     func signInWithApple(userIdentifier: String, identityToken: String?) async {
         isSigningIn = true
         tankConnectStatus = "Connecting to Tank…"
         defer { isSigningIn = false }
 
-        // Save the Apple user ID locally for display / re-auth.
         TankConfiguration.saveAppleUserID(userIdentifier)
+
+        guard prepareTankAddressForAuth() else { return }
+
+        let reachable = await tank.isReachable()
+        if !reachable {
+            tankConnectStatus = "Tank is not reachable at \(tankAddress)."
+            lastError = "Could not reach Tank. If tank.local does not resolve, enter your Tank IP in Privacy (for example http://192.168.0.59:8000)."
+            return
+        }
 
         do {
             let response = try await tank.authWithApple(
@@ -328,9 +120,11 @@ final class AppModel: ObservableObject {
             logActivity("Signed in with Apple and connected to Tank")
         } catch {
             tankConnectStatus = "Could not connect: \(error.localizedDescription)"
-            lastError = tankAvailable
-                ? "Tank didn't recognise this Apple ID. Make sure you've run the setup once at home."
-                : "Tank is unreachable. Make sure you're on your home network and Tank is running."
+            if shouldMarkTankUnavailable(for: error) {
+                lastError = "Tank is unreachable. Make sure you're on your home network and Tank is running."
+            } else {
+                lastError = "Tank didn't recognise this Apple ID. Make sure you've run the setup once at home."
+            }
         }
     }
 
@@ -386,13 +180,21 @@ final class AppModel: ObservableObject {
     }
 
     func loadSchedules() async {
-        guard TankConfiguration.currentToken != nil else { return }
+        guard TankConfiguration.currentToken != nil else {
+            schedulesFetchState = .unavailable
+            return
+        }
         isLoadingSchedules = true
+        schedulesFetchState = .loading
         defer { isLoadingSchedules = false }
         do {
             schedules = try await tank.schedules()
+            schedulesFetchState = tankAvailable ? .loaded : .unavailable
         } catch {
-            schedules = []
+            schedulesFetchState = fetchState(for: error, resource: "schedules")
+            if case .failed = schedulesFetchState {
+                schedules = []
+            }
         }
     }
 
@@ -495,13 +297,21 @@ final class AppModel: ObservableObject {
     }
 
     func loadApprovals() async {
-        guard TankConfiguration.currentToken != nil else { return }
+        guard TankConfiguration.currentToken != nil else {
+            approvalsFetchState = .unavailable
+            return
+        }
         isLoadingApprovals = true
+        approvalsFetchState = .loading
         defer { isLoadingApprovals = false }
         do {
             approvals = try await tank.approvals()
+            approvalsFetchState = tankAvailable ? .loaded : .unavailable
         } catch {
-            approvals = []
+            approvalsFetchState = fetchState(for: error, resource: "approvals")
+            if case .failed = approvalsFetchState {
+                approvals = []
+            }
         }
     }
 
@@ -516,13 +326,21 @@ final class AppModel: ObservableObject {
     }
 
     func loadProposals() async {
-        guard TankConfiguration.currentToken != nil else { return }
+        guard TankConfiguration.currentToken != nil else {
+            proposalsFetchState = .unavailable
+            return
+        }
         isLoadingProposals = true
+        proposalsFetchState = .loading
         defer { isLoadingProposals = false }
         do {
             proposals = try await tank.proposals()
+            proposalsFetchState = tankAvailable ? .loaded : .unavailable
         } catch {
-            proposals = []
+            proposalsFetchState = fetchState(for: error, resource: "proposals")
+            if case .failed = proposalsFetchState {
+                proposals = []
+            }
         }
     }
 
@@ -582,23 +400,7 @@ final class AppModel: ObservableObject {
             )
             activity.insert("Synced \(payload.count) calendar events to Tank", at: 0)
         } catch {
-            tankAvailable = false
-            let receipt = PrivacyReceipt(
-                used: ["calendar events remained on this iPhone"],
-                processed: "Local on this iPhone",
-                shared: [],
-                changed: []
-            )
-            syncActivity.insert(
-                SyncActivityEntry(
-                    title: "Calendar sync stayed local",
-                    detail: "Tank was unavailable, so no events left this iPhone",
-                    route: .local,
-                    receipt: receipt
-                ),
-                at: 0
-            )
-            lastError = "Tank is offline, so calendar sync stayed local."
+            handleSyncFailure(kind: "calendar", error: error)
         }
     }
 
@@ -636,23 +438,7 @@ final class AppModel: ObservableObject {
             )
             activity.insert("Synced \(payload.count) reminders to Tank", at: 0)
         } catch {
-            tankAvailable = false
-            let receipt = PrivacyReceipt(
-                used: ["reminders remained on this iPhone"],
-                processed: "Local on this iPhone",
-                shared: [],
-                changed: []
-            )
-            syncActivity.insert(
-                SyncActivityEntry(
-                    title: "Reminders sync stayed local",
-                    detail: "Tank was unavailable, so no reminders left this iPhone",
-                    route: .local,
-                    receipt: receipt
-                ),
-                at: 0
-            )
-            lastError = "Tank is offline, so reminders sync stayed local."
+            handleSyncFailure(kind: "reminders", error: error)
         }
     }
 
@@ -662,6 +448,7 @@ final class AppModel: ObservableObject {
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(30))
                 guard let self, !Task.isCancelled else { return }
+                await self.refreshTankStatus()
                 if self.tankAvailable {
                     await self.loadApprovals()
                     await self.loadProposals()
@@ -669,6 +456,53 @@ final class AppModel: ObservableObject {
                 }
             }
         }
+    }
+
+    @discardableResult
+    private func prepareTankAddressForAuth() -> Bool {
+        guard let url = TankConfiguration.normalizedURL(from: tankAddress) else {
+            tankConnectStatus = "Enter a valid Tank address in Privacy settings first."
+            lastError = "Sign in needs a Tank address. Open Privacy and enter your Tank URL."
+            return false
+        }
+        TankConfiguration.saveAddress(url.absoluteString)
+        tankAddress = url.absoluteString
+        return true
+    }
+
+    private func fetchState(for error: Error, resource: String) -> TankFetchState {
+        if shouldMarkTankUnavailable(for: error) {
+            tankAvailable = false
+            return .unavailable
+        }
+        return .failed("Could not load \(resource) from Tank.")
+    }
+
+    private func handleSyncFailure(kind: String, error: Error) {
+        let offline = shouldMarkTankUnavailable(for: error)
+        if offline {
+            tankAvailable = false
+            lastError = "Tank is offline, so \(kind) sync stayed local."
+        } else {
+            lastError = "Tank could not sync \(kind). Your data stayed on this iPhone."
+        }
+        let receipt = PrivacyReceipt(
+            used: ["\(kind) remained on this iPhone"],
+            processed: "Local on this iPhone",
+            shared: [],
+            changed: []
+        )
+        syncActivity.insert(
+            SyncActivityEntry(
+                title: offline ? "\(kind.capitalized) sync stayed local" : "\(kind.capitalized) sync failed",
+                detail: offline
+                    ? "Tank was unavailable, so no \(kind) left this iPhone"
+                    : "Tank returned an error; no \(kind) left this iPhone",
+                route: .local,
+                receipt: receipt
+            ),
+            at: 0
+        )
     }
 
     private func ensureCalendarAccessForSync() async -> Bool {
@@ -705,7 +539,7 @@ final class AppModel: ObservableObject {
             if hasCalendarAccess {
                 response = localAgendaSummary
             } else {
-                response = "I can build that from your real calendar. Open Today and approve Calendar access when you’re ready."
+                response = "I can build that from your real calendar. Open Today and approve Calendar access when you're ready."
             }
         } else if normalized.contains("google") || normalized.contains("alexa") {
             response = "Google Home and Alexa unification is coming soon. Today I can help you design the routine without claiming it has run."
@@ -908,7 +742,7 @@ final class AppModel: ObservableObject {
             actions.append("Draft a short conflict message for any meeting that can move.")
         }
         if let prepReminder = reminders.first {
-            actions.append("Create a prep reminder block for “\(prepReminder.title)”.")
+            actions.append("Create a prep reminder block for \"\(prepReminder.title)\".")
         }
         actions.append("Re-check afternoon priorities after your second major commitment.")
         return Array(actions.prefix(4))
@@ -917,415 +751,4 @@ final class AppModel: ObservableObject {
     private func contextLabel(_ context: BriefingContextBucket) -> String {
         context.title
     }
-}
-
-@MainActor
-private final class CalendarService {
-    private let store = EKEventStore()
-
-    func requestAccess() async throws -> Bool {
-        try await store.requestFullAccessToEvents()
-    }
-
-    func requestReminderAccess() async throws -> Bool {
-        try await store.requestFullAccessToReminders()
-    }
-
-    func todayEvents() -> [DayEvent] {
-        let start = Calendar.current.startOfDay(for: Date())
-        let end = Calendar.current.date(byAdding: .day, value: 1, to: start) ?? Date()
-        let predicate = store.predicateForEvents(withStart: start, end: end, calendars: nil)
-        let source = store.events(matching: predicate).sorted { $0.startDate < $1.startDate }
-        var result = source.map {
-            DayEvent(
-                id: $0.eventIdentifier ?? UUID().uuidString,
-                title: $0.title.isEmpty ? "Untitled event" : $0.title,
-                start: $0.startDate,
-                end: $0.endDate,
-                location: $0.location,
-                calendarName: $0.calendar.title,
-                context: Self.context(for: $0.calendar.title)
-            )
-        }
-        for index in result.indices.dropLast() {
-            result[index].overlapsNext = result[index].end > result[index + 1].start
-        }
-        return result
-    }
-
-    func todayReminders() async -> [DayReminder] {
-        let start = Calendar.current.startOfDay(for: Date())
-        let end = Calendar.current.date(byAdding: .day, value: 1, to: start) ?? Date()
-        let predicate = store.predicateForIncompleteReminders(
-            withDueDateStarting: start,
-            ending: end,
-            calendars: nil
-        )
-        return await withCheckedContinuation { continuation in
-            store.fetchReminders(matching: predicate) { reminders in
-                let items = (reminders ?? []).map {
-                    DayReminder(
-                        id: $0.calendarItemIdentifier,
-                        title: $0.title.isEmpty ? "Untitled reminder" : $0.title,
-                        due: $0.dueDateComponents?.date,
-                        calendarName: $0.calendar.title,
-                        context: Self.context(for: $0.calendar.title)
-                    )
-                }
-                .sorted { lhs, rhs in
-                    (lhs.due ?? .distantFuture) < (rhs.due ?? .distantFuture)
-                }
-                continuation.resume(returning: items)
-            }
-        }
-    }
-
-    func syncEvents(daysAhead: Int) -> [DayEvent] {
-        let start = Calendar.current.startOfDay(for: Date())
-        let end = Calendar.current.date(byAdding: .day, value: daysAhead, to: start) ?? start
-        let predicate = store.predicateForEvents(withStart: start, end: end, calendars: nil)
-        return store.events(matching: predicate)
-            .sorted { $0.startDate < $1.startDate }
-            .map {
-                DayEvent(
-                    id: $0.eventIdentifier ?? UUID().uuidString,
-                    title: $0.title.isEmpty ? "Untitled event" : $0.title,
-                    start: $0.startDate,
-                    end: $0.endDate,
-                    location: $0.location,
-                    calendarName: $0.calendar.title,
-                    context: Self.context(for: $0.calendar.title)
-                )
-            }
-    }
-
-    func openReminders(limit: Int) async -> [DayReminder] {
-        let predicate = store.predicateForIncompleteReminders(
-            withDueDateStarting: nil,
-            ending: nil,
-            calendars: nil
-        )
-        let reminders: [DayReminder] = await withCheckedContinuation { continuation in
-            store.fetchReminders(matching: predicate) { fetched in
-                let snapshot = (fetched ?? []).map { reminder in
-                    DayReminder(
-                        id: reminder.calendarItemIdentifier,
-                        title: reminder.title?.isEmpty == false
-                            ? (reminder.title ?? "Untitled reminder")
-                            : "Untitled reminder",
-                        due: reminder.dueDateComponents?.date,
-                        calendarName: reminder.calendar.title,
-                        context: Self.context(for: reminder.calendar.title)
-                    )
-                }
-                continuation.resume(returning: snapshot)
-            }
-        }
-        let sorted = reminders.sorted {
-            ($0.due ?? .distantFuture) < ($1.due ?? .distantFuture)
-        }
-        return Array(sorted.prefix(limit))
-    }
-
-    private static func context(for calendarName: String) -> BriefingContextBucket {
-        let name = calendarName.lowercased()
-        if name.contains("work") || name.contains("business") { return .business }
-        if name.contains("family") || name.contains("shared") { return .shared }
-        return .personal
-    }
-}
-
-private actor TankClient {
-    func isHealthy() async -> Bool {
-        guard let baseURL = TankConfiguration.currentURL,
-              let token = TankConfiguration.currentToken,
-              !token.isEmpty else { return false }
-        var request = URLRequest(url: baseURL.appending(path: "ready"))
-        request.timeoutInterval = 2
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        do {
-            let (_, response) = try await URLSession.shared.data(for: request)
-            return (response as? HTTPURLResponse)?.statusCode == 200
-        } catch {
-            return false
-        }
-    }
-
-    func chat(messages: [ConversationEntry]) async throws -> TankChatResponse {
-        guard let baseURL = TankConfiguration.currentURL,
-              let token = TankConfiguration.currentToken,
-              !token.isEmpty else {
-            throw URLError(.userAuthenticationRequired)
-        }
-        var request = URLRequest(url: baseURL.appending(path: "chat"))
-        request.httpMethod = "POST"
-        request.timeoutInterval = 50
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        request.httpBody = try JSONEncoder().encode(
-            TankChatRequest(
-                messages: messages.suffix(20).map {
-                    TankChatMessage(role: $0.role.rawValue, content: $0.text)
-                }
-            )
-        )
-        return try await fetch(TankChatResponse.self, for: request)
-    }
-
-    func createBriefing(events: [DayEvent], reminders: [DayReminder]) async throws -> DailyBriefing {
-        var request = try authorizedRequest(path: "briefing", method: "POST")
-        let time = DateFormatter()
-        time.locale = Locale(identifier: "en_US_POSIX")
-        time.dateFormat = "HH:mm"
-        let day = DateFormatter()
-        day.locale = Locale(identifier: "en_US_POSIX")
-        day.dateFormat = "yyyy-MM-dd"
-        request.httpBody = try JSONEncoder().encode(
-            TankBriefingRequest(
-                date: day.string(from: Date()),
-                calendar: events.map {
-                    TankBriefingCalendarItem(
-                        title: $0.title,
-                        start: time.string(from: $0.start),
-                        end: time.string(from: $0.end),
-                        location: $0.location,
-                        context: $0.context.rawValue
-                    )
-                },
-                reminders: reminders.map {
-                    TankBriefingReminderItem(
-                        title: $0.title,
-                        due: $0.due.map { time.string(from: $0) },
-                        context: $0.context.rawValue
-                    )
-                }
-            )
-        )
-        return try await fetch(DailyBriefing.self, for: request)
-    }
-
-    func approvals() async throws -> [PendingApproval] {
-        let request = try authorizedRequest(path: "agent/approvals", method: "GET")
-        return try await fetch([PendingApproval].self, for: request)
-    }
-
-    func decideApproval(id: String, decision: String) async throws -> PendingApproval {
-        var request = try authorizedRequest(path: "agent/approvals/\(id)", method: "POST")
-        request.httpBody = try JSONEncoder().encode(ApprovalDecisionRequest(decision: decision))
-        return try await fetch(PendingApproval.self, for: request)
-    }
-
-    func proposals() async throws -> [AgentProposal] {
-        let request = try authorizedRequest(path: "agent/proposals", method: "GET")
-        return try await fetch([AgentProposal].self, for: request)
-    }
-
-    func decideProposal(id: String, decision: String) async throws -> AgentProposal {
-        var request = try authorizedRequest(path: "agent/proposals/\(id)/decide", method: "POST")
-        request.httpBody = try JSONEncoder().encode(ProposalDecisionRequest(decision: decision))
-        return try await fetch(AgentProposal.self, for: request)
-    }
-
-    func schedules() async throws -> [TankSchedule] {
-        let request = try authorizedRequest(path: "schedules", method: "GET")
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard (response as? HTTPURLResponse)?.statusCode == 200 else {
-            throw URLError(.badServerResponse)
-        }
-        return try JSONDecoder().decode([TankSchedule].self, from: data)
-    }
-
-    func updateSchedule(id: String, status: String) async throws -> TankSchedule {
-        var request = try authorizedRequest(path: "schedules/\(id)", method: "PATCH")
-        request.httpBody = try JSONEncoder().encode(TankScheduleUpdateRequest(status: status))
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard (response as? HTTPURLResponse)?.statusCode == 200 else {
-            throw URLError(.badServerResponse)
-        }
-        return try JSONDecoder().decode(TankSchedule.self, from: data)
-    }
-
-    func syncCalendar(events: [TankBriefingCalendarItem]) async throws {
-        var request = try authorizedRequest(path: "sync/calendar", method: "POST")
-        request.httpBody = try JSONEncoder().encode(TankSyncCalendarRequest(events: events))
-        let (_, response) = try await URLSession.shared.data(for: request)
-        guard (response as? HTTPURLResponse)?.statusCode == 200 else {
-            throw URLError(.badServerResponse)
-        }
-    }
-
-    func syncReminders(reminders: [TankBriefingReminderItem]) async throws {
-        var request = try authorizedRequest(path: "sync/reminders", method: "POST")
-        request.httpBody = try JSONEncoder().encode(TankSyncRemindersRequest(reminders: reminders))
-        let (_, response) = try await URLSession.shared.data(for: request)
-        guard (response as? HTTPURLResponse)?.statusCode == 200 else {
-            throw URLError(.badServerResponse)
-        }
-    }
-
-    /// Authenticates via Apple Identity and retrieves the Tank device token.
-    /// No Authorization header needed — this is the bootstrap endpoint.
-    func authWithApple(userIdentifier: String, identityToken: String?) async throws -> AppleAuthResponse {
-        guard let baseURL = TankConfiguration.currentURL else {
-            throw URLError(.userAuthenticationRequired)
-        }
-        var request = URLRequest(url: baseURL.appending(path: "auth/apple"))
-        request.httpMethod = "POST"
-        request.timeoutInterval = 10
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpBody = try JSONEncoder().encode(
-            AppleAuthRequest(userIdentifier: userIdentifier, identityToken: identityToken)
-        )
-        return try await fetch(AppleAuthResponse.self, for: request)
-    }
-
-    private func authorizedRequest(path: String, method: String) throws -> URLRequest {
-        guard let baseURL = TankConfiguration.currentURL,
-              let token = TankConfiguration.currentToken,
-              !token.isEmpty else {
-            throw URLError(.userAuthenticationRequired)
-        }
-        var request = URLRequest(url: baseURL.appending(path: path))
-        request.httpMethod = method
-        request.timeoutInterval = 50
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        return request
-    }
-
-    private func fetch<T: Decodable>(
-        _ type: T.Type,
-        for request: URLRequest,
-        decoder: JSONDecoder = JSONDecoder()
-    ) async throws -> T {
-        let (data, response) = try await URLSession.shared.data(for: request)
-        guard (response as? HTTPURLResponse)?.statusCode == 200 else {
-            throw URLError(.badServerResponse)
-        }
-        return try decoder.decode(T.self, from: data)
-    }
-}
-
-private enum TankConfiguration {
-    private static let addressKey = "nobs.tank.address"
-    private static let tokenAccount = "tank-device-token"
-    private static let appleUserAccount = "tank-apple-user-id"
-    private static let keychainService = "com.acburgess25.NOBS"
-    private static var keychain: Keychain {
-        Keychain(service: keychainService)
-            .accessibility(.afterFirstUnlockThisDeviceOnly)
-    }
-
-    static var savedAddress: String {
-        if let saved = UserDefaults.standard.string(forKey: addressKey) { return saved }
-        #if targetEnvironment(simulator)
-        return "http://127.0.0.1:8000"
-        #else
-        return "http://tank.local:8000"
-        #endif
-    }
-
-    static var savedToken: String { currentToken ?? "" }
-
-    static var currentURL: URL? { normalizedURL(from: savedAddress) }
-    static var currentToken: String? { try? keychain.get(tokenAccount) }
-    static var savedAppleUserID: String? { try? keychain.get(appleUserAccount) }
-
-    static func normalizedURL(from value: String) -> URL? {
-        let clean = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let url = URL(string: clean),
-              ["http", "https"].contains(url.scheme?.lowercased()),
-              url.host != nil else { return nil }
-        return url
-    }
-
-    static func save(address: String, token: String) throws {
-        UserDefaults.standard.set(address, forKey: addressKey)
-        try keychain.set(token, key: tokenAccount)
-    }
-
-    static func saveAppleUserID(_ userID: String) {
-        try? keychain.set(userID, key: appleUserAccount)
-    }
-}
-
-private struct TankChatRequest: Codable {
-    let messages: [TankChatMessage]
-}
-
-private struct TankChatMessage: Codable {
-    let role: String
-    let content: String
-}
-
-private struct TankChatResponse: Codable {
-    let message: String
-    let route: ProcessingRoute
-    let privacyReceipt: PrivacyReceipt
-
-    enum CodingKeys: String, CodingKey {
-        case message
-        case route
-        case privacyReceipt = "privacy_receipt"
-    }
-
-    var receipt: PrivacyReceipt { privacyReceipt }
-}
-
-private struct TankBriefingRequest: Codable {
-    let date: String
-    let calendar: [TankBriefingCalendarItem]
-    let reminders: [TankBriefingReminderItem]
-}
-
-private struct TankBriefingCalendarItem: Codable {
-    let title: String
-    let start: String
-    let end: String?
-    let location: String?
-    let context: String
-}
-
-private struct TankBriefingReminderItem: Codable {
-    let title: String
-    let due: String?
-    let context: String
-}
-
-private struct ApprovalDecisionRequest: Codable {
-    let decision: String
-}
-
-private struct ProposalDecisionRequest: Codable {
-    let decision: String
-}
-
-private struct TankScheduleUpdateRequest: Codable {
-    let status: String
-}
-
-private struct AppleAuthRequest: Codable {
-    let userIdentifier: String
-    let identityToken: String?
-
-    enum CodingKeys: String, CodingKey {
-        case userIdentifier = "user_identifier"
-        case identityToken = "identity_token"
-    }
-}
-
-private struct AppleAuthResponse: Codable {
-    let deviceToken: String
-
-    enum CodingKeys: String, CodingKey {
-        case deviceToken = "device_token"
-    }
-}
-
-private struct TankSyncCalendarRequest: Codable {
-    let events: [TankBriefingCalendarItem]
-}
-
-private struct TankSyncRemindersRequest: Codable {
-    let reminders: [TankBriefingReminderItem]
 }
