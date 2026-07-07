@@ -1,34 +1,54 @@
-import EventKit
 import SwiftUI
 
 struct ConversationView: View {
-    @StateObject private var model = AppModel()
-    @AppStorage("nobs.onboarding.complete") private var onboardingComplete = false
+    @EnvironmentObject private var model: AppModel
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var draft = ""
     @State private var selectedReceipt: PrivacyReceipt?
     @State private var showNavigation = false
 
-    private let accent = Color(red: 0.31, green: 0.43, blue: 0.20)
-    private let canvas = Color(red: 0.975, green: 0.968, blue: 0.945)
+    private let accent = Color.nobsAccent
+    private let canvas = Color.nobsCanvas
+    private let forest = Color.nobsForest
+    private let surface = Color.nobsSagePale
+
+    private var responseLength: ResponseLength {
+        model.profile.accessibilityPreferences.responseLength
+    }
 
     var body: some View {
         ZStack {
             canvas.ignoresSafeArea()
-            if onboardingComplete {
-                mainContent
+            if model.needsOnboarding {
+                OnboardingView(onComplete: { model.completeOnboarding() })
             } else {
-                OnboardingView(onComplete: { onboardingComplete = true })
+                mainContent
             }
         }
         .task { await model.start() }
+        .onChange(of: model.needsOnboarding) { _, needsOnboarding in
+            guard !needsOnboarding, let prompt = model.consumePendingChatPrompt() else { return }
+            draft = prompt
+        }
+        .onChange(of: model.pendingChatPrompt) { _, prompt in
+            guard let prompt, !prompt.isEmpty else { return }
+            draft = prompt
+        }
         .onOpenURL { url in
-            model.section = .privacy // Switch to privacy tab to show the connection status
-            handleScan(payload: url.absoluteString)
+            model.handleDeepLink(url)
         }
         .sheet(isPresented: $showNavigation) { navigationSheet }
         .sheet(item: $selectedReceipt) { receipt in
             PrivacyReceiptView(receipt: receipt)
                 .presentationDetents([.medium])
+        }
+        .sheet(isPresented: $model.showConflictSheet) {
+            if let conflict = model.clarifyingConflict {
+                ConflictResolutionSheet(conflict: conflict) { option in
+                    model.resolveConflict(choosing: option)
+                }
+                .presentationDetents([.medium])
+            }
         }
         .alert("NOBS", isPresented: Binding(
             get: { model.lastError != nil },
@@ -46,11 +66,12 @@ struct ConversationView: View {
             Group {
                 switch model.section {
                 case .chat: chat
-                case .today: TodayView(model: model) { selectedReceipt = $0 }
+                case .today: TodayView { selectedReceipt = $0 }
+                case .approvals: ApprovalsView()
                 case .memory: ComingSoonView(title: "Memory", symbol: "brain", detail: "Approved memories will appear here with their source and deletion controls.")
-                case .activity: ActivityView(model: model)
+                case .activity: ActivityView { selectedReceipt = $0 }
                 case .home: ComingSoonView(title: "Home", symbol: "house", detail: "Unified Apple Home, Google, and Alexa control is coming soon. No devices are connected yet.")
-                case .privacy: PrivacyView(model: model)
+                case .privacy: PrivacyView()
                 }
             }
         }
@@ -59,14 +80,27 @@ struct ConversationView: View {
     private var header: some View {
         HStack(spacing: 12) {
             Button { showNavigation = true } label: {
-                Image(systemName: "line.3.horizontal")
-                    .frame(width: 40, height: 40)
+                ZStack(alignment: .topTrailing) {
+                    Image(systemName: "line.3.horizontal")
+                        .frame(width: 40, height: 40)
+                    if model.pendingDecisionCount > 0 {
+                        Text("\(model.pendingDecisionCount)")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(.white)
+                            .padding(4)
+                            .background(Color.red, in: Circle())
+                            .offset(x: 6, y: -4)
+                    }
+                }
             }
-            .accessibilityLabel("Open navigation")
+            .accessibilityLabel("Open navigation\(model.pendingDecisionCount > 0 ? ", \(model.pendingDecisionCount) items need your attention" : "")")
 
             VStack(alignment: .leading, spacing: 1) {
-                Text(model.section.rawValue)
-                    .font(.system(size: 22, weight: .medium, design: .serif))
+                HStack(spacing: 8) {
+                    Text(model.section.rawValue)
+                        .font(.system(size: 22, weight: .medium, design: .serif))
+                    NOBSBetaBadge()
+                }
                 Text("NOBS · Private by design")
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -78,10 +112,10 @@ struct ConversationView: View {
                     systemImage: model.tankAvailable ? "server.rack" : "iphone"
                 )
                 .font(.caption.weight(.semibold))
-                .foregroundStyle(accent)
+                .foregroundStyle(forest)
                 .padding(.horizontal, 11)
                 .padding(.vertical, 8)
-                .background(accent.opacity(0.11), in: Capsule())
+                .background(surface, in: Capsule())
             }
             .accessibilityHint("Checks the current processing connection")
         }
@@ -114,7 +148,11 @@ struct ConversationView: View {
                 }
                 .onChange(of: model.entries.count) { _, _ in
                     if let last = model.entries.last {
-                        withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
+                        if reduceMotion {
+                            proxy.scrollTo(last.id, anchor: .bottom)
+                        } else {
+                            withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
+                        }
                     }
                 }
             }
@@ -125,11 +163,10 @@ struct ConversationView: View {
 
     private var welcome: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Good \(dayPart).")
+            Text(model.personalizedDayPartGreeting)
                 .font(.system(size: 30, weight: .regular, design: .serif))
-            Text(model.tankAvailable
-                 ? "Tank is connected. Ask me something, or let’s make today realistic."
-                 : "I’m working locally. Calendar planning still works; Tank chat will reconnect when available.")
+                .accessibilityAddTraits(.isHeader)
+            Text(welcomeDetail)
                 .foregroundStyle(.secondary)
                 .lineSpacing(3)
             Button {
@@ -140,7 +177,7 @@ struct ConversationView: View {
                     .foregroundStyle(.white)
                     .padding(.horizontal, 16)
                     .frame(height: 44)
-                    .background(accent, in: RoundedRectangle(cornerRadius: 12))
+                    .background(forest, in: RoundedRectangle(cornerRadius: 12))
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -150,10 +187,11 @@ struct ConversationView: View {
     private func message(_ entry: ConversationEntry) -> some View {
         VStack(alignment: entry.role == .user ? .trailing : .leading, spacing: 6) {
             Text(entry.text)
-                .font(.body)
-                .lineSpacing(3)
+                .font(entry.role == .assistant ? assistantMessageFont : .body)
+                .lineSpacing(messageLineSpacing)
                 .padding(entry.role == .user ? 12 : 0)
-                .background(entry.role == .user ? accent.opacity(0.15) : .clear, in: RoundedRectangle(cornerRadius: 18))
+                .background(entry.role == .user ? surface : .clear, in: RoundedRectangle(cornerRadius: 18))
+                .accessibilityLabel(entry.role == .user ? "You said: \(entry.text)" : "NOBS says: \(entry.text)")
             if let route = entry.route {
                 Button {
                     selectedReceipt = entry.receipt
@@ -172,17 +210,34 @@ struct ConversationView: View {
     private var suggestionStrip: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                ForEach(["What’s on my calendar?", "Help me prioritize today", "Is Tank online?"], id: \.self) { text in
+                ForEach(model.chatSuggestions, id: \.self) { text in
                     Button(text) { Task { await model.send(text) } }
                         .font(.caption.weight(.medium))
                         .padding(.horizontal, 14)
                         .padding(.vertical, 9)
-                        .overlay(Capsule().stroke(accent.opacity(0.35)))
+                        .overlay(Capsule().stroke(Color.nobsGreen.opacity(0.45)))
+                        .accessibilityHint("Sends this prompt to NOBS")
                 }
             }
             .padding(.horizontal, 16)
         }
         .padding(.vertical, 9)
+        .accessibilityLabel("Suggested prompts")
+    }
+
+    private var assistantMessageFont: Font {
+        switch responseLength {
+        case .brief: .subheadline
+        case .standard, .detailed: .body
+        }
+    }
+
+    private var messageLineSpacing: CGFloat {
+        switch responseLength {
+        case .brief: 2
+        case .standard: 3
+        case .detailed: 5
+        }
     }
 
     private var composer: some View {
@@ -199,10 +254,11 @@ struct ConversationView: View {
                     .font(.headline)
                     .foregroundStyle(.white)
                     .frame(width: 44, height: 44)
-                    .background(accent, in: Circle())
+                    .background(forest, in: Circle())
             }
             .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || model.isSending)
             .opacity(draft.isEmpty ? 0.5 : 1)
+            .accessibilityLabel("Send message")
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
@@ -216,14 +272,41 @@ struct ConversationView: View {
                     model.section = section
                     showNavigation = false
                 } label: {
-                    Label(section.rawValue, systemImage: section.symbol)
-                        .foregroundStyle(section == model.section ? accent : .primary)
+                    HStack {
+                        Label(section.rawValue, systemImage: section.symbol)
+                            .foregroundStyle(section == model.section ? accent : .primary)
+                        Spacer()
+                        if section == .approvals, model.pendingDecisionCount > 0 {
+                            Text("\(model.pendingDecisionCount)")
+                                .font(.caption2.weight(.bold))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 7)
+                                .padding(.vertical, 3)
+                                .background(Color.red, in: Capsule())
+                        }
+                    }
                 }
             }
             .navigationTitle("NOBS")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(Color.nobsCanvas, for: .navigationBar)
             .toolbar { Button("Done") { showNavigation = false } }
         }
         .presentationDetents([.medium, .large])
+        .presentationBackground(Color.nobsCanvas)
+    }
+
+    private var welcomeDetail: String {
+        if responseLength == .brief {
+            if model.tankAvailable {
+                return "Tank connected. Ask anything or open Today."
+            }
+            return "Working locally. Calendar planning on Today still works."
+        }
+        if model.tankAvailable {
+            return "Tank is connected. Ask me something, or let's make today realistic."
+        }
+        return "I'm working locally. Calendar planning still works; Tank chat will reconnect when available."
     }
 
     private func sendDraft() {
@@ -231,304 +314,9 @@ struct ConversationView: View {
         draft = ""
         Task { await model.send(text) }
     }
-
-    private var dayPart: String {
-        switch Calendar.current.component(.hour, from: Date()) {
-        case 5..<12: "morning"
-        case 12..<18: "afternoon"
-        default: "evening"
-        }
-    }
 }
 
-private struct OnboardingView: View {
-    let onComplete: () -> Void
-    @State private var page = 0
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 24) {
-            Spacer()
-            Image(systemName: page == 0 ? "leaf" : "hand.raised")
-                .font(.system(size: 42))
-                .foregroundStyle(Color(red: 0.31, green: 0.43, blue: 0.20))
-            Text(page == 0 ? "Your technology.\nFinally working for you." : "Private by default.\nClear when it isn’t.")
-                .font(.system(size: 42, weight: .regular, design: .serif))
-            Text(page == 0
-                 ? "NOBS helps turn a chaotic day into a realistic plan. Chat stays at the center."
-                 : "Every answer shows whether it was processed on this iPhone, your Tank, or optional NOBScloud.")
-                .font(.title3)
-                .foregroundStyle(.secondary)
-                .lineSpacing(4)
-            Spacer()
-            Button(page == 0 ? "Continue" : "Start with NOBS") {
-                if page == 0 { withAnimation { page = 1 } } else { onComplete() }
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(Color(red: 0.31, green: 0.43, blue: 0.20))
-            .controlSize(.large)
-            .frame(maxWidth: .infinity, alignment: .trailing)
-        }
-        .padding(28)
-    }
+#Preview {
+    ConversationView()
+        .environmentObject(AppModel())
 }
-
-private struct TodayView: View {
-    @ObservedObject var model: AppModel
-    let onShowReceipt: (PrivacyReceipt) -> Void
-    private let accent = Color(red: 0.31, green: 0.43, blue: 0.20)
-
-    var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                Text("A realistic day, not another list.")
-                    .font(.system(size: 30, design: .serif))
-                briefingCard
-                switch model.calendarStatus {
-                case .fullAccess, .authorized:
-                    if model.isLoadingCalendar {
-                        ProgressView("Reading today’s events on this iPhone…")
-                    } else if model.events.isEmpty {
-                        ContentUnavailableView("Your day is clear", systemImage: "calendar", description: Text("No calendar events remain today."))
-                    } else {
-                        ForEach(model.events) { event in eventRow(event) }
-                        Button("Refresh calendar") { Task { await model.loadToday() } }
-                            .buttonStyle(.bordered)
-                            .tint(accent)
-                    }
-                case .denied, .restricted:
-                    ContentUnavailableView("Calendar access is off", systemImage: "calendar.badge.exclamationmark", description: Text("Enable Calendar access in Settings to build a real day plan."))
-                default:
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Connect your calendar when its value is clear—not during a wall of setup switches.")
-                            .foregroundStyle(.secondary)
-                        Button("Allow Calendar access") { Task { await model.requestCalendarAccess() } }
-                            .buttonStyle(.borderedProminent)
-                            .tint(accent)
-                    }
-                    .padding(18)
-                    .background(accent.opacity(0.09), in: RoundedRectangle(cornerRadius: 16))
-                }
-            }
-            .padding(20)
-        }
-    }
-
-    private var briefingCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Label("Morning briefing", systemImage: "sunrise")
-                .font(.headline)
-            if let briefing = model.briefing {
-                briefingSection("Personal", text: briefing.personal)
-                briefingSection("Business", text: briefing.business)
-                briefingSection("Shared", text: briefing.shared)
-                Button("Privacy receipt") { onShowReceipt(briefing.privacyReceipt) }
-                    .font(.caption.weight(.semibold))
-            } else {
-                Text("Send only the titles, times, and calendar context shown below to your Tank. Notes, attendees, and locations stay off the request.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                Button {
-                    Task { await model.generateBriefing() }
-                } label: {
-                    if model.isGeneratingBriefing {
-                        ProgressView()
-                    } else {
-                        Text("Create from \(model.events.count) visible event\(model.events.count == 1 ? "" : "s")")
-                    }
-                }
-                .buttonStyle(.borderedProminent)
-                .tint(accent)
-                .disabled(model.isGeneratingBriefing || !model.tankAvailable)
-            }
-        }
-        .padding(18)
-        .background(accent.opacity(0.09), in: RoundedRectangle(cornerRadius: 16))
-    }
-
-    private func briefingSection(_ title: String, text: String) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text(title).font(.caption.weight(.bold)).foregroundStyle(accent)
-            Text(text).font(.subheadline)
-        }
-    }
-
-    private func eventRow(_ event: DayEvent) -> some View {
-        HStack(alignment: .top, spacing: 14) {
-            Text(event.start, format: .dateTime.hour().minute())
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(event.overlapsNext ? .orange : accent)
-                .frame(width: 76, alignment: .leading)
-            VStack(alignment: .leading, spacing: 3) {
-                HStack {
-                    Text(event.title).font(.headline)
-                    if event.overlapsNext { Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange) }
-                }
-                Text(event.calendarName).font(.caption).foregroundStyle(.secondary)
-                if let location = event.location, !location.isEmpty {
-                    Label(location, systemImage: "location").font(.caption).foregroundStyle(.secondary)
-                }
-            }
-            Spacer()
-        }
-        .padding(.vertical, 8)
-        .accessibilityElement(children: .combine)
-    }
-}
-
-private struct ActivityView: View {
-    @ObservedObject var model: AppModel
-    var body: some View {
-        List {
-            Section("Waiting for approval") {
-                if model.isLoadingApprovals {
-                    ProgressView("Checking Tank…")
-                } else if model.approvals.isEmpty {
-                    ContentUnavailableView("Nothing waiting", systemImage: "checkmark.shield", description: Text(model.tankAvailable ? "Tank has no pending changes." : "Tank is offline. No approval was changed."))
-                } else {
-                    ForEach(model.approvals) { approval in
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(approval.toolName).font(.headline)
-                            Text(approval.reason).font(.subheadline).foregroundStyle(.secondary)
-                            Text(approval.risk.capitalized).font(.caption.weight(.semibold))
-                            HStack {
-                                Button("Approve") { Task { await model.decideApproval(approval, decision: "approve") } }
-                                    .buttonStyle(.borderedProminent)
-                                Button("Deny", role: .destructive) { Task { await model.decideApproval(approval, decision: "deny") } }
-                                    .buttonStyle(.bordered)
-                            }
-                        }
-                        .padding(.vertical, 6)
-                    }
-                }
-                Button("Refresh approvals") { Task { await model.loadApprovals() } }
-            }
-            Section("Recent on this device") {
-                if model.activity.isEmpty {
-                    Text("No activity yet").foregroundStyle(.secondary)
-                } else {
-                    ForEach(Array(model.activity.enumerated()), id: \.offset) { _, item in
-                        Label(item, systemImage: "checkmark.circle")
-                    }
-                }
-            }
-        }
-        .scrollContentBackground(.hidden)
-        .task { await model.loadApprovals() }
-    }
-}
-
-private struct PrivacyView: View {
-    @ObservedObject var model: AppModel
-    @State private var isScanningQR = false
-
-    var body: some View {
-        List {
-            Section("Processing now") {
-                LabeledContent("Chat", value: model.tankAvailable ? "Tank available" : "Local fallback")
-                LabeledContent("Calendar", value: "On this iPhone")
-            }
-            Section("Your Tank") {
-                TextField("Tank address", text: $model.tankAddress)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                    .keyboardType(.URL)
-                SecureField("Device token", text: $model.tankToken)
-                    .textInputAutocapitalization(.never)
-                    .autocorrectionDisabled()
-                HStack {
-                    Button(model.tankAvailable ? "Save and check again" : "Save and check connection") {
-                        Task { await model.saveTankConnection() }
-                    }
-                    .buttonStyle(.bordered)
-                    
-                    Spacer()
-                    
-                    Button(action: { isScanningQR = true }) {
-                        Label("Scan QR", systemImage: "qrcode.viewfinder")
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(Color(red: 0.31, green: 0.43, blue: 0.20))
-                }
-                Label(
-                    model.tankAvailable ? "Connected on your private network" : "Not connected; local fallback is active",
-                    systemImage: model.tankAvailable ? "checkmark.circle.fill" : "iphone"
-                )
-                .foregroundStyle(model.tankAvailable ? .green : .secondary)
-            }
-            Section("Boundaries") {
-                Label("Passwords are off-limits", systemImage: "key.slash")
-                Label("Financial accounts are off-limits", systemImage: "creditcard.trianglebadge.exclamationmark")
-                Label("No data is sold or used for advertising", systemImage: "eye.slash")
-            }
-        }
-        .scrollContentBackground(.hidden)
-        .sheet(isPresented: $isScanningQR) {
-            NavigationStack {
-                ScannerView(
-                    onScan: handleScan,
-                    onCancel: { isScanningQR = false }
-                )
-                .ignoresSafeArea()
-                .navigationTitle("Scan Tank QR")
-                .navigationBarTitleDisplayMode(.inline)
-                .toolbar {
-                    ToolbarItem(placement: .cancellationAction) {
-                        Button("Cancel") { isScanningQR = false }
-                    }
-                }
-            }
-        }
-    }
-
-    private func handleScan(payload: String) {
-        guard let url = URL(string: payload),
-              let components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return }
-        if let tankURL = components.queryItems?.first(where: { $0.name == "url" })?.value {
-            model.tankAddress = tankURL
-        } else if let device = components.queryItems?.first(where: { $0.name == "device" })?.value {
-            model.tankAddress = "http://\(device):8000"
-        }
-        if let token = components.queryItems?.first(where: { $0.name == "token" })?.value {
-            model.tankToken = token
-        }
-        isScanningQR = false
-        Task { await model.saveTankConnection() }
-    }
-}
-
-private struct ComingSoonView: View {
-    let title: String
-    let symbol: String
-    let detail: String
-    var body: some View {
-        ContentUnavailableView(title, systemImage: symbol, description: Text(detail))
-    }
-}
-
-private struct PrivacyReceiptView: View {
-    let receipt: PrivacyReceipt
-    var body: some View {
-        NavigationStack {
-            List {
-                receiptSection("Used", values: receipt.used, empty: "Nothing")
-                receiptSection("Processed", values: [receipt.processed], empty: "Unknown")
-                receiptSection("Shared", values: receipt.shared, empty: "Nothing")
-                receiptSection("Changed", values: receipt.changed, empty: "Nothing")
-            }
-            .navigationTitle("Privacy receipt")
-        }
-    }
-
-    private func receiptSection(_ title: String, values: [String], empty: String) -> some View {
-        Section(title) {
-            if values.isEmpty { Text(empty).foregroundStyle(.secondary) }
-            else { ForEach(values, id: \.self) { Text($0) } }
-        }
-    }
-}
-
-extension PrivacyReceipt: Identifiable {
-    var id: String { "\(processed)|\(used.joined(separator: ","))|\(shared.joined(separator: ","))|\(changed.joined(separator: ","))" }
-}
-
-#Preview { ConversationView() }

@@ -6,7 +6,7 @@ from typing import Any
 
 import httpx
 
-from app.agent import AgentTaskRequest, TankAgent
+from app.agent import AgentModelError, AgentTaskRequest, TankAgent
 from app.agent_store import AgentStore
 from app.agent_tools import ToolRegistry
 from app.config import Settings
@@ -25,9 +25,11 @@ _BRIEFING_SYSTEM_PROMPT = (
     "You are NOBS, a warm, concise, privacy-first personal assistant. "
     "Create a realistic daily briefing using ONLY the supplied calendar and "
     "reminder items. Never invent events, tasks, or context. Return only a JSON "
-    "object with string fields personal, business, and shared. Keep all three "
-    "sections clearly separate; use a brief 'Nothing scheduled' sentence when "
-    "a section has no items."
+    "object with fields: topline (string), priorities (array of 3-5 strings), "
+    "conflicts_or_risks (array of strings), recommended_plan (array of strings), "
+    "one_useful_question (string or null), and suggested_next_actions (array of strings). "
+    "Ask one useful question only when ambiguity is real; otherwise set it to null. "
+    "Keep context boundaries clear by labeling Personal, Business, or Shared where useful."
 )
 
 _IDEA_OBJECTIVE = (
@@ -48,8 +50,8 @@ async def run_scheduler(
     _background_tasks: set[asyncio.Task[None]] = set()
 
     while True:
+        now = datetime.now(UTC)
         try:
-            now = datetime.now(UTC)
             current_time = now.strftime("%H:%M")
 
             if current_time != last_triggered_minute:
@@ -71,9 +73,9 @@ async def run_scheduler(
         try:
             last_proposal = store.last_proposal_at()
             cooldown_expired = last_proposal is None or (
-                datetime.now(UTC) - datetime.fromisoformat(last_proposal) > _IDEA_COOLDOWN
+                now - datetime.fromisoformat(last_proposal) > _IDEA_COOLDOWN
             )
-            elapsed = int(datetime.now(UTC).timestamp()) % 60
+            elapsed = int(now.timestamp()) % 60
             if cooldown_expired and elapsed < _IDEA_WINDOW_SECONDS:
                 logger.info("Triggering autonomous agent to propose an idea.")
                 task = asyncio.create_task(
@@ -98,8 +100,8 @@ async def trigger_autonomous_idea(
     request = AgentTaskRequest(objective=_IDEA_OBJECTIVE, context="personal")
     try:
         await agent.run(request)
-    except Exception:
-        logger.exception("Autonomous idea generation failed")
+    except (AgentModelError, httpx.HTTPError, ValueError, TypeError, OSError) as error:
+        logger.exception("Autonomous idea generation failed: %s", error)
 
 
 async def trigger_briefing_generation(
@@ -133,17 +135,21 @@ async def trigger_briefing_generation(
             timeout=settings.ollama_timeout_seconds,
             transport=transport,
         ) as client:
-            response = await client.post(
-                f"{settings.ollama_base_url}/api/chat", json=payload
-            )
+            response = await client.post(f"{settings.ollama_base_url}/api/chat", json=payload)
             response.raise_for_status()
 
         sections = json.loads(response.json()["message"]["content"])
         result = {
             "date": today.isoformat(),
-            "personal": sections.get("personal", "Nothing scheduled."),
-            "business": sections.get("business", "Nothing scheduled."),
-            "shared": sections.get("shared", "Nothing scheduled."),
+            "topline": sections.get(
+                "topline",
+                "This day needs active prioritization to stay realistic.",
+            ),
+            "priorities": sections.get("priorities", []),
+            "conflicts_or_risks": sections.get("conflicts_or_risks", []),
+            "recommended_plan": sections.get("recommended_plan", []),
+            "one_useful_question": sections.get("one_useful_question"),
+            "suggested_next_actions": sections.get("suggested_next_actions", []),
             "generated_at": datetime.now(UTC).isoformat(),
             "route": "Tank",
             "privacy_receipt": {
@@ -174,5 +180,5 @@ async def trigger_briefing_generation(
         )
         store.update_run(run_id, "completed")
 
-    except Exception:
-        logger.exception("Failed to generate scheduled briefing")
+    except (httpx.HTTPError, ValueError, KeyError, TypeError, json.JSONDecodeError) as error:
+        logger.exception("Failed to generate scheduled briefing: %s", error)

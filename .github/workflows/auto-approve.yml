@@ -23,7 +23,7 @@ permissions:
 jobs:
   dependabot-metadata:
     if: github.actor == 'dependabot[bot]'
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, tank]
     outputs:
       update-type: ${{ steps.metadata.outputs.update-type }}
     steps:
@@ -39,9 +39,10 @@ jobs:
       github.actor == 'dependabot[bot]' &&
       (needs.dependabot-metadata.outputs.update-type == 'version-update:semver-patch' ||
        needs.dependabot-metadata.outputs.update-type == 'version-update:semver-minor')
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, tank]
     steps:
       - name: Approve patch/minor dependency update
+        continue-on-error: true
         run: |
           gh pr review --approve "$PR_URL" -b "Auto-approved: Dependabot $UPDATE_TYPE update (patch/minor only, per repo auto-approve rules)."
         env:
@@ -50,8 +51,10 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   docs-only-auto-approve:
-    if: github.actor != 'dependabot[bot]'
-    runs-on: ubuntu-latest
+    if: >
+      github.actor != 'dependabot[bot]' &&
+      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.pull_request.author_association)
+    runs-on: [self-hosted, tank]
     steps:
       - uses: actions/checkout@v7
         with:
@@ -70,8 +73,20 @@ jobs:
           fi
       - name: Approve docs-only PR
         if: steps.check.outputs.docs_only == 'true'
+        id: approve
+        continue-on-error: true
         run: |
           gh pr review --approve "$PR_URL" -b "Auto-approved: documentation-only change, per repo auto-approve rules."
         env:
           PR_URL: ${{ github.event.pull_request.html_url }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Report auto-approve result
+        if: always()
+        run: |
+          if [ "${{ steps.check.outputs.docs_only }}" != "true" ]; then
+            echo "Not a docs-only PR; no auto-approval needed. Check passes."
+          elif [ "${{ steps.approve.outcome }}" = "success" ]; then
+            echo "Docs-only PR auto-approved."
+          else
+            echo "::warning::Docs-only PR matched but GitHub blocked bot approval (addPullRequestReview). Manual review still required; this check passes."
+          fi

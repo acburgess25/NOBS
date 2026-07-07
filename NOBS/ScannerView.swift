@@ -2,6 +2,10 @@ import SwiftUI
 import VisionKit
 
 struct ScannerView: UIViewControllerRepresentable {
+    static var isAvailable: Bool {
+        DataScannerViewController.isSupported && DataScannerViewController.isAvailable
+    }
+
     let onScan: (String) -> Void
     let onCancel: () -> Void
 

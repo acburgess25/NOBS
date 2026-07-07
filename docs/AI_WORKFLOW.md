@@ -8,7 +8,8 @@ Before changing code:
 
 1. Read [`docs/PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md). It is the approved product source of truth.
 2. Read [`docs/CURRENT_STATE.md`](CURRENT_STATE.md) for the implemented-versus-planned boundary.
-3. Read the relevant implementation document under `docs/`.
+3. For iPhone work, read [`docs/IOS_SESSION_HANDOFF.md`](IOS_SESSION_HANDOFF.md).
+4. Read the relevant implementation document under `docs/`.
 4. Run `git status --short --branch` and `git pull --ff-only`.
 5. Inspect nearby code and tests before proposing a new pattern.
 6. State the intended files, validation, and branch before making broad changes.
@@ -115,6 +116,7 @@ Tool-specific memory and chat history are hints, not shared project truth.
 ## Security and Privacy
 
 - Never commit `.env`, keys, tokens, certificates, personal data, production logs, or database files.
+- Before making the repository public, follow [`docs/PUBLIC_RELEASE.md`](PUBLIC_RELEASE.md).
 - Use `.env.example` only for blank or clearly fake values.
 - Treat calendar, messages, contacts, health, location, home, research, and memory as sensitive.
 - Minimize collection and retention.

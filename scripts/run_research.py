@@ -15,17 +15,26 @@ ENV_FILE = ROOT / ".env"
 DEVICE_TOKEN = os.environ.get("NOBS_DEVICE_TOKEN")
 API_URL = os.environ.get("NOBS_API_URL", "http://127.0.0.1:8000")
 
-if not DEVICE_TOKEN and ENV_FILE.exists():
-    for line in ENV_FILE.read_text(encoding="utf-8").splitlines():
-        if line.startswith("NOBS_DEVICE_TOKEN="):
-            DEVICE_TOKEN = line.partition("=")[2].strip('"\'')
+
+def _load_token_from_file(path: Path) -> str | None:
+    if not path.exists():
+        return None
+    try:
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if line.startswith("NOBS_DEVICE_TOKEN="):
+                return line.partition("=")[2].strip("\"'")
+    except OSError:
+        return None
+    return None
+
+
+if not DEVICE_TOKEN:
+    DEVICE_TOKEN = _load_token_from_file(ENV_FILE)
 
 # Also check typical Tank path config
 TANK_ENV_FILE = Path.home() / ".config" / "nobs" / "nobs-api.env"
-if not DEVICE_TOKEN and TANK_ENV_FILE.exists():
-    for line in TANK_ENV_FILE.read_text(encoding="utf-8").splitlines():
-        if line.startswith("NOBS_DEVICE_TOKEN="):
-            DEVICE_TOKEN = line.partition("=")[2].strip('"\'')
+if not DEVICE_TOKEN:
+    DEVICE_TOKEN = _load_token_from_file(TANK_ENV_FILE)
 
 if not DEVICE_TOKEN:
     print(
@@ -60,8 +69,11 @@ def main() -> None:
             )
             response.raise_for_status()
             data = response.json()
-    except Exception as e:
-        print(f"Failed to connect to Tank API: {e}", file=sys.stderr)
+    except httpx.HTTPError as error:
+        print(f"Failed to connect to Tank API: {error}", file=sys.stderr)
+        sys.exit(1)
+    except ValueError as error:
+        print(f"Tank API returned invalid JSON: {error}", file=sys.stderr)
         sys.exit(1)
 
     print("\n=== Agent Response ===")

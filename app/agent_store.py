@@ -93,6 +93,10 @@ class AgentStore:
                     context TEXT NOT NULL,
                     created_at TEXT NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS kv (
+                    key TEXT PRIMARY KEY,
+                    value TEXT NOT NULL
+                );
                 """
             )
         return self._connection
@@ -159,10 +163,14 @@ class AgentStore:
 
     def get_approval(self, approval_id: str) -> dict[str, Any]:
         with self._lock:
-            row = self._connect().execute(
-                "SELECT * FROM approvals WHERE id = ?",
-                (approval_id,),
-            ).fetchone()
+            row = (
+                self._connect()
+                .execute(
+                    "SELECT * FROM approvals WHERE id = ?",
+                    (approval_id,),
+                )
+                .fetchone()
+            )
         if row is None:
             raise KeyError(approval_id)
         return self._approval_dict(row)
@@ -241,9 +249,11 @@ class AgentStore:
     def last_proposal_at(self) -> str | None:
         """Return ISO timestamp of the most recently created proposal, or None."""
         with self._lock:
-            row = self._connect().execute(
-                "SELECT created_at FROM proposals ORDER BY created_at DESC LIMIT 1"
-            ).fetchone()
+            row = (
+                self._connect()
+                .execute("SELECT created_at FROM proposals ORDER BY created_at DESC LIMIT 1")
+                .fetchone()
+            )
         return row["created_at"] if row else None
 
     def dashboard_metrics(self) -> dict[str, Any]:
@@ -293,9 +303,11 @@ class AgentStore:
 
     def latest_briefing(self) -> dict[str, Any] | None:
         with self._lock:
-            row = self._connect().execute(
-                "SELECT content_json FROM briefings ORDER BY generated_at DESC LIMIT 1"
-            ).fetchone()
+            row = (
+                self._connect()
+                .execute("SELECT content_json FROM briefings ORDER BY generated_at DESC LIMIT 1")
+                .fetchone()
+            )
         return json.loads(row["content_json"]) if row else None
 
     def create_proposal(self, title: str, description: str, proposal_type: str) -> dict[str, Any]:
@@ -312,10 +324,14 @@ class AgentStore:
 
     def get_proposal(self, proposal_id: str) -> dict[str, Any]:
         with self._lock:
-            row = self._connect().execute(
-                "SELECT * FROM proposals WHERE id = ?",
-                (proposal_id,),
-            ).fetchone()
+            row = (
+                self._connect()
+                .execute(
+                    "SELECT * FROM proposals WHERE id = ?",
+                    (proposal_id,),
+                )
+                .fetchone()
+            )
         if row is None:
             raise KeyError(proposal_id)
         return self._proposal_dict(row)
@@ -366,10 +382,14 @@ class AgentStore:
 
     def get_briefing_schedule(self, schedule_id: str) -> dict[str, Any]:
         with self._lock:
-            row = self._connect().execute(
-                "SELECT * FROM briefing_schedules WHERE id = ?",
-                (schedule_id,),
-            ).fetchone()
+            row = (
+                self._connect()
+                .execute(
+                    "SELECT * FROM briefing_schedules WHERE id = ?",
+                    (schedule_id,),
+                )
+                .fetchone()
+            )
         if row is None:
             raise KeyError(schedule_id)
         return dict(row)
@@ -462,3 +482,21 @@ class AgentStore:
             "created_at": row["created_at"],
             "decided_at": row["decided_at"],
         }
+
+    # ------------------------------------------------------------------
+    # Key-value store (generic settings, e.g. apple_user_identifier)
+    # ------------------------------------------------------------------
+
+    def get_kv(self, key: str) -> str | None:
+        with self._lock:
+            row = self._connect().execute("SELECT value FROM kv WHERE key = ?", (key,)).fetchone()
+        return row["value"] if row else None
+
+    def set_kv(self, key: str, value: str) -> None:
+        with self._lock:
+            connection = self._connect()
+            connection.execute(
+                "INSERT OR REPLACE INTO kv (key, value) VALUES (?, ?)",
+                (key, value),
+            )
+            connection.commit()

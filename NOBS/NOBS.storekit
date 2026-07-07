@@ -1,0 +1,113 @@
+{
+  "appPolicies" : {
+    "eula" : "",
+    "policies" : [
+      {
+        "locale" : "en_US",
+        "policyText" : "",
+        "policyURL" : ""
+      }
+    ]
+  },
+  "identifier" : "NOBS",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "2.99",
+      "familyShareable" : false,
+      "internalID" : "TIP_SMALL",
+      "localizations" : [
+        {
+          "description" : "Help fund open NOBS development.",
+          "displayName" : "Small tip",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.nobsdash.nobs.tip.small",
+      "referenceName" : "Tip Small",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "4.99",
+      "familyShareable" : false,
+      "internalID" : "TIP_MEDIUM",
+      "localizations" : [
+        {
+          "description" : "Help fund open NOBS development.",
+          "displayName" : "Medium tip",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.nobsdash.nobs.tip.medium",
+      "referenceName" : "Tip Medium",
+      "type" : "Consumable"
+    },
+    {
+      "displayPrice" : "9.99",
+      "familyShareable" : false,
+      "internalID" : "TIP_LARGE",
+      "localizations" : [
+        {
+          "description" : "Help fund open NOBS development.",
+          "displayName" : "Large tip",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.nobsdash.nobs.tip.large",
+      "referenceName" : "Tip Large",
+      "type" : "Consumable"
+    }
+  ],
+  "settings" : {
+    "_failTransactionsEnabled" : false,
+    "_storeKitErrors" : [
+
+    ]
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "NOBSCLOUD",
+      "localizations" : [
+        {
+          "description" : "Optional cloud capacity for NOBS.",
+          "displayName" : "NOBScloud",
+          "locale" : "en_US"
+        }
+      ],
+      "name" : "NOBScloud",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "4.99",
+          "familyShareable" : true,
+          "groupNumber" : 1,
+          "internalID" : "NOBSCLOUD_MONTHLY",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Optional cloud capacity when Tank is unavailable.",
+              "displayName" : "NOBScloud Monthly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.nobsdash.nobs.nobscloud.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "NOBScloud Monthly",
+          "subscriptionGroupID" : "NOBSCLOUD",
+          "type" : "RecurringSubscription"
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}

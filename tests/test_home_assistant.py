@@ -57,9 +57,17 @@ def test_list_home_devices_mock(tmp_path: Path) -> None:
     tools = ToolRegistry(tmp_path, home_assistant=client)
 
     mock_states = [
-        {"entity_id": "light.living_room", "state": "on", "attributes": {"friendly_name": "Living Room Light"}},
+        {
+            "entity_id": "light.living_room",
+            "state": "on",
+            "attributes": {"friendly_name": "Living Room Light"},
+        },
         {"entity_id": "switch.coffee_maker", "state": "off", "attributes": {}},
-        {"entity_id": "lock.front_door", "state": "locked", "attributes": {"friendly_name": "Front Door"}},
+        {
+            "entity_id": "lock.front_door",
+            "state": "locked",
+            "attributes": {"friendly_name": "Front Door"},
+        },
     ]
 
     with patch("httpx.Client") as mock_client_class:
@@ -89,7 +97,9 @@ def test_control_home_device_separates_security_risk(tmp_path: Path) -> None:
 
     # Secure tool should reject standard devices (light/switch/climate)
     with pytest.raises(ValueError, match="only permitted to control secure devices"):
-        tools.execute("control_secure_home_device", {"entity_id": "light.kitchen", "service": "turn_on"})
+        tools.execute(
+            "control_secure_home_device", {"entity_id": "light.kitchen", "service": "turn_on"}
+        )
 
 
 def test_control_home_device_mock(tmp_path: Path) -> None:

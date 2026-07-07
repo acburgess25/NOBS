@@ -53,7 +53,7 @@ def test_agent_executes_read_only_tool_without_approval(tmp_path: Path) -> None:
 def test_developer_mode_uses_coder_model_and_project_tools(tmp_path: Path) -> None:
     project = tmp_path / "project"
     project.mkdir()
-    (project / "README.md").write_text("# NOBS\n", encoding="utf-8")
+    (project / "README.md").write_text("# NOBS\n", encoding="utf-8", newline="\n")
     calls = 0
 
     def ollama_response(request: httpx.Request) -> httpx.Response:
@@ -118,10 +118,7 @@ def test_assistant_mode_cannot_execute_unadvertised_project_tool(tmp_path: Path)
         calls += 1
         payload = json.loads(request.content)
         assert payload["model"] == "qwen3:8b"
-        assert all(
-            item["function"]["name"] != "read_project_file"
-            for item in payload["tools"]
-        )
+        assert all(item["function"]["name"] != "read_project_file" for item in payload["tools"])
         if calls == 1:
             return httpx.Response(
                 200,
@@ -217,9 +214,7 @@ def test_agent_queues_change_until_user_approves(tmp_path: Path) -> None:
     assert approved.status_code == 200
     assert approved.json()["status"] == "approved"
     note = tmp_path / "personal" / "weekly-priorities.md"
-    assert note.read_text() == (
-        "# Weekly priorities\n\nProtect Friday afternoon for planning.\n"
-    )
+    assert note.read_text() == ("# Weekly priorities\n\nProtect Friday afternoon for planning.\n")
 
 
 def test_denied_agent_action_never_changes_workspace(tmp_path: Path) -> None:
@@ -270,10 +265,13 @@ def test_agent_routes_require_device_authentication(tmp_path: Path) -> None:
     test_client = client(workspace=tmp_path)
 
     assert test_client.get("/agent/approvals").status_code == 401
-    assert test_client.post(
-        "/agent/tasks",
-        json={"objective": "Check Tank"},
-    ).status_code == 401
+    assert (
+        test_client.post(
+            "/agent/tasks",
+            json={"objective": "Check Tank"},
+        ).status_code
+        == 401
+    )
 
 
 def test_approval_cannot_be_executed_twice(tmp_path: Path) -> None:
@@ -309,14 +307,18 @@ def test_approval_cannot_be_executed_twice(tmp_path: Path) -> None:
     approval_id = task["approvals"][0]["id"]
     endpoint = f"/agent/approvals/{approval_id}"
 
-    assert test_client.post(endpoint, json={"decision": "approve"}, headers=auth()).status_code == 200
-    assert test_client.post(endpoint, json={"decision": "approve"}, headers=auth()).status_code == 409
+    assert (
+        test_client.post(endpoint, json={"decision": "approve"}, headers=auth()).status_code == 200
+    )
+    assert (
+        test_client.post(endpoint, json={"decision": "approve"}, headers=auth()).status_code == 409
+    )
 
 
 def test_agent_parses_json_tool_call_from_content(tmp_path: Path) -> None:
     project = tmp_path / "project"
     project.mkdir()
-    (project / "README.md").write_text("# NOBS\n", encoding="utf-8")
+    (project / "README.md").write_text("# NOBS\n", encoding="utf-8", newline="\n")
     calls = 0
 
     def ollama_response(request: httpx.Request) -> httpx.Response:
@@ -332,7 +334,7 @@ def test_agent_parses_json_tool_call_from_content(tmp_path: Path) -> None:
                     "message": {
                         "role": "assistant",
                         "content": '{\n  "name": "read_project_file",\n  "arguments": {\n    "path": "README.md"\n  }\n}',
-                        "tool_calls": []
+                        "tool_calls": [],
                     }
                 },
             )

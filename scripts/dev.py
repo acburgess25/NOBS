@@ -17,9 +17,7 @@ VENV = ROOT / ".venv"
 def require_supported_python() -> None:
     if sys.version_info < (3, 11):
         version = ".".join(map(str, sys.version_info[:3]))
-        raise SystemExit(
-            f"NOBS requires Python 3.11 or newer; current interpreter is {version}."
-        )
+        raise SystemExit(f"NOBS requires Python 3.11 or newer; current interpreter is {version}.")
 
 
 def venv_python() -> Path:
@@ -42,9 +40,7 @@ def setup() -> None:
 
 def ensure_environment() -> None:
     if not venv_python().exists():
-        raise SystemExit(
-            "Development environment is missing. Run: python scripts/dev.py setup"
-        )
+        raise SystemExit("Development environment is missing. Run: python scripts/dev.py setup")
 
 
 def main() -> None:
@@ -68,4 +64,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

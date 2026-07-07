@@ -1,6 +1,6 @@
 # NOBS Current State
 
-**Last updated:** July 3, 2026 (Developer Mode added)
+**Last updated:** July 7, 2026 (App Store beta polish + unified NOBS theme; macOS mobile Tank menu-bar app + App Intents/Siri)
 **Purpose:** Tool-neutral handoff for any contributor entering without prior chat history.
 
 This records implementation state, not product direction. [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md) remains the approved product source of truth. Verify the branch, tests, and live services before treating deployment facts as current.
@@ -10,14 +10,63 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 ### Apple app
 
 - SwiftUI conversation-first prototype with onboarding and focused Chat, Today, Memory, Activity, Home, and Privacy surfaces.
+- Conversational onboarding collects name, mental-load sources, working hours, proactivity level, and one immediate problem before optional Sign in with Apple.
+- `UserProfile` persisted locally (App Group `group.com.nobsdash.nobs` with Application Support fallback) drives personalized greetings and proactivity defaults.
+- `BriefingSnapshot` written to shared storage after briefing generation for upcoming WidgetKit work.
+- Home Screen and Lock Screen **Today's plan** widget reads `widget-snapshot.json` offline; respects response length and shows evening context after 5pm; tap opens `nobs://today`.
+- Widget timelines reload when briefings update; cached briefing restores on app launch.
+- Focus-aware briefings use system Focus status (`INFocusStatusCenter`) for concise toplines, business-first priorities, and suppressed proactive notifications.
+- One clarifying-question local notification per day when proactivity is not Quiet; overlap actions open chat without silent calendar edits.
+- Today highlights the clarifying question when notifications are denied; `ConflictResolutionSheet` supports overlap resolution.
+- Siri and Shortcuts expose four App Intents: Prepare my day, Explain schedule, Ask NOBS, Show privacy receipt — with App Group cache fallback when the app is not running.
+- `nobs://` deep links route to Today, Chat (with optional prompt), Privacy, and Tank pairing.
 - Local EventKit calendar permission flow and same-day event display.
-- Configurable Tank address and Keychain-backed device token.
+- EventKit calendar and reminders sync to Tank (`/sync/calendar`, `/sync/reminders`) using the same Keychain-backed device-token auth as chat.
+- Configurable Tank address, KeychainAccess-backed device token storage, and
+  shared app-root model ownership so onboarding, sign-in, and privacy flows
+  stay in sync.
 - Authenticated Tank chat with visible Local/Tank routing and privacy receipts.
-- Honest local fallback when Tank is unavailable.
-- Today can create a three-part Personal, Business, and Shared morning briefing
-  from visible EventKit event titles and times, with a Tank privacy receipt.
+- Honest local fallback when Tank is unavailable, without permanently marking
+  Tank offline on non-connectivity API errors.
+- Today now generates Morning Briefing v2 with structured topline, priorities,
+  explicit conflict/overload risks, recommended sequencing, one clarifying
+  question when ambiguity exists, and reversible suggested next actions.
+- Briefing generation runs on-device first, then refines with Tank when
+  connected, while keeping visible route badges and privacy receipts.
+- Today can include local reminders (when permission is granted) alongside
+  calendar events in briefing context.
 - Activity lists pending Tank changes and provides explicit Approve and Deny actions.
-- iOS 27 simulator build verified with Xcode 27 beta.
+- Activity shows Tank schedules and supports pause/revoke actions, plus sync action receipts with Local/Tank processing labels.
+- Today briefing lists respect `UserProfile.accessibilityPreferences.responseLength`; refresh control and relative timestamp shown when a briefing exists.
+- Onboarding collects response length (brief / standard / detailed) conversationally.
+- Today shows a local evening wrap-up after 5pm from calendar, reminders, and briefing context.
+- Shared `NOBSTheme` modifiers (`nobsScreenBackground`, `nobsSectionCard`, `NOBSEmptyState`, `NOBSBetaBadge`) and `Color+NOBS` tokens unify Chat, Today, onboarding, Privacy, Activity, and the briefing widget palette.
+- App Store beta prep: metadata templates in `docs/app-store/`, checklist in `docs/APP_STORE_BETA_CHECKLIST.md`, privacy policy at `website/public/privacy.html`.
+
+- iOS 27 simulator build verified with Xcode 27 beta (`scripts/build-ios-simulator.sh` or `CODE_SIGNING_ALLOWED=NO`).
+
+### macOS mobile Tank (NOBSTank menu-bar app)
+
+- New `NOBSTank` target in `NOBS.xcodeproj` (`NOBSTankMac/`): a macOS 27
+  menu-bar app that turns the Mac into a portable Tank.
+- Shows Tank API, Ollama, on-device model, and network status; restarts the
+  `com.nobs.tank` LaunchAgent on demand.
+- Quick-ask box routes Tank-first with honest fallback to the on-device
+  Foundation Models `SystemLanguageModel` (macOS 27 beta framework); every
+  answer is labeled Local or Tank.
+- Displays the `nobs://pair` QR code (same payload as `scripts/pairing.py`)
+  so the iPhone can pair with the Mac directly.
+- `AskNOBSIntent` App Intent exposes "Ask NOBS Tank" to Siri, Spotlight, and
+  Shortcuts on macOS 27.
+- Reads the device token from `~/Documents/NOBS/.env` (path overridable via
+  `nobs.tank.rootPath` user default).
+- Security posture: Hardened Runtime enabled (`flags=0x10000(runtime)`
+  verified on the signed build), which is the requirement for notarized
+  direct distribution. App Sandbox is deliberately off: the app's purpose is
+  supervising the user's own LaunchAgent (`launchctl`) and reading the local
+  server's `.env`, both of which the sandbox forbids. Revisit only if App
+  Store distribution is ever wanted.
+- macOS Debug build and iOS simulator build both verified with Xcode 27 beta.
 
 ### Tank API and agent
 
@@ -38,7 +87,7 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 
 - Vite/React build-in-public portfolio under `website/`.
 - Approved Personal Workshop visual direction under `design/`.
-- Content updated July 3 to describe the shipped agent core, dashboard, and security boundary; roadmap items carry shipped/in-progress status. Deployed live to nobsdash.com.
+- Content updated for TestFlight public beta; roadmap and hero copy match the iPhone app; privacy policy linked from footer. Deployed live to nobsdash.com (refresh after merge).
 
 - Persistent background scheduler implemented, managing autonomous jobs, recurring schedules, and proactive idea generation.
 - Basic API routes for synchronizing calendar and reminders (`/sync/calendar`, `/sync/reminders`) and managing briefing schedules (`/schedules`).
@@ -51,13 +100,14 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 - Responsive 16:9 and narrow-screen layouts with connection-loss behavior.
 - LIVE on Tank's HDMI display: GNOME minimal desktop + Firefox kiosk autostart, auto-login, survives reboot. GUI session is on tty2 (Ctrl+Alt+F2); text console on tty3.
 
-### Tank host (live deployment facts, July 3 2026)
+### Tank host (reference deployment)
 
-- Ubuntu 24.04, RTX 3060. Wi-Fi wlp5s0 = 192.168.0.59; ethernet enp6s0 also configured (`/etc/netplan/99-rescue.yaml`, renderer forced to networkd after a desktop-install outage).
-- UFW: port 22 open; LAN (192.168.0.0/24) allowed to all ports.
-- systemd user services (linger on): `nobs-api` (:8000), `nobsdash` (:4173), `cloudflared-nobsdash` (public tunnel), `open-webui` (:8080 local AI chat, `~/.openwebui` uv venv).
+- Ubuntu 24.04 homelab host with an NVIDIA GPU for local models.
+- UFW allows SSH and LAN access; Tank API is intended for private-network use.
+- systemd user services (with linger enabled): `nobs-api` (:8000), `nobsdash` (:4173), `cloudflared-nobsdash` (public tunnel), optional `open-webui` (:8080).
 - Ollama models: `qwen3:8b` (app chat), `qwen2.5-coder:14b` (coding).
-- No passwordless sudo; root changes need the console.
+- No passwordless sudo; host administration stays at the console.
+- Repository-standard local AI stack setup scripts are available for Tank and dev hosts (`scripts/setup-local-ai.sh`, `scripts/setup-local-ai.ps1`) plus tracked service templates under `deploy/tank/`.
 
 ### Local-model coding pipeline
 
@@ -67,20 +117,18 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 ## Not working yet
 
 - No approved long-term memory workflow.
-- No Sign in with Apple, household identity, subscription, or NOBScloud implementation.
+- No household identity, subscription, or NOBScloud implementation.
 - No arbitrary MCP server is trusted or installed by the NOBS agent.
-- mDNS (`tank.local`) does not resolve from the LAN; clients use 192.168.0.59 directly.
-- The briefing API is deployed and live-verified on Tank. The iOS UI is simulator-built;
-  physical iPhone validation remains pending.
-- iOS app does not yet push local calendars and reminders to the Tank API.
+- mDNS (`tank.local`) may not resolve on every LAN; clients can use the Tank host IP directly (for example `http://192.168.1.100:8000`).
+- Physical iPhone validation and TestFlight upload remain pending (simulator build verified; archive requires home signing).
 
 ## Recommended next vertical slice
 
-Add **iOS Client Data Synchronization**:
+**Physical iPhone validation, TestFlight upload, and App Store Connect submission:**
 
-1. Implement the iOS side of `/sync/calendar` and `/sync/reminders` to push local Apple EventKit and Reminders data to Tank.
-2. Let the user review, pause, and revoke schedules from Activity.
-3. Record schedule runs, sources, processing route, and approval outcomes in the UI.
+1. Fix distribution signing for app + widget; archive with `./scripts/stage-testflight-ipa.sh`.
+2. Paste metadata from `docs/app-store/` into App Store Connect; host privacy at `https://nobsdash.com/privacy.html`.
+3. Pair a physical iPhone and confirm chat, briefing, widget, and optional Tank sync end-to-end.
 
 Do not connect email, messages, health, location, purchases, deletion, or account administration until the approval UI and revocation path are usable.
 
@@ -89,6 +137,8 @@ Do not connect email, messages, health, location, purchases, deletion, or accoun
 ```bash
 python3 scripts/dev.py check
 
+./scripts/build-ios-simulator.sh
+# or:
 DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer \
   xcodebuild -project NOBS.xcodeproj -scheme NOBS \
   -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=27.0' \

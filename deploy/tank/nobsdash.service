@@ -5,8 +5,8 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-WorkingDirectory=/home/alex/services/nobsdash/current
-ExecStart=/usr/bin/python3 -m http.server 4173 --bind 127.0.0.1 --directory /home/alex/services/nobsdash/current
+WorkingDirectory=%h/services/nobsdash/current
+ExecStart=/usr/bin/python3 -m http.server 4173 --bind 127.0.0.1 --directory %h/services/nobsdash/current
 Restart=on-failure
 RestartSec=3
 NoNewPrivileges=true

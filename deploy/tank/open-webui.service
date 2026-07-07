@@ -1,0 +1,20 @@
+[Unit]
+Description=NOBS Open WebUI local AI chat
+After=network-online.target ollama.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/nobs
+Environment=OLLAMA_BASE_URL=http://127.0.0.1:11434
+Environment=DATA_DIR=%h/.nobs/open-webui-data
+Environment=WEBUI_AUTH=true
+EnvironmentFile=-%h/.config/nobs/open-webui.env
+ExecStart=%h/.nobs/open-webui/bin/open-webui serve --host 0.0.0.0 --port 8080
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=default.target

@@ -14,12 +14,8 @@ def registry(tmp_path: Path) -> tuple[ToolRegistry, Path]:
 def test_developer_tools_are_hidden_from_assistant_mode(tmp_path: Path) -> None:
     tools, _ = registry(tmp_path)
 
-    assistant_names = {
-        item["function"]["name"] for item in tools.schemas_for_mode("assistant")
-    }
-    developer_names = {
-        item["function"]["name"] for item in tools.schemas_for_mode("developer")
-    }
+    assistant_names = {item["function"]["name"] for item in tools.schemas_for_mode("assistant")}
+    developer_names = {item["function"]["name"] for item in tools.schemas_for_mode("developer")}
 
     assert "read_project_file" not in assistant_names
     assert {
@@ -96,8 +92,6 @@ def test_project_search_returns_bounded_literal_matches(tmp_path: Path) -> None:
 
     assert result == {
         "query": "tankagent",
-        "matches": [
-            {"path": "app/agent.py", "line": 1, "snippet": "class TankAgent:"}
-        ],
+        "matches": [{"path": "app/agent.py", "line": 1, "snippet": "class TankAgent:"}],
         "truncated": False,
     }

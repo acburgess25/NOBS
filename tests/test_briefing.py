@@ -7,8 +7,10 @@ from tests.test_chat import auth, client
 
 REQUEST = {
     "date": "2026-07-04",
-    "calendar": [{"title": "Design sync", "start": "10:00", "context": "business"}],
-    "reminders": [{"title": "Call plumber", "context": "personal"}],
+    "calendar": [
+        {"title": "Design sync", "start": "10:00", "end": "11:00", "context": "business"}
+    ],
+    "reminders": [{"title": "Call plumber", "due": "14:00", "context": "personal"}],
 }
 
 
@@ -23,16 +25,34 @@ def test_briefing_returns_sections_and_persists_latest() -> None:
     def ollama_response(request: httpx.Request) -> httpx.Response:
         payload = json.loads(request.content)
         supplied = json.loads(payload["messages"][1]["content"])
-        assert supplied == REQUEST
+        assert supplied["date"] == REQUEST["date"]
+        assert supplied["reminders"] == REQUEST["reminders"]
+        assert supplied["calendar"][0]["title"] == "Design sync"
+        assert supplied["calendar"][0]["start"] == "10:00"
+        assert supplied["calendar"][0]["end"] == "11:00"
+        assert supplied["calendar"][0]["context"] == "business"
         return httpx.Response(
             200,
             json={
                 "message": {
                     "content": json.dumps(
                         {
-                            "personal": "Call the plumber.",
-                            "business": "Design sync is at 10:00.",
-                            "shared": "Nothing scheduled.",
+                            "topline": "This is a focused day with one key meeting.",
+                            "priorities": [
+                                "Business · Design sync (10:00)",
+                                "Personal · Call plumber",
+                                "Personal · Reserve prep block",
+                            ],
+                            "conflicts_or_risks": [],
+                            "recommended_plan": [
+                                "Prep for Design sync before 09:30.",
+                                "Handle quick admin after the meeting.",
+                            ],
+                            "one_useful_question": None,
+                            "suggested_next_actions": [
+                                "Review your notes for Design sync.",
+                                "Set a reminder to call plumber after lunch.",
+                            ],
                         }
                     )
                 }
@@ -45,19 +65,61 @@ def test_briefing_returns_sections_and_persists_latest() -> None:
     assert response.status_code == 200
     result = response.json()
     assert result["date"] == REQUEST["date"]
-    assert result["business"] == "Design sync is at 10:00."
+    assert result["topline"] == "This is a focused day with one key meeting."
+    assert len(result["priorities"]) >= 3
+    assert "No major schedule risks detected right now." in result["conflicts_or_risks"]
     assert result["route"] == "Tank"
     assert result["privacy_receipt"]["used"] == ["1 calendar items", "1 reminder items"]
     assert test_client.get("/briefing/latest", headers=auth()).json() == result
+
+
+def test_briefing_adds_heuristic_conflict_signals() -> None:
+    request = {
+        "date": "2026-07-04",
+        "calendar": [
+            {"title": "Board review", "start": "08:00", "end": "09:00", "context": "business"},
+            {"title": "Interview panel", "start": "09:05", "end": "10:00", "context": "business"},
+            {"title": "Launch prep", "start": "10:05", "end": "11:00", "context": "business"},
+            {"title": "Team sync", "start": "11:05", "end": "11:45", "context": "business"},
+        ],
+        "reminders": [],
+    }
+
+    def ollama_response(_: httpx.Request) -> httpx.Response:
+        return httpx.Response(
+            200,
+            json={
+                "message": {
+                    "content": json.dumps(
+                        {
+                            "topline": "Busy morning.",
+                            "priorities": ["Business · Board review (08:00)"],
+                            "conflicts_or_risks": [],
+                            "recommended_plan": ["Hold prep before 08:00."],
+                            "one_useful_question": None,
+                            "suggested_next_actions": ["Review agenda now."],
+                        }
+                    )
+                }
+            },
+        )
+
+    response = client(httpx.MockTransport(ollama_response)).post(
+        "/briefing",
+        json=request,
+        headers=auth(),
+    )
+
+    assert response.status_code == 200
+    result = response.json()
+    assert any("transition" in risk.lower() for risk in result["conflicts_or_risks"])
 
 
 def test_briefing_timeout_maps_to_service_unavailable() -> None:
     def timeout(_: httpx.Request) -> httpx.Response:
         raise httpx.ReadTimeout("timed out")
 
-    response = client(httpx.MockTransport(timeout)).post(
-        "/briefing", json=REQUEST, headers=auth()
-    )
+    response = client(httpx.MockTransport(timeout)).post("/briefing", json=REQUEST, headers=auth())
 
     assert response.status_code == 503
 
