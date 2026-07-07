@@ -46,13 +46,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v5
-        with:
-          python-version: ${{ matrix.python-version }}
-          cache: pip
-
       - name: Set up NOBS
-        run: python scripts/dev.py setup
+        run: /opt/homebrew/bin/python3.13 scripts/dev.py setup
 
       - name: Test and lint
-        run: python scripts/dev.py check
+        run: /opt/homebrew/bin/python3.13 scripts/dev.py check

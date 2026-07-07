@@ -26,9 +26,16 @@ jobs:
     env:
       DEVELOPMENT_TEAM: K853LKQLAS
       DEVELOPER_DIR: /Applications/Xcode-beta.app/Contents/Developer
+      RUNNER_TOOL_CACHE: ${{ github.workspace }}/../_tool
+      AGENT_TOOLSDIRECTORY: ${{ github.workspace }}/../_tool
 
     steps:
       - uses: actions/checkout@v4
+
+      - uses: apple-actions/import-codesign-certs@v3
+        with:
+          p12-file-base64: ${{ secrets.DIST_CERT_P12 }}
+          p12-password: ${{ secrets.DIST_CERT_PASSWORD }}
 
       - name: Install App Store Connect API key
         env:
