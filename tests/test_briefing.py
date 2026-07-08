@@ -7,10 +7,25 @@ from tests.test_chat import auth, client
 
 REQUEST = {
     "date": "2026-07-04",
+    "kind": "morning",
     "calendar": [
         {"title": "Design sync", "start": "10:00", "end": "11:00", "context": "business"}
     ],
     "reminders": [{"title": "Call plumber", "due": "14:00", "context": "personal"}],
+}
+
+EVENING_REQUEST = {
+    "date": "2026-07-04",
+    "kind": "evening",
+    "calendar": [
+        {"title": "Design sync", "start": "10:00", "end": "11:00", "context": "business"},
+        {"title": "Team lunch", "start": "12:00", "end": "13:00", "context": "business"},
+    ],
+    "reminders": [{"title": "Call plumber", "due": "14:00", "context": "personal"}],
+    "tomorrow_calendar": [
+        {"title": "Standup", "start": "09:00", "end": "09:30", "context": "business"}
+    ],
+    "tomorrow_reminders": [{"title": "Buy groceries", "context": "personal"}],
 }
 
 
@@ -65,6 +80,7 @@ def test_briefing_returns_sections_and_persists_latest() -> None:
     assert response.status_code == 200
     result = response.json()
     assert result["date"] == REQUEST["date"]
+    assert result["kind"] == "morning"
     assert result["topline"] == "This is a focused day with one key meeting."
     assert len(result["priorities"]) >= 3
     assert "No major schedule risks detected right now." in result["conflicts_or_risks"]
@@ -140,3 +156,88 @@ def test_briefing_rejects_unknown_context() -> None:
     response = client().post("/briefing", json=invalid, headers=auth())
 
     assert response.status_code == 422
+
+
+def test_evening_briefing_returns_wrap_up_sections() -> None:
+    def ollama_response(request: httpx.Request) -> httpx.Response:
+        payload = json.loads(request.content)
+        supplied = json.loads(payload["messages"][1]["content"])
+        assert supplied["kind"] == "evening"
+        assert len(supplied["tomorrow_calendar"]) == 1
+        return httpx.Response(
+            200,
+            json={
+                "message": {
+                    "content": json.dumps(
+                        {
+                            "topline": "A productive day — one item can wait until tomorrow.",
+                            "priorities": [
+                                "Business · Design sync (10:00)",
+                                "Business · Team lunch (12:00)",
+                            ],
+                            "conflicts_or_risks": ["Personal · Call plumber (still open)"],
+                            "recommended_plan": ["First up tomorrow: Standup at 09:00."],
+                            "one_useful_question": None,
+                            "suggested_next_actions": ["Wind down without guilt."],
+                        }
+                    )
+                }
+            },
+        )
+
+    response = client(httpx.MockTransport(ollama_response)).post(
+        "/briefing",
+        json=EVENING_REQUEST,
+        headers=auth(),
+    )
+
+    assert response.status_code == 200
+    result = response.json()
+    assert result["kind"] == "evening"
+    assert "tomorrow" in result["recommended_plan"][0].lower() or "Standup" in result["recommended_plan"][0]
+    assert any("plumber" in item.lower() for item in result["conflicts_or_risks"])
+    assert result["privacy_receipt"]["used"] == [
+        "2 calendar items",
+        "1 reminder items",
+        "1 tomorrow calendar items",
+        "1 tomorrow reminder items",
+    ]
+
+
+def test_evening_briefing_defaults_kind_morning_for_legacy_requests() -> None:
+    legacy = {
+        "date": "2026-07-04",
+        "calendar": [],
+        "reminders": [],
+    }
+
+    def ollama_response(request: httpx.Request) -> httpx.Response:
+        payload = json.loads(request.content)
+        supplied = json.loads(payload["messages"][1]["content"])
+        assert supplied["kind"] == "morning"
+        return httpx.Response(
+            200,
+            json={
+                "message": {
+                    "content": json.dumps(
+                        {
+                            "topline": "Light day.",
+                            "priorities": ["Protect focus time."],
+                            "conflicts_or_risks": [],
+                            "recommended_plan": ["Stay flexible."],
+                            "one_useful_question": None,
+                            "suggested_next_actions": ["Check in after lunch."],
+                        }
+                    )
+                }
+            },
+        )
+
+    response = client(httpx.MockTransport(ollama_response)).post(
+        "/briefing",
+        json=legacy,
+        headers=auth(),
+    )
+
+    assert response.status_code == 200
+    assert response.json()["kind"] == "morning"

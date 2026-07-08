@@ -37,6 +37,7 @@ class AgentStore:
                     id TEXT PRIMARY KEY,
                     objective TEXT NOT NULL,
                     context TEXT NOT NULL,
+                    triggered_by TEXT NOT NULL DEFAULT 'user',
                     status TEXT NOT NULL,
                     created_at TEXT NOT NULL,
                     updated_at TEXT NOT NULL
@@ -97,21 +98,107 @@ class AgentStore:
                     key TEXT PRIMARY KEY,
                     value TEXT NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS memories (
+                    id TEXT PRIMARY KEY,
+                    content TEXT NOT NULL,
+                    category TEXT NOT NULL,
+                    source TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS research_jobs (
+                    id TEXT PRIMARY KEY,
+                    topic TEXT NOT NULL,
+                    context TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    summary TEXT,
+                    sources_json TEXT NOT NULL,
+                    run_id TEXT,
+                    created_at TEXT NOT NULL,
+                    completed_at TEXT
+                );
                 """
             )
+            self._migrate(self._connection)
         return self._connection
 
-    def create_run(self, objective: str, context: str) -> str:
+    def _migrate(self, connection: sqlite3.Connection) -> None:
+        try:
+            connection.execute(
+                "ALTER TABLE agent_runs ADD COLUMN triggered_by TEXT NOT NULL DEFAULT 'user'"
+            )
+            connection.commit()
+        except sqlite3.OperationalError:
+            pass
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS research_jobs (
+                id TEXT PRIMARY KEY,
+                topic TEXT NOT NULL,
+                context TEXT NOT NULL,
+                status TEXT NOT NULL,
+                summary TEXT,
+                sources_json TEXT NOT NULL,
+                run_id TEXT,
+                created_at TEXT NOT NULL,
+                completed_at TEXT
+            )
+            """
+        )
+        connection.commit()
+
+    def create_run(
+        self,
+        objective: str,
+        context: str,
+        triggered_by: str = "user",
+    ) -> str:
         run_id = str(uuid4())
         now = _now()
         with self._lock:
             connection = self._connect()
             connection.execute(
-                "INSERT INTO agent_runs VALUES (?, ?, ?, ?, ?, ?)",
-                (run_id, objective, context, "running", now, now),
+                "INSERT INTO agent_runs VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (run_id, objective, context, triggered_by, "running", now, now),
             )
             connection.commit()
         return run_id
+
+    def get_run(self, run_id: str) -> dict[str, Any] | None:
+        with self._lock:
+            row = (
+                self._connect()
+                .execute("SELECT * FROM agent_runs WHERE id = ?", (run_id,))
+                .fetchone()
+            )
+        if row is None:
+            return None
+        return self._run_dict(row)
+
+    def list_audit_events(self, run_id: str, limit: int = 5) -> list[dict[str, Any]]:
+        with self._lock:
+            rows = (
+                self._connect()
+                .execute(
+                    """
+                    SELECT event_type, detail_json, created_at
+                    FROM audit_events
+                    WHERE run_id = ?
+                    ORDER BY created_at ASC
+                    LIMIT ?
+                    """,
+                    (run_id, limit),
+                )
+                .fetchall()
+            )
+        return [
+            {
+                "event_type": row["event_type"],
+                "detail": json.loads(row["detail_json"]),
+                "created_at": row["created_at"],
+            }
+            for row in rows
+        ]
 
     def update_run(self, run_id: str, status: str) -> None:
         with self._lock:
@@ -173,7 +260,7 @@ class AgentStore:
             )
         if row is None:
             raise KeyError(approval_id)
-        return self._approval_dict(row)
+        return self._enrich_approval(row)
 
     def list_approvals(self, status: str | None = None) -> list[dict[str, Any]]:
         with self._lock:
@@ -187,7 +274,7 @@ class AgentStore:
                     "SELECT * FROM approvals WHERE status = ? ORDER BY created_at DESC",
                     (status,),
                 ).fetchall()
-        return [self._approval_dict(row) for row in rows]
+        return [self._enrich_approval(row) for row in rows]
 
     def decide_approval(
         self,
@@ -468,6 +555,32 @@ class AgentStore:
             "decided_at": row["decided_at"],
         }
 
+    def _enrich_approval(self, row: sqlite3.Row) -> dict[str, Any]:
+        approval = self._approval_dict(row)
+        run = self.get_run(approval["run_id"])
+        if run is None:
+            approval["triggered_by"] = "user"
+            approval["run_objective"] = ""
+            approval["run_context"] = "personal"
+        else:
+            approval["triggered_by"] = run.get("triggered_by", "user")
+            approval["run_objective"] = run["objective"]
+            approval["run_context"] = run["context"]
+        approval["audit_events"] = self.list_audit_events(approval["run_id"])
+        return approval
+
+    @staticmethod
+    def _run_dict(row: sqlite3.Row) -> dict[str, Any]:
+        return {
+            "id": row["id"],
+            "objective": row["objective"],
+            "context": row["context"],
+            "triggered_by": row["triggered_by"] if "triggered_by" in row.keys() else "user",
+            "status": row["status"],
+            "created_at": row["created_at"],
+            "updated_at": row["updated_at"],
+        }
+
     @staticmethod
     def _approval_dict(row: sqlite3.Row) -> dict[str, Any]:
         return {
@@ -500,3 +613,179 @@ class AgentStore:
                 (key, value),
             )
             connection.commit()
+
+    def create_memory(self, content: str, category: str, source: str) -> dict[str, Any]:
+        memory_id = str(uuid4())
+        now = _now()
+        with self._lock:
+            connection = self._connect()
+            connection.execute(
+                "INSERT INTO memories VALUES (?, ?, ?, ?, ?, ?)",
+                (memory_id, content, category, source, now, now),
+            )
+            connection.commit()
+        return self.get_memory(memory_id)
+
+    def get_memory(self, memory_id: str) -> dict[str, Any]:
+        with self._lock:
+            row = (
+                self._connect()
+                .execute("SELECT * FROM memories WHERE id = ?", (memory_id,))
+                .fetchone()
+            )
+        if row is None:
+            raise KeyError(memory_id)
+        return self._memory_dict(row)
+
+    def list_memories(self) -> list[dict[str, Any]]:
+        with self._lock:
+            rows = (
+                self._connect()
+                .execute("SELECT * FROM memories ORDER BY updated_at DESC")
+                .fetchall()
+            )
+        return [self._memory_dict(row) for row in rows]
+
+    def update_memory(
+        self,
+        memory_id: str,
+        *,
+        content: str | None = None,
+        category: str | None = None,
+    ) -> dict[str, Any]:
+        if content is None and category is None:
+            raise ValueError("At least one field must be updated")
+        with self._lock:
+            connection = self._connect()
+            row = connection.execute(
+                "SELECT * FROM memories WHERE id = ?",
+                (memory_id,),
+            ).fetchone()
+            if row is None:
+                raise KeyError(memory_id)
+            updated_content = content if content is not None else row["content"]
+            updated_category = category if category is not None else row["category"]
+            connection.execute(
+                """
+                UPDATE memories
+                SET content = ?, category = ?, updated_at = ?
+                WHERE id = ?
+                """,
+                (updated_content, updated_category, _now(), memory_id),
+            )
+            connection.commit()
+        return self.get_memory(memory_id)
+
+    def delete_memory(self, memory_id: str) -> None:
+        with self._lock:
+            connection = self._connect()
+            cursor = connection.execute("DELETE FROM memories WHERE id = ?", (memory_id,))
+            connection.commit()
+        if cursor.rowcount != 1:
+            raise KeyError(memory_id)
+
+    @staticmethod
+    def _memory_dict(row: sqlite3.Row) -> dict[str, Any]:
+        return {
+            "id": row["id"],
+            "content": row["content"],
+            "category": row["category"],
+            "source": row["source"],
+            "created_at": row["created_at"],
+            "updated_at": row["updated_at"],
+        }
+
+    def create_research_job(self, topic: str, context: str) -> dict[str, Any]:
+        job_id = str(uuid4())
+        now = _now()
+        with self._lock:
+            connection = self._connect()
+            connection.execute(
+                """
+                INSERT INTO research_jobs
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (job_id, topic, context, "running", None, "[]", None, now, None),
+            )
+            connection.commit()
+        return self.get_research_job(job_id)
+
+    def get_research_job(self, job_id: str) -> dict[str, Any]:
+        with self._lock:
+            row = (
+                self._connect()
+                .execute("SELECT * FROM research_jobs WHERE id = ?", (job_id,))
+                .fetchone()
+            )
+        if row is None:
+            raise KeyError(job_id)
+        return self._research_job_dict(row)
+
+    def list_research_jobs(self) -> list[dict[str, Any]]:
+        with self._lock:
+            rows = (
+                self._connect()
+                .execute("SELECT * FROM research_jobs ORDER BY created_at DESC")
+                .fetchall()
+            )
+        return [self._research_job_dict(row) for row in rows]
+
+    def update_research_job(
+        self,
+        job_id: str,
+        *,
+        status: str | None = None,
+        summary: str | None = None,
+        sources: list[dict[str, Any]] | None = None,
+        run_id: str | None = None,
+    ) -> dict[str, Any]:
+        with self._lock:
+            connection = self._connect()
+            row = connection.execute(
+                "SELECT * FROM research_jobs WHERE id = ?",
+                (job_id,),
+            ).fetchone()
+            if row is None:
+                raise KeyError(job_id)
+            updated_status = status if status is not None else row["status"]
+            updated_summary = summary if summary is not None else row["summary"]
+            updated_sources = (
+                json.dumps(sources)
+                if sources is not None
+                else row["sources_json"]
+            )
+            updated_run_id = run_id if run_id is not None else row["run_id"]
+            completed_at = row["completed_at"]
+            if status is not None and status != "running":
+                completed_at = _now()
+            connection.execute(
+                """
+                UPDATE research_jobs
+                SET status = ?, summary = ?, sources_json = ?, run_id = ?, completed_at = ?
+                WHERE id = ?
+                """,
+                (
+                    updated_status,
+                    updated_summary,
+                    updated_sources,
+                    updated_run_id,
+                    completed_at,
+                    job_id,
+                ),
+            )
+            connection.commit()
+        return self.get_research_job(job_id)
+
+    @staticmethod
+    def _research_job_dict(row: sqlite3.Row) -> dict[str, Any]:
+        return {
+            "id": row["id"],
+            "topic": row["topic"],
+            "context": row["context"],
+            "status": row["status"],
+            "summary": row["summary"],
+            "sources": json.loads(row["sources_json"]),
+            "run_id": row["run_id"],
+            "created_at": row["created_at"],
+            "completed_at": row["completed_at"],
+        }

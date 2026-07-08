@@ -18,7 +18,7 @@ import wikipediaapi
 from duckduckgo_search import DDGS
 
 from app.agent_store import AgentStore
-from app.home_assistant import HomeAssistantClient
+from app.home_assistant import HomeAssistantClient, entity_domain
 
 try:
     import pynvml  # type: ignore[import-untyped]
@@ -58,6 +58,7 @@ class ToolDefinition:
 class ToolRegistry:
     """Allowlisted tools. There is intentionally no arbitrary shell tool."""
 
+    _SECURE_HOME_DOMAINS = frozenset({"lock", "alarm_control_panel", "cover"})
     _DEVELOPER_TOOLS = frozenset({"list_project_files", "read_project_file", "search_project_text"})
     _BLOCKED_PROJECT_PARTS = frozenset(
         {".git", ".venv", "__pycache__", "data", "node_modules", "xcuserdata"}
@@ -456,7 +457,10 @@ class ToolRegistry:
         mem = psutil.virtual_memory()
         disk_root = Path("/") if Path("/").exists() else Path.cwd()
         disk = psutil.disk_usage(str(disk_root))
-        load_avg = psutil.getloadavg() if hasattr(psutil, "getloadavg") else (None, None, None)
+        try:
+            load_avg = psutil.getloadavg() if hasattr(psutil, "getloadavg") else (None, None, None)
+        except OSError:
+            load_avg = (None, None, None)
 
         result: dict[str, Any] = {
             "hostname": platform.node(),
@@ -682,41 +686,38 @@ class ToolRegistry:
             return {"error": f"Failed to list devices from Home Assistant: {error}"}
 
     def _control_home_device(self, arguments: dict[str, Any]) -> dict[str, Any]:
-        self._require_argument_keys(arguments, {"entity_id", "service", "service_data"})
-        entity_id = str(arguments.get("entity_id", ""))
-        service = str(arguments.get("service", ""))
-        service_data = arguments.get("service_data", {})
-        if not entity_id or not service:
-            raise ValueError("entity_id and service are required")
-        domain = entity_id.split(".")[0] if "." in entity_id else ""
-        if domain in {"lock", "alarm_control_panel", "cover"}:
-            raise ValueError(
-                "This tool is not permitted to control secure devices. Use control_secure_home_device instead."
-            )
-        if not self.home_assistant or not self.home_assistant.is_configured:
-            return {
-                "error": "Home Assistant integration is not configured. Ask the user to set NOBS_HOMEASSISTANT_URL and NOBS_HOMEASSISTANT_TOKEN in their environment."
-            }
-        try:
-            data = dict(service_data) if isinstance(service_data, dict) else {}
-            data["entity_id"] = entity_id
-            res = self.home_assistant.call_service(domain, service, data)
-            return {"status": "success", "result": res}
-        except (httpx.HTTPError, ValueError, TypeError) as error:
-            return {"error": f"Failed to control device: {error}"}
+        return self._invoke_home_device_control(arguments, secure=False)
 
     def _control_secure_home_device(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        return self._invoke_home_device_control(arguments, secure=True)
+
+    def _invoke_home_device_control(
+        self,
+        arguments: dict[str, Any],
+        *,
+        secure: bool,
+    ) -> dict[str, Any]:
         self._require_argument_keys(arguments, {"entity_id", "service", "service_data"})
         entity_id = str(arguments.get("entity_id", ""))
         service = str(arguments.get("service", ""))
         service_data = arguments.get("service_data", {})
         if not entity_id or not service:
             raise ValueError("entity_id and service are required")
-        domain = entity_id.split(".")[0] if "." in entity_id else ""
-        if domain not in {"lock", "alarm_control_panel", "cover"}:
-            raise ValueError(
-                "This tool is only permitted to control secure devices (lock, alarm_control_panel, cover). Use control_home_device for other domains."
-            )
+        domain = entity_domain(entity_id)
+        if secure:
+            if domain not in self._SECURE_HOME_DOMAINS:
+                raise ValueError(
+                    "This tool is only permitted to control secure devices "
+                    "(lock, alarm_control_panel, cover). Use control_home_device for other domains."
+                )
+            device_label = "secure device"
+        else:
+            if domain in self._SECURE_HOME_DOMAINS:
+                raise ValueError(
+                    "This tool is not permitted to control secure devices. "
+                    "Use control_secure_home_device instead."
+                )
+            device_label = "device"
         if not self.home_assistant or not self.home_assistant.is_configured:
             return {
                 "error": "Home Assistant integration is not configured. Ask the user to set NOBS_HOMEASSISTANT_URL and NOBS_HOMEASSISTANT_TOKEN in their environment."
@@ -727,7 +728,7 @@ class ToolRegistry:
             res = self.home_assistant.call_service(domain, service, data)
             return {"status": "success", "result": res}
         except (httpx.HTTPError, ValueError, TypeError) as error:
-            return {"error": f"Failed to control secure device: {error}"}
+            return {"error": f"Failed to control {device_label}: {error}"}
 
     def _propose_idea(self, arguments: dict[str, Any]) -> dict[str, Any]:
         self._require_argument_keys(arguments, {"title", "description", "proposal_type"})

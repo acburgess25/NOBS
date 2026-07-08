@@ -15,6 +15,13 @@ class AgentTaskRequest(BaseModel):
     objective: str = Field(min_length=1, max_length=10_000)
     context: Literal["personal", "business", "shared"] = "personal"
     mode: Literal["assistant", "developer"] = "assistant"
+    triggered_by: Literal["user", "scheduler"] = "user"
+
+
+class AuditEventView(BaseModel):
+    event_type: str
+    detail: dict[str, Any]
+    created_at: str
 
 
 class ApprovalView(BaseModel):
@@ -28,6 +35,10 @@ class ApprovalView(BaseModel):
     result: dict[str, Any] | None
     created_at: str
     decided_at: str | None
+    triggered_by: str = "user"
+    run_objective: str = ""
+    run_context: str = "personal"
+    audit_events: list[AuditEventView] = Field(default_factory=list)
 
 
 class AgentTaskResponse(BaseModel):
@@ -80,7 +91,11 @@ class TankAgent:
         self.transport = transport
 
     async def run(self, request: AgentTaskRequest) -> AgentTaskResponse:
-        run_id = self.store.create_run(request.objective, request.context)
+        run_id = self.store.create_run(
+            request.objective,
+            request.context,
+            request.triggered_by,
+        )
         messages: list[dict[str, Any]] = [
             {
                 "role": "system",

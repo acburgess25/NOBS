@@ -107,6 +107,15 @@ def _pairing_payload(device_token: str | None) -> dict[str, str] | None:
     }
 
 
+def _load_average_1m() -> float | None:
+    if not hasattr(os, "getloadavg"):
+        return None
+    try:
+        return round(os.getloadavg()[0], 2)
+    except OSError:
+        return None
+
+
 def _system_status(workspace: Path, process_started_at: float) -> dict[str, Any]:
     disk_path = workspace.parent if workspace.parent.exists() else Path.cwd()
     usage = shutil.disk_usage(disk_path)
@@ -114,7 +123,7 @@ def _system_status(workspace: Path, process_started_at: float) -> dict[str, Any]
     return {
         "status": "online",
         "uptime_seconds": round(uptime),
-        "load_1m": round(os.getloadavg()[0], 2) if hasattr(os, "getloadavg") else None,
+        "load_1m": _load_average_1m(),
         "disk_free_gb": round(usage.free / (1024**3), 1),
         "disk_used_percent": round((usage.used / usage.total) * 100, 1),
     }

@@ -6,7 +6,13 @@ import pytest
 from pydantic import SecretStr
 
 from app.agent_tools import ToolRegistry
-from app.home_assistant import HomeAssistantClient
+from app.home_assistant import HomeAssistantClient, entity_domain
+
+
+def test_entity_domain_parsing() -> None:
+    assert entity_domain("light.living_room") == "light"
+    assert entity_domain("lock.front_door") == "lock"
+    assert entity_domain("invalid") == ""
 
 
 def test_read_workspace_file(tmp_path: Path) -> None:

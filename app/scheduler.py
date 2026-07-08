@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import sqlite3
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -30,6 +31,21 @@ _BRIEFING_SYSTEM_PROMPT = (
     "one_useful_question (string or null), and suggested_next_actions (array of strings). "
     "Ask one useful question only when ambiguity is real; otherwise set it to null. "
     "Keep context boundaries clear by labeling Personal, Business, or Shared where useful."
+)
+
+_EVENING_BRIEFING_SYSTEM_PROMPT = (
+    "You are NOBS, a warm, concise, privacy-first personal assistant. "
+    "Create an evening wrap-up using ONLY the supplied calendar and reminder items. "
+    "Never invent events, tasks, or guilt. Use a guilt-free, encouraging tone. "
+    "Summarize accomplishments from today's calendar items that have passed, "
+    "acknowledge unfinished commitments without blame, and prepare for tomorrow "
+    "using tomorrow_calendar and tomorrow_reminders when provided. "
+    "Return only a JSON object with fields: topline (string), priorities (array of 3-5 strings "
+    "covering accomplishments and carry-over items), conflicts_or_risks (array of strings for "
+    "unfinished commitments), recommended_plan (array of strings for tomorrow prep), "
+    "one_useful_question (string or null — ask only about a real carry-over decision), "
+    "and suggested_next_actions (array of strings for gentle wind-down or tomorrow setup). "
+    "Label Personal, Business, or Shared where useful."
 )
 
 _IDEA_OBJECTIVE = (
@@ -67,8 +83,8 @@ async def run_scheduler(
 
                 last_triggered_minute = current_time
 
-        except Exception:
-            logger.exception("Scheduler error during briefing check")
+        except (OSError, sqlite3.Error, KeyError, TypeError, ValueError) as error:
+            logger.exception("Scheduler error during briefing check: %s", error)
 
         try:
             last_proposal = store.last_proposal_at()
@@ -83,8 +99,8 @@ async def run_scheduler(
                 )
                 _background_tasks.add(task)
                 task.add_done_callback(_background_tasks.discard)
-        except Exception:
-            logger.exception("Scheduler error during autonomous idea check")
+        except (OSError, sqlite3.Error, ValueError, TypeError) as error:
+            logger.exception("Scheduler error during autonomous idea check: %s", error)
 
         await asyncio.sleep(15)
 
@@ -97,7 +113,11 @@ async def trigger_autonomous_idea(
 ) -> None:
     """Ask the agent to propose one smart-home or system optimization idea."""
     agent = TankAgent(settings=settings, tools=tools, store=store, transport=transport)
-    request = AgentTaskRequest(objective=_IDEA_OBJECTIVE, context="personal")
+    request = AgentTaskRequest(
+        objective=_IDEA_OBJECTIVE,
+        context="personal",
+        triggered_by="scheduler",
+    )
     try:
         await agent.run(request)
     except (AgentModelError, httpx.HTTPError, ValueError, TypeError, OSError) as error:
@@ -172,6 +192,7 @@ async def trigger_briefing_generation(
                 "based on the latest synced data."
             ),
             context="personal",
+            triggered_by="scheduler",
         )
         store.record_event(
             run_id,

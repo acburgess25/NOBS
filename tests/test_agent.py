@@ -217,6 +217,51 @@ def test_agent_queues_change_until_user_approves(tmp_path: Path) -> None:
     assert note.read_text() == ("# Weekly priorities\n\nProtect Friday afternoon for planning.\n")
 
 
+def test_pending_approval_includes_execution_context(tmp_path: Path) -> None:
+    def ollama_response(request: httpx.Request) -> httpx.Response:
+        if json.loads(request.content)["tools"]:
+            return httpx.Response(
+                200,
+                json={
+                    "message": {
+                        "tool_calls": [
+                            {
+                                "function": {
+                                    "name": "write_workspace_note",
+                                    "arguments": {
+                                        "context": "personal",
+                                        "title": "Context note",
+                                        "content": "Body",
+                                    },
+                                }
+                            }
+                        ]
+                    }
+                },
+            )
+        return httpx.Response(200, json={"message": {"content": "Waiting."}})
+
+    test_client = client(httpx.MockTransport(ollama_response), tmp_path)
+    task = test_client.post(
+        "/agent/tasks",
+        json={
+            "objective": "Save my weekly priority",
+            "context": "personal",
+            "triggered_by": "user",
+        },
+        headers=auth(),
+    )
+    approval_id = task.json()["approvals"][0]["id"]
+
+    pending = test_client.get("/agent/approvals", headers=auth()).json()
+    approval = next(item for item in pending if item["id"] == approval_id)
+
+    assert approval["triggered_by"] == "user"
+    assert approval["run_objective"] == "Save my weekly priority"
+    assert approval["run_context"] == "personal"
+    assert isinstance(approval["audit_events"], list)
+
+
 def test_denied_agent_action_never_changes_workspace(tmp_path: Path) -> None:
     def ollama_response(request: httpx.Request) -> httpx.Response:
         payload = json.loads(request.content)

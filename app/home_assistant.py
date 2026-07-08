@@ -8,6 +8,11 @@ from pydantic import SecretStr
 logger = logging.getLogger(__name__)
 
 
+def entity_domain(entity_id: str) -> str:
+    """Return the Home Assistant domain prefix from an entity_id (e.g. light.kitchen -> light)."""
+    return entity_id.split(".", 1)[0] if "." in entity_id else ""
+
+
 class HomeAssistantClient:
     def __init__(self, url: str, token: SecretStr | None) -> None:
         self.url = url.rstrip("/")
@@ -37,7 +42,7 @@ class HomeAssistantClient:
         devices = []
         for item in states:
             entity_id = item.get("entity_id", "")
-            domain = entity_id.split(".")[0] if "." in entity_id else ""
+            domain = entity_domain(entity_id)
 
             if domain_filter and domain != domain_filter:
                 continue

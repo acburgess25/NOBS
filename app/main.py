@@ -6,7 +6,7 @@ import json
 import secrets
 from pathlib import Path
 import time
-from typing import AsyncIterator, Literal
+from typing import Any, AsyncIterator, Literal
 
 import httpx
 from fastapi import Depends, FastAPI, Header, HTTPException, status
@@ -27,7 +27,28 @@ from app.agent_tools import ToolRegistry
 from app.config import Settings, get_settings
 from app.dashboard import build_dashboard_status
 from app.home_assistant import HomeAssistantClient
-from app.scheduler import _BRIEFING_SYSTEM_PROMPT, run_scheduler
+from app.memory import (
+    MEMORY_CATEGORIES,
+    extract_correction,
+    extract_forget_request,
+    extract_remember_request,
+    find_matching_memories,
+    format_memory_used_receipt,
+    infer_category,
+    infer_memory_from_message,
+    memory_categories_used,
+)
+from app.research import (
+    build_research_objective,
+    entitlement_denied_detail,
+    extract_sources_from_tool_results,
+    research_entitled,
+)
+from app.scheduler import (
+    _BRIEFING_SYSTEM_PROMPT,
+    _EVENING_BRIEFING_SYSTEM_PROMPT,
+    run_scheduler,
+)
 
 
 class ChatMessage(BaseModel):
@@ -82,8 +103,11 @@ class BriefingReminderItem(BaseModel):
 
 class BriefingRequest(BaseModel):
     date: date
+    kind: Literal["morning", "evening"] = "morning"
     calendar: list[BriefingCalendarItem] = Field(max_length=100)
     reminders: list[BriefingReminderItem] = Field(max_length=100)
+    tomorrow_calendar: list[BriefingCalendarItem] = Field(default_factory=list, max_length=100)
+    tomorrow_reminders: list[BriefingReminderItem] = Field(default_factory=list, max_length=100)
 
 
 class BriefingSections(BaseModel):
@@ -97,6 +121,7 @@ class BriefingSections(BaseModel):
 
 class BriefingResponse(BriefingSections):
     date: date
+    kind: Literal["morning", "evening"] = "morning"
     generated_at: datetime
     route: str
     privacy_receipt: PrivacyReceipt
@@ -137,6 +162,57 @@ class SyncCalendarRequest(BaseModel):
 
 class SyncRemindersRequest(BaseModel):
     reminders: list[BriefingReminderItem]
+
+
+class MemoryView(BaseModel):
+    id: str
+    content: str
+    category: str
+    source: str
+    created_at: str
+    updated_at: str
+
+
+class UpdateMemoryRequest(BaseModel):
+    content: str | None = Field(default=None, min_length=1, max_length=2_000)
+    category: str | None = None
+
+
+class HomeDeviceView(BaseModel):
+    entity_id: str
+    name: str
+    state: str
+    domain: str
+
+
+class HomeDevicesResponse(BaseModel):
+    configured: bool
+    devices: list[HomeDeviceView] = Field(default_factory=list)
+    truncated: bool = False
+    message: str | None = None
+
+
+class ResearchSourceView(BaseModel):
+    title: str
+    url: str
+    kind: str
+
+
+class ResearchRequest(BaseModel):
+    topic: str = Field(min_length=1, max_length=500)
+    context: BriefingContext = BriefingContext.personal
+
+
+class ResearchJobView(BaseModel):
+    id: str
+    topic: str
+    context: str
+    status: str
+    summary: str | None = None
+    sources: list[ResearchSourceView] = Field(default_factory=list)
+    run_id: str | None = None
+    created_at: str
+    completed_at: str | None = None
 
 
 class AppleAuthRequest(BaseModel):
@@ -295,12 +371,67 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         dependencies=[Depends(require_device_token)],
     )
     async def chat(request: ChatRequest) -> ChatResponse:
+        store: AgentStore = app.state.agent_store
+        last_user_message = next(
+            (message.content for message in reversed(request.messages) if message.role == "user"),
+            "",
+        )
+        memory_changes: list[str] = []
+        used_memories: list[dict[str, Any]] = []
+
+        remember_content = extract_remember_request(last_user_message)
+        if remember_content:
+            category = infer_category(remember_content)
+            store.create_memory(remember_content, category, "user_explicit")
+            memory_changes.append(f"Saved memory ({category})")
+        else:
+            forget_query = extract_forget_request(last_user_message)
+            if forget_query:
+                matches = find_matching_memories(store.list_memories(), forget_query)
+                if matches:
+                    store.delete_memory(matches[0]["id"])
+                    memory_changes.append("Deleted 1 memory")
+            else:
+                correction = extract_correction(last_user_message)
+                if correction:
+                    matches = find_matching_memories(store.list_memories(), correction)
+                    if not matches and request.messages:
+                        matches = store.list_memories()[:1]
+                    if matches:
+                        updated = store.update_memory(
+                            matches[0]["id"],
+                            content=correction,
+                            category=infer_category(correction),
+                        )
+                        memory_changes.append(f"Updated memory ({updated['category']})")
+                else:
+                    inferred = infer_memory_from_message(last_user_message)
+                    if inferred:
+                        content, category = inferred
+                        existing = find_matching_memories(store.list_memories(), content)
+                        if not existing:
+                            store.create_memory(content, category, "chat")
+                            memory_changes.append(f"Inferred memory ({category})")
+
+        all_memories = store.list_memories()
+        used_memories = find_matching_memories(all_memories, last_user_message)
+        if not used_memories and all_memories and not memory_changes:
+            used_memories = all_memories[:3]
+
+        memory_context = ""
+        if used_memories:
+            lines = [f"- [{item['category']}] {item['content']}" for item in used_memories]
+            memory_context = (
+                "\n\nApproved memories you may use when relevant:\n" + "\n".join(lines)
+            )
+
         system_message = {
             "role": "system",
             "content": (
                 "You are NOBS, a warm, concise, privacy-first personal assistant. "
                 "Reduce mental load, be honest about unavailable capabilities, and never claim "
                 "you changed external data. Keep answers brief unless the user asks for detail."
+                f"{memory_context}"
             ),
         }
         payload = {
@@ -335,14 +466,24 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         if not message:
             raise HTTPException(status_code=502, detail="Tank model returned an empty response")
 
+        if remember_content:
+            message = "Got it — I'll remember that. You can review or change it anytime in Memory."
+        elif extract_forget_request(last_user_message) and memory_changes:
+            message = "Done — I removed that memory."
+        elif extract_correction(last_user_message) and memory_changes:
+            message = "Updated. The corrected memory is saved on Tank."
+
+        used_fields = ["conversation messages sent with this request"]
+        used_fields.extend(format_memory_used_receipt(memory_categories_used(used_memories)))
+
         return ChatResponse(
             message=message,
             route="Tank",
             privacy_receipt=PrivacyReceipt(
-                used=["conversation messages sent with this request"],
+                used=used_fields,
                 processed="Tank on your private network",
                 shared=[],
-                changed=[],
+                changed=memory_changes,
             ),
         )
 
@@ -354,13 +495,18 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     async def create_briefing(request: BriefingRequest) -> BriefingResponse:
         source = request.model_dump(mode="json")
+        system_prompt = (
+            _EVENING_BRIEFING_SYSTEM_PROMPT
+            if request.kind == "evening"
+            else _BRIEFING_SYSTEM_PROMPT
+        )
         payload = {
             "model": settings.ollama_model,
             "stream": False,
             "think": False,
             "format": "json",
             "messages": [
-                {"role": "system", "content": _BRIEFING_SYSTEM_PROMPT},
+                {"role": "system", "content": system_prompt},
                 {"role": "user", "content": json.dumps(source)},
             ],
         }
@@ -385,9 +531,25 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 detail="Tank model returned an invalid briefing",
             ) from error
 
-        sections = _merge_briefing_with_heuristics(request, sections)
+        sections = (
+            _merge_evening_briefing_with_heuristics(request, sections)
+            if request.kind == "evening"
+            else _merge_briefing_with_heuristics(request, sections)
+        )
+        used_fields = [
+            f"{len(request.calendar)} calendar items",
+            f"{len(request.reminders)} reminder items",
+        ]
+        if request.kind == "evening":
+            used_fields.extend(
+                [
+                    f"{len(request.tomorrow_calendar)} tomorrow calendar items",
+                    f"{len(request.tomorrow_reminders)} tomorrow reminder items",
+                ]
+            )
         result = BriefingResponse(
             date=request.date,
+            kind=request.kind,
             topline=sections.topline,
             priorities=sections.priorities,
             conflicts_or_risks=sections.conflicts_or_risks,
@@ -397,10 +559,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             generated_at=datetime.now(UTC),
             route="Tank",
             privacy_receipt=PrivacyReceipt(
-                used=[
-                    f"{len(request.calendar)} calendar items",
-                    f"{len(request.reminders)} reminder items",
-                ],
+                used=used_fields,
                 processed="Tank on your private network",
                 shared=[],
                 changed=[],
@@ -603,6 +762,165 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         reminders = [item.model_dump(mode="json") for item in request.reminders]
         app.state.agent_store.sync_reminders(reminders)
         return {"status": "ok"}
+
+    @app.get(
+        "/memories",
+        response_model=list[MemoryView],
+        tags=["memories"],
+        dependencies=[Depends(require_device_token)],
+    )
+    async def list_memories() -> list[MemoryView]:
+        return [
+            MemoryView.model_validate(item)
+            for item in app.state.agent_store.list_memories()
+        ]
+
+    @app.patch(
+        "/memories/{memory_id}",
+        response_model=MemoryView,
+        tags=["memories"],
+        dependencies=[Depends(require_device_token)],
+    )
+    async def update_memory(memory_id: str, request: UpdateMemoryRequest) -> MemoryView:
+        if request.category is not None and request.category not in MEMORY_CATEGORIES:
+            raise HTTPException(status_code=422, detail="Invalid memory category")
+        try:
+            updated = app.state.agent_store.update_memory(
+                memory_id,
+                content=request.content,
+                category=request.category,
+            )
+            return MemoryView.model_validate(updated)
+        except KeyError as error:
+            raise HTTPException(status_code=404, detail="Memory not found") from error
+        except ValueError as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
+
+    @app.delete(
+        "/memories/{memory_id}",
+        tags=["memories"],
+        dependencies=[Depends(require_device_token)],
+    )
+    async def delete_memory(memory_id: str) -> dict[str, str]:
+        try:
+            app.state.agent_store.delete_memory(memory_id)
+            return {"status": "deleted"}
+        except KeyError as error:
+            raise HTTPException(status_code=404, detail="Memory not found") from error
+
+    @app.get(
+        "/home/devices",
+        response_model=HomeDevicesResponse,
+        tags=["home"],
+        dependencies=[Depends(require_device_token)],
+    )
+    async def list_home_devices(domain: str | None = None) -> HomeDevicesResponse:
+        ha: HomeAssistantClient = app.state.home_assistant
+        if not ha.is_configured:
+            return HomeDevicesResponse(
+                configured=False,
+                message=(
+                    "Home Assistant is not configured on Tank. "
+                    "Set NOBS_HOMEASSISTANT_URL and NOBS_HOMEASSISTANT_TOKEN."
+                ),
+            )
+        try:
+            devices = ha.list_devices(domain_filter=domain or None)
+        except (httpx.HTTPError, ValueError) as error:
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail=f"Could not reach Home Assistant: {error}",
+            ) from error
+        truncated = len(devices) > 100
+        return HomeDevicesResponse(
+            configured=True,
+            devices=[HomeDeviceView.model_validate(item) for item in devices[:100]],
+            truncated=truncated,
+        )
+
+    @app.get(
+        "/research",
+        response_model=list[ResearchJobView],
+        tags=["research"],
+        dependencies=[Depends(require_device_token)],
+    )
+    async def list_research_jobs() -> list[ResearchJobView]:
+        return [
+            ResearchJobView.model_validate(item)
+            for item in app.state.agent_store.list_research_jobs()
+        ]
+
+    @app.get(
+        "/research/{job_id}",
+        response_model=ResearchJobView,
+        tags=["research"],
+        dependencies=[Depends(require_device_token)],
+    )
+    async def get_research_job(job_id: str) -> ResearchJobView:
+        try:
+            job = app.state.agent_store.get_research_job(job_id)
+        except KeyError as error:
+            raise HTTPException(status_code=404, detail="Research job not found") from error
+        return ResearchJobView.model_validate(job)
+
+    @app.post(
+        "/research",
+        response_model=ResearchJobView,
+        tags=["research"],
+        dependencies=[Depends(require_device_token)],
+    )
+    async def create_research(request: ResearchRequest) -> ResearchJobView:
+        store: AgentStore = app.state.agent_store
+        if not research_entitled(store, settings):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=entitlement_denied_detail(),
+            )
+
+        job = store.create_research_job(
+            topic=request.topic.strip(),
+            context=request.context.value,
+        )
+        agent = TankAgent(
+            settings=settings,
+            store=store,
+            tools=app.state.agent_tools,
+            transport=getattr(app.state, "ollama_transport", None),
+        )
+        try:
+            response = await agent.run(
+                AgentTaskRequest(
+                    objective=build_research_objective(request.topic.strip()),
+                    context=request.context.value,
+                    mode="assistant",
+                    triggered_by="user",
+                )
+            )
+        except AgentModelError as error:
+            store.update_research_job(
+                job["id"],
+                status="failed",
+                summary="Tank model is unavailable for research right now.",
+            )
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Tank agent model is unavailable",
+            ) from error
+
+        sources = extract_sources_from_tool_results(response.tool_results)
+        job_status = (
+            "awaiting_approval"
+            if response.status == "awaiting_approval"
+            else "completed"
+        )
+        updated = store.update_research_job(
+            job["id"],
+            status=job_status,
+            summary=response.message,
+            sources=sources,
+            run_id=response.run_id,
+        )
+        return ResearchJobView.model_validate(updated)
 
     return app
 
@@ -833,6 +1151,125 @@ def _merge_briefing_with_heuristics(
         suggested_next_actions=(
             _dedupe(sections.suggested_next_actions)[:6]
             or _fallback_next_actions(request, merged_risks)
+        ),
+    )
+
+
+def _detect_evening_unfinished(request: BriefingRequest) -> list[str]:
+    unfinished: list[str] = []
+    for reminder in request.reminders:
+        unfinished.append(
+            f"{_context_prefix(reminder.context)} · {reminder.title} (still open)"
+        )
+    if request.tomorrow_calendar:
+        first = sorted(
+            request.tomorrow_calendar,
+            key=lambda item: (_time_to_minutes(item.start) is None, _time_to_minutes(item.start) or 0),
+        )[0]
+        unfinished.append(
+            f"Tomorrow starts with {_context_prefix(first.context).lower()} · {first.title} at {first.start}."
+        )
+    return _dedupe(unfinished)[:8]
+
+
+def _evening_accomplishments(request: BriefingRequest) -> list[str]:
+    accomplishments: list[str] = []
+    for event in request.calendar:
+        accomplishments.append(
+            f"{_context_prefix(event.context)} · {event.title} ({event.start})"
+        )
+    if not accomplishments and not request.reminders:
+        accomplishments.append("You protected space for rest and recovery today.")
+    elif not accomplishments:
+        accomplishments.append("You kept commitments moving even without fixed calendar blocks.")
+    return _dedupe(accomplishments)[:5]
+
+
+def _evening_topline(request: BriefingRequest, unfinished_count: int) -> str:
+    event_count = len(request.calendar)
+    if event_count == 0 and unfinished_count == 0:
+        return "A calm day wraps up — tomorrow can stay light unless you choose otherwise."
+    if unfinished_count == 0:
+        return f"You moved through {event_count} commitment{'s' if event_count != 1 else ''} today. Nothing critical is left hanging."
+    if unfinished_count == 1:
+        return "Solid progress today — one item can roll forward without guilt."
+    return (
+        f"You made it through a full day. {unfinished_count} items can carry to tomorrow "
+        "without needing to finish tonight."
+    )
+
+
+def _evening_tomorrow_plan(request: BriefingRequest) -> list[str]:
+    plan: list[str] = []
+    tomorrow_events = sorted(
+        request.tomorrow_calendar,
+        key=lambda item: (_time_to_minutes(item.start) is None, _time_to_minutes(item.start) or 0),
+    )
+    if tomorrow_events:
+        first = tomorrow_events[0]
+        plan.append(f"First up tomorrow: {first.title} at {first.start}.")
+    for event in tomorrow_events[:3]:
+        plan.append(
+            f"Block prep for {_context_prefix(event.context).lower()} · {event.title}."
+        )
+    if request.tomorrow_reminders:
+        plan.append(
+            f"{len(request.tomorrow_reminders)} reminder"
+            f"{'s' if len(request.tomorrow_reminders) != 1 else ''} queued for tomorrow."
+        )
+    if not plan:
+        plan.append("Tomorrow looks open — protect one block for what matters most.")
+    plan.append("Wind down without reopening today's unfinished list unless it helps.")
+    return _dedupe(plan)[:6]
+
+
+def _evening_question(request: BriefingRequest, unfinished: list[str]) -> str | None:
+    if len(unfinished) >= 2:
+        return "Which carry-over item matters most tomorrow so the rest can wait?"
+    if request.tomorrow_calendar and len(request.tomorrow_calendar) >= 4:
+        return "Tomorrow looks packed — want to defer one lower-priority block now?"
+    return None
+
+
+def _evening_next_actions(request: BriefingRequest, unfinished: list[str]) -> list[str]:
+    actions: list[str] = []
+    if unfinished:
+        actions.append("Pick one carry-over item to tackle first tomorrow — the rest can wait.")
+    if request.tomorrow_calendar:
+        first = sorted(
+            request.tomorrow_calendar,
+            key=lambda item: (_time_to_minutes(item.start) is None, _time_to_minutes(item.start) or 0),
+        )[0]
+        actions.append(f"Set a gentle prep reminder for {first.title} before bed.")
+    actions.append("Close the day — unfinished work does not need guilt tonight.")
+    return _dedupe(actions)[:4]
+
+
+def _merge_evening_briefing_with_heuristics(
+    request: BriefingRequest, sections: BriefingSections
+) -> BriefingSections:
+    accomplishments = _evening_accomplishments(request)
+    unfinished = _detect_evening_unfinished(request)
+    merged_priorities = _dedupe([*sections.priorities, *accomplishments])[:5]
+    if not merged_priorities:
+        merged_priorities = accomplishments
+    merged_unfinished = _dedupe([*sections.conflicts_or_risks, *unfinished])[:8]
+    question = sections.one_useful_question.strip() if sections.one_useful_question else None
+    if not question:
+        question = _evening_question(request, merged_unfinished)
+    return BriefingSections(
+        topline=sections.topline.strip()
+        or _evening_topline(request, unfinished_count=len(merged_unfinished)),
+        priorities=merged_priorities or accomplishments,
+        conflicts_or_risks=merged_unfinished or ["Nothing critical needs to carry into tomorrow."],
+        recommended_plan=(
+            _dedupe(sections.recommended_plan)[:10]
+            or _evening_tomorrow_plan(request)
+        ),
+        one_useful_question=question,
+        suggested_next_actions=(
+            _dedupe(sections.suggested_next_actions)[:6]
+            or _evening_next_actions(request, merged_unfinished)
         ),
     )
 
