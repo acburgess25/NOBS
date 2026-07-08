@@ -2,6 +2,11 @@ import json
 
 import httpx
 
+from app.briefing import (
+    BriefingRequest,
+    BriefingSections,
+    merge_briefing_with_heuristics,
+)
 from tests.test_chat import auth, client
 
 
@@ -27,6 +32,30 @@ EVENING_REQUEST = {
     ],
     "tomorrow_reminders": [{"title": "Buy groceries", "context": "personal"}],
 }
+
+
+def test_briefing_module_merge_adds_default_risk_when_model_omits_them() -> None:
+    request = BriefingRequest.model_validate(
+        {
+            "date": "2026-07-04",
+            "calendar": [
+                {"title": "Design sync", "start": "10:00", "end": "11:00", "context": "business"}
+            ],
+            "reminders": [],
+        }
+    )
+    sections = BriefingSections(
+        topline="Focused day.",
+        priorities=["Business · Design sync (10:00)"],
+        conflicts_or_risks=[],
+        recommended_plan=["Prep before 10:00."],
+        one_useful_question=None,
+        suggested_next_actions=["Review notes."],
+    )
+
+    merged = merge_briefing_with_heuristics(request, sections)
+
+    assert "No major schedule risks detected right now." in merged.conflicts_or_risks
 
 
 def test_briefing_routes_require_authentication() -> None:

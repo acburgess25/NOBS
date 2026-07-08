@@ -1,8 +1,7 @@
 import asyncio
-import json
 import logging
 import sqlite3
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from typing import Any
 
 import httpx
@@ -10,7 +9,14 @@ import httpx
 from app.agent import AgentModelError, AgentTaskRequest, TankAgent
 from app.agent_store import AgentStore
 from app.agent_tools import ToolRegistry
+from app.briefing import (
+    BriefingModelError,
+    briefing_request_from_synced_data,
+    generate_briefing_sections,
+    privacy_receipt_used_fields,
+)
 from app.config import Settings
+from app.tank_time import local_time_label, utc_now
 
 logger = logging.getLogger(__name__)
 
@@ -21,32 +27,6 @@ _IDEA_WINDOW_SECONDS = 15
 # Minimum time between autonomous idea proposals regardless of their status.
 # Prevents flooding even if the user hasn't reviewed previous proposals.
 _IDEA_COOLDOWN = timedelta(hours=1)
-
-_BRIEFING_SYSTEM_PROMPT = (
-    "You are NOBS, a warm, concise, privacy-first personal assistant. "
-    "Create a realistic daily briefing using ONLY the supplied calendar and "
-    "reminder items. Never invent events, tasks, or context. Return only a JSON "
-    "object with fields: topline (string), priorities (array of 3-5 strings), "
-    "conflicts_or_risks (array of strings), recommended_plan (array of strings), "
-    "one_useful_question (string or null), and suggested_next_actions (array of strings). "
-    "Ask one useful question only when ambiguity is real; otherwise set it to null. "
-    "Keep context boundaries clear by labeling Personal, Business, or Shared where useful."
-)
-
-_EVENING_BRIEFING_SYSTEM_PROMPT = (
-    "You are NOBS, a warm, concise, privacy-first personal assistant. "
-    "Create an evening wrap-up using ONLY the supplied calendar and reminder items. "
-    "Never invent events, tasks, or guilt. Use a guilt-free, encouraging tone. "
-    "Summarize accomplishments from today's calendar items that have passed, "
-    "acknowledge unfinished commitments without blame, and prepare for tomorrow "
-    "using tomorrow_calendar and tomorrow_reminders when provided. "
-    "Return only a JSON object with fields: topline (string), priorities (array of 3-5 strings "
-    "covering accomplishments and carry-over items), conflicts_or_risks (array of strings for "
-    "unfinished commitments), recommended_plan (array of strings for tomorrow prep), "
-    "one_useful_question (string or null — ask only about a real carry-over decision), "
-    "and suggested_next_actions (array of strings for gentle wind-down or tomorrow setup). "
-    "Label Personal, Business, or Shared where useful."
-)
 
 _IDEA_OBJECTIVE = (
     "You are NOBS. Come up with a single, highly useful smart home routine or "
@@ -66,18 +46,19 @@ async def run_scheduler(
     _background_tasks: set[asyncio.Task[None]] = set()
 
     while True:
-        now = datetime.now(UTC)
+        utc = utc_now()
         try:
-            current_time = now.strftime("%H:%M")
+            current_time = local_time_label(settings.timezone)
 
             if current_time != last_triggered_minute:
                 schedules = store.list_briefing_schedules(status="active")
                 for schedule in schedules:
                     if schedule["time_of_day"] == current_time:
                         logger.info(
-                            "Triggering briefing schedule %s for %s",
+                            "Triggering briefing schedule %s for %s (%s)",
                             schedule["id"],
                             current_time,
+                            settings.timezone,
                         )
                         await trigger_briefing_generation(settings, store, transport)
 
@@ -89,9 +70,9 @@ async def run_scheduler(
         try:
             last_proposal = store.last_proposal_at()
             cooldown_expired = last_proposal is None or (
-                now - datetime.fromisoformat(last_proposal) > _IDEA_COOLDOWN
+                utc - datetime.fromisoformat(last_proposal) > _IDEA_COOLDOWN
             )
-            elapsed = int(now.timestamp()) % 60
+            elapsed = int(utc.timestamp()) % 60
             if cooldown_expired and elapsed < _IDEA_WINDOW_SECONDS:
                 logger.info("Triggering autonomous agent to propose an idea.")
                 task = asyncio.create_task(
@@ -132,51 +113,29 @@ async def trigger_briefing_generation(
     """Generate a daily briefing from synced calendar/reminder data and persist it."""
     calendar = store.list_calendar_events()
     reminders = store.list_reminders()
-    today = datetime.now(UTC).date()
-
-    source = {
-        "date": today.isoformat(),
-        "calendar": calendar,
-        "reminders": reminders,
-    }
-    payload = {
-        "model": settings.ollama_model,
-        "stream": False,
-        "think": False,
-        "format": "json",
-        "messages": [
-            {"role": "system", "content": _BRIEFING_SYSTEM_PROMPT},
-            {"role": "user", "content": json.dumps(source)},
-        ],
-    }
+    today = utc_now().date()
+    request = briefing_request_from_synced_data(
+        briefing_date=today,
+        calendar=calendar,
+        reminders=reminders,
+        kind="morning",
+    )
 
     try:
-        async with httpx.AsyncClient(
-            timeout=settings.ollama_timeout_seconds,
-            transport=transport,
-        ) as client:
-            response = await client.post(f"{settings.ollama_base_url}/api/chat", json=payload)
-            response.raise_for_status()
-
-        sections = json.loads(response.json()["message"]["content"])
+        sections = await generate_briefing_sections(settings, request, transport=transport)
         result = {
             "date": today.isoformat(),
-            "topline": sections.get(
-                "topline",
-                "This day needs active prioritization to stay realistic.",
-            ),
-            "priorities": sections.get("priorities", []),
-            "conflicts_or_risks": sections.get("conflicts_or_risks", []),
-            "recommended_plan": sections.get("recommended_plan", []),
-            "one_useful_question": sections.get("one_useful_question"),
-            "suggested_next_actions": sections.get("suggested_next_actions", []),
-            "generated_at": datetime.now(UTC).isoformat(),
+            "kind": "morning",
+            "topline": sections.topline,
+            "priorities": sections.priorities,
+            "conflicts_or_risks": sections.conflicts_or_risks,
+            "recommended_plan": sections.recommended_plan,
+            "one_useful_question": sections.one_useful_question,
+            "suggested_next_actions": sections.suggested_next_actions,
+            "generated_at": utc_now().isoformat(),
             "route": "Tank",
             "privacy_receipt": {
-                "used": [
-                    f"{len(calendar)} calendar items",
-                    f"{len(reminders)} reminder items",
-                ],
+                "used": privacy_receipt_used_fields(request),
                 "processed": "Tank on your private network",
                 "shared": [],
                 "changed": [],
@@ -201,5 +160,5 @@ async def trigger_briefing_generation(
         )
         store.update_run(run_id, "completed")
 
-    except (httpx.HTTPError, ValueError, KeyError, TypeError, json.JSONDecodeError) as error:
+    except (BriefingModelError, httpx.HTTPError, ValueError, TypeError) as error:
         logger.exception("Failed to generate scheduled briefing: %s", error)

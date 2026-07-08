@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -40,10 +40,13 @@ def test_trigger_briefing_generation_persists_result(tmp_path: Path) -> None:
         [{"title": "Standup", "start": "09:00", "end": "09:30", "context": "business"}]
     )
     store.sync_reminders([{"title": "Buy milk", "due": "18:00", "context": "personal"}])
+    today = date(2026, 7, 8)
 
     def ollama_response(request: httpx.Request) -> httpx.Response:
         payload = json.loads(request.content)
         supplied = json.loads(payload["messages"][1]["content"])
+        assert supplied["date"] == today.isoformat()
+        assert supplied["kind"] == "morning"
         assert supplied["calendar"][0]["title"] == "Standup"
         assert supplied["reminders"][0]["title"] == "Buy milk"
         return httpx.Response(
@@ -70,12 +73,16 @@ def test_trigger_briefing_generation_persists_result(tmp_path: Path) -> None:
     )
     transport = httpx.MockTransport(ollama_response)
 
-    asyncio.run(trigger_briefing_generation(settings, store, transport))
+    with patch("app.scheduler.utc_now") as utc_now_mock:
+        utc_now_mock.return_value = datetime(2026, 7, 8, 8, 30, 5, tzinfo=UTC)
+        asyncio.run(trigger_briefing_generation(settings, store, transport))
 
     briefing = store.latest_briefing()
     assert briefing is not None
     assert briefing["topline"] == "A balanced day."
+    assert briefing["kind"] == "morning"
     assert briefing["route"] == "Tank"
+    assert "No major schedule risks detected right now." in briefing["conflicts_or_risks"]
 
 
 def test_scheduler_triggers_briefing_for_active_schedule(tmp_path: Path) -> None:
@@ -91,12 +98,11 @@ def test_scheduler_triggers_briefing_for_active_schedule(tmp_path: Path) -> None
     trigger_mock = AsyncMock()
 
     with (
-        patch("app.scheduler.datetime") as mock_datetime,
+        patch("app.scheduler.local_time_label", return_value="08:30"),
+        patch("app.scheduler.utc_now", return_value=fixed_now),
         patch("app.scheduler.trigger_briefing_generation", trigger_mock),
         _scheduler_sleep_patch(),
     ):
-        mock_datetime.now.return_value = fixed_now
-        mock_datetime.fromisoformat = datetime.fromisoformat
         with pytest.raises(asyncio.CancelledError):
             asyncio.run(run_scheduler(settings, store, tools))
 
@@ -119,12 +125,11 @@ def test_scheduler_skips_paused_and_revoked_schedules(tmp_path: Path) -> None:
     trigger_mock = AsyncMock()
 
     with (
-        patch("app.scheduler.datetime") as mock_datetime,
+        patch("app.scheduler.local_time_label", return_value="08:30"),
+        patch("app.scheduler.utc_now", return_value=fixed_now),
         patch("app.scheduler.trigger_briefing_generation", trigger_mock),
         _scheduler_sleep_patch(),
     ):
-        mock_datetime.now.return_value = fixed_now
-        mock_datetime.fromisoformat = datetime.fromisoformat
         with pytest.raises(asyncio.CancelledError):
             asyncio.run(run_scheduler(settings, store, tools))
 
@@ -145,12 +150,11 @@ def test_scheduler_respects_idea_cooldown(tmp_path: Path) -> None:
     idea_mock = AsyncMock()
 
     with (
-        patch("app.scheduler.datetime") as mock_datetime,
+        patch("app.scheduler.local_time_label", return_value="12:00"),
+        patch("app.scheduler.utc_now", return_value=fixed_now),
         patch("app.scheduler.trigger_autonomous_idea", idea_mock),
         _scheduler_sleep_patch(),
     ):
-        mock_datetime.now.return_value = fixed_now
-        mock_datetime.fromisoformat = datetime.fromisoformat
         with pytest.raises(asyncio.CancelledError):
             asyncio.run(run_scheduler(settings, store, tools))
 
@@ -174,12 +178,11 @@ def test_scheduler_triggers_idea_after_cooldown(tmp_path: Path) -> None:
     idea_mock = AsyncMock()
 
     with (
-        patch("app.scheduler.datetime") as mock_datetime,
+        patch("app.scheduler.local_time_label", return_value="12:00"),
+        patch("app.scheduler.utc_now", return_value=fixed_now),
         patch("app.scheduler.trigger_autonomous_idea", idea_mock),
         _scheduler_sleep_patch(),
     ):
-        mock_datetime.now.return_value = fixed_now
-        mock_datetime.fromisoformat = datetime.fromisoformat
         with pytest.raises(asyncio.CancelledError):
             asyncio.run(run_scheduler(settings, store, tools))
 
@@ -197,11 +200,11 @@ def test_scheduler_logs_store_errors_without_crashing(tmp_path: Path) -> None:
     )
     tools = ToolRegistry(tmp_path / "workspace", store=store, settings=settings)
 
+    fixed_now = datetime(2026, 7, 8, 9, 0, tzinfo=UTC)
     with (
-        patch("app.scheduler.datetime") as mock_datetime,
+        patch("app.scheduler.local_time_label", return_value="09:00"),
+        patch("app.scheduler.utc_now", return_value=fixed_now),
         _scheduler_sleep_patch(),
     ):
-        mock_datetime.now.return_value = datetime(2026, 7, 8, 9, 0, tzinfo=UTC)
-        mock_datetime.fromisoformat = datetime.fromisoformat
         with pytest.raises(asyncio.CancelledError):
             asyncio.run(run_scheduler(settings, store, tools))

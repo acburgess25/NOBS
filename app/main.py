@@ -1,10 +1,10 @@
 from contextlib import asynccontextmanager
 import asyncio
 from datetime import UTC, date, datetime
-from enum import Enum
-import json
+import logging
 import secrets
 from pathlib import Path
+import sqlite3
 import time
 from typing import Any, AsyncIterator, Literal
 
@@ -44,11 +44,20 @@ from app.research import (
     extract_sources_from_tool_results,
     research_entitled,
 )
-from app.scheduler import (
-    _BRIEFING_SYSTEM_PROMPT,
-    _EVENING_BRIEFING_SYSTEM_PROMPT,
-    run_scheduler,
+from app.briefing import (
+    BriefingCalendarItem,
+    BriefingContext,
+    BriefingInvalidResponseError,
+    BriefingReminderItem,
+    BriefingRequest,
+    BriefingSections,
+    BriefingUnavailableError,
+    OllamaResponse,
+    generate_briefing_sections,
+    privacy_receipt_used_fields,
 )
+from app.tank_health import dependency_status, ready_from_checks
+from app.scheduler import run_scheduler
 
 
 class ChatMessage(BaseModel):
@@ -71,52 +80,6 @@ class ChatResponse(BaseModel):
     message: str
     route: str
     privacy_receipt: PrivacyReceipt
-
-
-class OllamaMessage(BaseModel):
-    content: str
-
-
-class OllamaResponse(BaseModel):
-    message: OllamaMessage
-
-
-class BriefingContext(str, Enum):
-    personal = "personal"
-    business = "business"
-    shared = "shared"
-
-
-class BriefingCalendarItem(BaseModel):
-    title: str = Field(min_length=1, max_length=500)
-    start: str = Field(min_length=1, max_length=50)
-    end: str | None = Field(default=None, max_length=50)
-    location: str | None = Field(default=None, max_length=300)
-    context: BriefingContext
-
-
-class BriefingReminderItem(BaseModel):
-    title: str = Field(min_length=1, max_length=500)
-    due: str | None = Field(default=None, max_length=50)
-    context: BriefingContext
-
-
-class BriefingRequest(BaseModel):
-    date: date
-    kind: Literal["morning", "evening"] = "morning"
-    calendar: list[BriefingCalendarItem] = Field(max_length=100)
-    reminders: list[BriefingReminderItem] = Field(max_length=100)
-    tomorrow_calendar: list[BriefingCalendarItem] = Field(default_factory=list, max_length=100)
-    tomorrow_reminders: list[BriefingReminderItem] = Field(default_factory=list, max_length=100)
-
-
-class BriefingSections(BaseModel):
-    topline: str = Field(min_length=1, max_length=600)
-    priorities: list[str] = Field(default_factory=list, max_length=5)
-    conflicts_or_risks: list[str] = Field(default_factory=list, max_length=8)
-    recommended_plan: list[str] = Field(default_factory=list, max_length=10)
-    one_useful_question: str | None = Field(default=None, max_length=300)
-    suggested_next_actions: list[str] = Field(default_factory=list, max_length=6)
 
 
 class BriefingResponse(BriefingSections):
@@ -224,13 +187,27 @@ class AppleAuthResponse(BaseModel):
     device_token: str
 
 
+class PairRequest(BaseModel):
+    code: str = Field(min_length=8, max_length=128)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
+    store: AgentStore = app.state.agent_store
+    try:
+        store.recover_stale_state(
+            approval_minutes=settings.stale_approval_minutes,
+            run_timeout_seconds=settings.ollama_timeout_seconds * settings.agent_max_steps,
+        )
+    except sqlite3.Error as error:
+        logging.getLogger(__name__).warning(
+            "Could not recover stale Tank state on startup: %s", error
+        )
     task = asyncio.create_task(
         run_scheduler(
             settings,
-            app.state.agent_store,
+            store,
             app.state.agent_tools,
             getattr(app.state, "ollama_transport", None),
         )
@@ -327,8 +304,23 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         tags=["operations"],
         dependencies=[Depends(require_device_token)],
     )
-    async def ready() -> dict[str, str]:
-        return {"status": "ready"}
+    async def ready() -> dict[str, Any]:
+        checks = await dependency_status(
+            settings,
+            app.state.agent_store,
+            getattr(app.state, "ollama_transport", None),
+        )
+        ok, message = ready_from_checks(checks)
+        if not ok:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail={
+                    "status": "not_ready",
+                    "message": message,
+                    "checks": checks,
+                },
+            )
+        return {"status": "ready", "checks": checks}
 
     @app.post(
         "/auth/apple",
@@ -365,6 +357,27 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return AppleAuthResponse(device_token=token)
 
     @app.post(
+        "/auth/pair",
+        response_model=AppleAuthResponse,
+        tags=["auth"],
+        summary="Exchange a dashboard pairing code for the device token",
+    )
+    async def auth_pair(request: PairRequest) -> AppleAuthResponse:
+        store: AgentStore = app.state.agent_store
+        if not store.consume_pairing_code(request.code):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid or expired pairing code",
+            )
+        token = resolve_device_token(store)
+        if not token:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Tank device authentication is not configured",
+            )
+        return AppleAuthResponse(device_token=token)
+
+    @app.post(
         "/chat",
         response_model=ChatResponse,
         tags=["assistant"],
@@ -395,8 +408,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 correction = extract_correction(last_user_message)
                 if correction:
                     matches = find_matching_memories(store.list_memories(), correction)
-                    if not matches and request.messages:
-                        matches = store.list_memories()[:1]
                     if matches:
                         updated = store.update_memory(
                             matches[0]["id"],
@@ -494,59 +505,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         dependencies=[Depends(require_device_token)],
     )
     async def create_briefing(request: BriefingRequest) -> BriefingResponse:
-        source = request.model_dump(mode="json")
-        system_prompt = (
-            _EVENING_BRIEFING_SYSTEM_PROMPT
-            if request.kind == "evening"
-            else _BRIEFING_SYSTEM_PROMPT
-        )
-        payload = {
-            "model": settings.ollama_model,
-            "stream": False,
-            "think": False,
-            "format": "json",
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": json.dumps(source)},
-            ],
-        }
         try:
-            async with httpx.AsyncClient(
-                timeout=settings.ollama_timeout_seconds,
+            sections = await generate_briefing_sections(
+                settings,
+                request,
                 transport=getattr(app.state, "ollama_transport", None),
-            ) as client:
-                response = await client.post(f"{settings.ollama_base_url}/api/chat", json=payload)
-                response.raise_for_status()
-        except (httpx.TimeoutException, httpx.ConnectError) as error:
-            raise HTTPException(status_code=503, detail="Tank model is unavailable") from error
-        except httpx.HTTPStatusError as error:
-            raise HTTPException(status_code=502, detail="Tank model returned an error") from error
-
-        try:
-            model_content = OllamaResponse.model_validate_json(response.content).message.content
-            sections = BriefingSections.model_validate_json(model_content)
-        except ValueError as error:
-            raise HTTPException(
-                status_code=502,
-                detail="Tank model returned an invalid briefing",
-            ) from error
-
-        sections = (
-            _merge_evening_briefing_with_heuristics(request, sections)
-            if request.kind == "evening"
-            else _merge_briefing_with_heuristics(request, sections)
-        )
-        used_fields = [
-            f"{len(request.calendar)} calendar items",
-            f"{len(request.reminders)} reminder items",
-        ]
-        if request.kind == "evening":
-            used_fields.extend(
-                [
-                    f"{len(request.tomorrow_calendar)} tomorrow calendar items",
-                    f"{len(request.tomorrow_reminders)} tomorrow reminder items",
-                ]
             )
+        except BriefingUnavailableError as error:
+            raise HTTPException(status_code=503, detail=str(error)) from error
+        except BriefingInvalidResponseError as error:
+            raise HTTPException(status_code=502, detail=str(error)) from error
+
         result = BriefingResponse(
             date=request.date,
             kind=request.kind,
@@ -559,7 +528,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             generated_at=datetime.now(UTC),
             route="Tank",
             privacy_receipt=PrivacyReceipt(
-                used=used_fields,
+                used=privacy_receipt_used_fields(request),
                 processed="Tank on your private network",
                 shared=[],
                 changed=[],
@@ -906,6 +875,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail="Tank agent model is unavailable",
             ) from error
+        except (httpx.HTTPError, ValueError, TypeError, OSError) as error:
+            store.update_research_job(
+                job["id"],
+                status="failed",
+                summary="Research job failed before completion.",
+            )
+            raise HTTPException(
+                status_code=status.HTTP_502_BAD_GATEWAY,
+                detail="Research job failed",
+            ) from error
 
         sources = extract_sources_from_tool_results(response.tool_results)
         job_status = (
@@ -923,355 +902,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return ResearchJobView.model_validate(updated)
 
     return app
-
-
-def _time_to_minutes(value: str | None) -> int | None:
-    if not value:
-        return None
-    try:
-        hour, minute = value.strip().split(":", 1)
-        parsed_hour = int(hour)
-        parsed_minute = int(minute)
-    except (ValueError, AttributeError):
-        return None
-    if parsed_hour < 0 or parsed_hour > 23 or parsed_minute < 0 or parsed_minute > 59:
-        return None
-    return parsed_hour * 60 + parsed_minute
-
-
-def _is_important_title(title: str) -> bool:
-    normalized = title.lower()
-    important_keywords = (
-        "deadline",
-        "interview",
-        "presentation",
-        "board",
-        "review",
-        "flight",
-        "doctor",
-        "exam",
-        "launch",
-    )
-    return any(keyword in normalized for keyword in important_keywords)
-
-
-def _context_prefix(context: BriefingContext) -> str:
-    if context == BriefingContext.business:
-        return "Business"
-    if context == BriefingContext.shared:
-        return "Shared"
-    return "Personal"
-
-
-def _dedupe(values: list[str]) -> list[str]:
-    seen: set[str] = set()
-    result: list[str] = []
-    for value in values:
-        trimmed = value.strip()
-        if not trimmed:
-            continue
-        key = trimmed.casefold()
-        if key in seen:
-            continue
-        seen.add(key)
-        result.append(trimmed)
-    return result
-
-
-def _detect_briefing_risks(request: BriefingRequest) -> tuple[list[str], bool]:
-    risks: list[str] = []
-    overload = False
-    events = sorted(
-        request.calendar,
-        key=lambda item: (_time_to_minutes(item.start) is None, _time_to_minutes(item.start) or 0),
-    )
-    if len(events) >= 7:
-        overload = True
-        risks.append(f"Your day has {len(events)} events, which is likely overload without active pruning.")
-
-    back_to_back = 0
-    overlaps = 0
-    important_tight = 0
-    morning_count = 0
-    for index, event in enumerate(events):
-        start_minutes = _time_to_minutes(event.start)
-        if start_minutes is not None and start_minutes < (12 * 60):
-            morning_count += 1
-        if index >= len(events) - 1:
-            continue
-        current_end = _time_to_minutes(event.end) or start_minutes
-        next_start = _time_to_minutes(events[index + 1].start)
-        if current_end is None or next_start is None:
-            continue
-        gap = next_start - current_end
-        if gap < 0:
-            overlaps += 1
-        elif gap <= 10:
-            back_to_back += 1
-        if (
-            _is_important_title(event.title)
-            and _is_important_title(events[index + 1].title)
-            and gap <= 60
-        ):
-            important_tight += 1
-
-    if overlaps > 0:
-        overload = True
-        risks.append(f"{overlaps} schedule overlap(s) need a clear attendance choice.")
-    if back_to_back >= 2:
-        overload = True
-        risks.append(
-            f"{back_to_back} tight transition(s) under 10 minutes increase prep or travel risk."
-        )
-    if important_tight > 0:
-        overload = True
-        risks.append(
-            "Important events are clustered too tightly; prep quality is at risk."
-        )
-    if morning_count >= 4:
-        overload = True
-        risks.append(
-            "Morning load is heavy with four or more events before noon."
-        )
-    if request.reminders and sum(1 for reminder in request.reminders if reminder.context == BriefingContext.business) >= 3:
-        risks.append("Several business reminders are pending; prep work may be under-scoped.")
-
-    return _dedupe(risks), overload
-
-
-def _fallback_topline(
-    request: BriefingRequest, overload: bool, risk_count: int
-) -> str:
-    if not request.calendar and not request.reminders:
-        return "This is a light day with room to protect deep work and recovery."
-    if overload:
-        return "This is a high-load day; trimming and sequencing early will keep it realistic."
-    if risk_count > 0:
-        return "This day is manageable, but a few timing risks need attention."
-    return "This is a steady day with enough space to execute your top priorities."
-
-
-def _fallback_priorities(request: BriefingRequest) -> list[str]:
-    ranked_events = sorted(
-        request.calendar,
-        key=lambda item: (
-            not _is_important_title(item.title),
-            _time_to_minutes(item.start) or 24 * 60,
-        ),
-    )
-    priorities = [
-        f"{_context_prefix(event.context)} · {event.title} ({event.start})"
-        for event in ranked_events[:4]
-    ]
-    if len(priorities) < 3:
-        priorities.extend(
-            f"{_context_prefix(reminder.context)} · {reminder.title}"
-            for reminder in request.reminders[: 5 - len(priorities)]
-        )
-    if not priorities:
-        priorities.append("Protect one focused block for your highest-impact work.")
-    return _dedupe(priorities)[:5]
-
-
-def _fallback_recommended_plan(request: BriefingRequest) -> list[str]:
-    events = sorted(
-        request.calendar,
-        key=lambda item: (_time_to_minutes(item.start) is None, _time_to_minutes(item.start) or 0),
-    )
-    plan: list[str] = []
-    if events:
-        first = events[0]
-        plan.append(
-            f"Start with prep for {first.title} before {first.start} to avoid reactive context switching."
-        )
-    for event in events[:3]:
-        plan.append(f"Anchor {_context_prefix(event.context).lower()} focus around {event.title} at {event.start}.")
-    if request.reminders:
-        plan.append("Bundle reminder follow-ups into one admin block between meetings.")
-    plan.append("Reassess afternoon priorities after lunch and drop low-impact work.")
-    return _dedupe(plan)[:6]
-
-
-def _fallback_question(request: BriefingRequest, risks: list[str]) -> str | None:
-    events = sorted(
-        request.calendar,
-        key=lambda item: (_time_to_minutes(item.start) is None, _time_to_minutes(item.start) or 0),
-    )
-    for index, event in enumerate(events[:-1]):
-        current_end = _time_to_minutes(event.end)
-        next_start = _time_to_minutes(events[index + 1].start)
-        if current_end is None or next_start is None:
-            continue
-        if next_start < current_end:
-            return (
-                "You have overlapping events. Which one is the must-attend so I can adjust the rest?"
-            )
-    if risks and request.reminders:
-        return "Which reminder is truly critical today so lower-value tasks can be deferred?"
-    return None
-
-
-def _fallback_next_actions(request: BriefingRequest, risks: list[str]) -> list[str]:
-    actions: list[str] = []
-    if request.calendar:
-        first = sorted(
-            request.calendar,
-            key=lambda item: (_time_to_minutes(item.start) is None, _time_to_minutes(item.start) or 0),
-        )[0]
-        actions.append(f"Review prep notes for {first.title} before {first.start}.")
-    if risks:
-        actions.append("Draft a conflict message for any meeting that can be moved or shortened.")
-    if request.reminders:
-        actions.append("Create a single prep reminder block to clear your highest-value tasks.")
-    actions.append("Re-check afternoon priorities after your second major commitment.")
-    return _dedupe(actions)[:4]
-
-
-def _merge_briefing_with_heuristics(
-    request: BriefingRequest, sections: BriefingSections
-) -> BriefingSections:
-    heuristic_risks, overload = _detect_briefing_risks(request)
-    merged_risks = _dedupe([*sections.conflicts_or_risks, *heuristic_risks])[:8]
-    question = sections.one_useful_question.strip() if sections.one_useful_question else None
-    if not question:
-        question = _fallback_question(request, merged_risks)
-    return BriefingSections(
-        topline=sections.topline.strip()
-        or _fallback_topline(request, overload=overload, risk_count=len(merged_risks)),
-        priorities=(
-            _dedupe(sections.priorities)[:5]
-            or _fallback_priorities(request)
-        ),
-        conflicts_or_risks=merged_risks or ["No major schedule risks detected right now."],
-        recommended_plan=(
-            _dedupe(sections.recommended_plan)[:10]
-            or _fallback_recommended_plan(request)
-        ),
-        one_useful_question=question,
-        suggested_next_actions=(
-            _dedupe(sections.suggested_next_actions)[:6]
-            or _fallback_next_actions(request, merged_risks)
-        ),
-    )
-
-
-def _detect_evening_unfinished(request: BriefingRequest) -> list[str]:
-    unfinished: list[str] = []
-    for reminder in request.reminders:
-        unfinished.append(
-            f"{_context_prefix(reminder.context)} · {reminder.title} (still open)"
-        )
-    if request.tomorrow_calendar:
-        first = sorted(
-            request.tomorrow_calendar,
-            key=lambda item: (_time_to_minutes(item.start) is None, _time_to_minutes(item.start) or 0),
-        )[0]
-        unfinished.append(
-            f"Tomorrow starts with {_context_prefix(first.context).lower()} · {first.title} at {first.start}."
-        )
-    return _dedupe(unfinished)[:8]
-
-
-def _evening_accomplishments(request: BriefingRequest) -> list[str]:
-    accomplishments: list[str] = []
-    for event in request.calendar:
-        accomplishments.append(
-            f"{_context_prefix(event.context)} · {event.title} ({event.start})"
-        )
-    if not accomplishments and not request.reminders:
-        accomplishments.append("You protected space for rest and recovery today.")
-    elif not accomplishments:
-        accomplishments.append("You kept commitments moving even without fixed calendar blocks.")
-    return _dedupe(accomplishments)[:5]
-
-
-def _evening_topline(request: BriefingRequest, unfinished_count: int) -> str:
-    event_count = len(request.calendar)
-    if event_count == 0 and unfinished_count == 0:
-        return "A calm day wraps up — tomorrow can stay light unless you choose otherwise."
-    if unfinished_count == 0:
-        return f"You moved through {event_count} commitment{'s' if event_count != 1 else ''} today. Nothing critical is left hanging."
-    if unfinished_count == 1:
-        return "Solid progress today — one item can roll forward without guilt."
-    return (
-        f"You made it through a full day. {unfinished_count} items can carry to tomorrow "
-        "without needing to finish tonight."
-    )
-
-
-def _evening_tomorrow_plan(request: BriefingRequest) -> list[str]:
-    plan: list[str] = []
-    tomorrow_events = sorted(
-        request.tomorrow_calendar,
-        key=lambda item: (_time_to_minutes(item.start) is None, _time_to_minutes(item.start) or 0),
-    )
-    if tomorrow_events:
-        first = tomorrow_events[0]
-        plan.append(f"First up tomorrow: {first.title} at {first.start}.")
-    for event in tomorrow_events[:3]:
-        plan.append(
-            f"Block prep for {_context_prefix(event.context).lower()} · {event.title}."
-        )
-    if request.tomorrow_reminders:
-        plan.append(
-            f"{len(request.tomorrow_reminders)} reminder"
-            f"{'s' if len(request.tomorrow_reminders) != 1 else ''} queued for tomorrow."
-        )
-    if not plan:
-        plan.append("Tomorrow looks open — protect one block for what matters most.")
-    plan.append("Wind down without reopening today's unfinished list unless it helps.")
-    return _dedupe(plan)[:6]
-
-
-def _evening_question(request: BriefingRequest, unfinished: list[str]) -> str | None:
-    if len(unfinished) >= 2:
-        return "Which carry-over item matters most tomorrow so the rest can wait?"
-    if request.tomorrow_calendar and len(request.tomorrow_calendar) >= 4:
-        return "Tomorrow looks packed — want to defer one lower-priority block now?"
-    return None
-
-
-def _evening_next_actions(request: BriefingRequest, unfinished: list[str]) -> list[str]:
-    actions: list[str] = []
-    if unfinished:
-        actions.append("Pick one carry-over item to tackle first tomorrow — the rest can wait.")
-    if request.tomorrow_calendar:
-        first = sorted(
-            request.tomorrow_calendar,
-            key=lambda item: (_time_to_minutes(item.start) is None, _time_to_minutes(item.start) or 0),
-        )[0]
-        actions.append(f"Set a gentle prep reminder for {first.title} before bed.")
-    actions.append("Close the day — unfinished work does not need guilt tonight.")
-    return _dedupe(actions)[:4]
-
-
-def _merge_evening_briefing_with_heuristics(
-    request: BriefingRequest, sections: BriefingSections
-) -> BriefingSections:
-    accomplishments = _evening_accomplishments(request)
-    unfinished = _detect_evening_unfinished(request)
-    merged_priorities = _dedupe([*sections.priorities, *accomplishments])[:5]
-    if not merged_priorities:
-        merged_priorities = accomplishments
-    merged_unfinished = _dedupe([*sections.conflicts_or_risks, *unfinished])[:8]
-    question = sections.one_useful_question.strip() if sections.one_useful_question else None
-    if not question:
-        question = _evening_question(request, merged_unfinished)
-    return BriefingSections(
-        topline=sections.topline.strip()
-        or _evening_topline(request, unfinished_count=len(merged_unfinished)),
-        priorities=merged_priorities or accomplishments,
-        conflicts_or_risks=merged_unfinished or ["Nothing critical needs to carry into tomorrow."],
-        recommended_plan=(
-            _dedupe(sections.recommended_plan)[:10]
-            or _evening_tomorrow_plan(request)
-        ),
-        one_useful_question=question,
-        suggested_next_actions=(
-            _dedupe(sections.suggested_next_actions)[:6]
-            or _evening_next_actions(request, merged_unfinished)
-        ),
-    )
 
 
 app = create_app()
