@@ -1,7 +1,7 @@
 # NOBS Device Hub QA Matrix
 
 **Status:** Active iOS/iPadOS compatibility matrix  
-**Updated:** July 2, 2026  
+**Updated:** July 8, 2026  
 **Xcode:** 27.0 beta (`27A5209h`)  
 **SDK:** iOS/iPadOS Simulator 27.0
 
@@ -13,7 +13,7 @@ Device Hub centralizes simulated and physical Apple destinations. Repeatable che
 |---|---|---|
 | iPhone | Supported prototype | Primary launch surface |
 | iPad | Supported universal prototype | Uses a centered, readable chat column |
-| Physical iPhone/iPad | Pending signed-device validation | Requires an Apple development team and connected hardware |
+| Physical iPhone/iPad | Validation framework ready | Requires an Apple development team and connected hardware; see [Physical device E2E](#physical-device-e2e-validation) and [`PHYSICAL_DEVICE_QA.md`](PHYSICAL_DEVICE_QA.md) |
 | macOS | Future product target | Not certified by the current iOS target |
 | visionOS | Future product target | Requires a separate spatial interaction design and target |
 | watchOS | Future product target | Requires focused glanceable workflows and a separate target |
@@ -56,12 +56,52 @@ DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer \
 
 Replace the destination with each Device Hub simulator name to repeat the matrix. Use a unique derived-data directory when builds run concurrently.
 
+## Physical device E2E validation
+
+Simulator builds prove compilation and basic UI. A physical iPhone is required to prove Keychain persistence, LAN pairing, widget timelines on a real Home Screen, Siri, and notification delivery.
+
+**Prerequisites**
+
+| Item | Notes |
+|---|---|
+| Apple development team | Device must be registered in Xcode; app signed for debug or TestFlight |
+| Tank on LAN | `nobs-api` running; iPhone and Tank on the same network |
+| Pairing surface | Tank dashboard QR at `http://<tank-host>:8000/dashboard`, or `python3 scripts/pairing.py` in the repo root |
+| iOS app path | Privacy → **Scan QR** (or open `nobs://pair?url=…&token=…` from QR) |
+
+**Structured checklist** (record pass/fail in [`PHYSICAL_DEVICE_QA.md`](PHYSICAL_DEVICE_QA.md)):
+
+| # | Area | What to verify |
+|---|---|---|
+| 1 | **Pairing — dashboard QR** | Scan QR on Tank dashboard; app shows connected Tank URL; `/ready` succeeds |
+| 2 | **Pairing — `scripts/pairing.py`** | Terminal QR pairs the same device; token stored in Keychain survives app kill |
+| 3 | **Pairing — manual URL** | Privacy → Tank address + token entry works when QR is unavailable |
+| 4 | **Chat** | Send message; Tank route badge and privacy receipt visible; reply returns from Tank |
+| 5 | **Briefing refinement** | Today → generate briefing; on-device first, Tank refinement when connected; snapshot written |
+| 6 | **Approve / deny** | Activity → pending approval; Approve and Deny both update queue and show receipt |
+| 7 | **Calendar sync** | Grant calendar access; events appear on Today; `/sync/calendar` succeeds (check Tank logs or dashboard activity) |
+| 8 | **Reminders sync** | Grant reminders access; briefing includes reminders when permitted; `/sync/reminders` succeeds |
+| 9 | **Widget snapshot** | After briefing, Home Screen widget shows topline from `widget-snapshot.json` without launching app |
+| 10 | **App restart reconnect** | Force-quit app; relaunch on same network — saved Tank URL and token reconnect without re-pairing |
+| 11 | **Offline honesty** | Disable Wi‑Fi or stop Tank; chat shows Local route and honest fallback (no silent failure) |
+| 12 | **Reconnect** | Restore network/Tank; status returns to connected without manual re-pair |
+
+**Automation boundary**
+
+| Can automate (simulator / CI) | Requires physical hardware |
+|---|---|
+| `xcodebuild build` per destination | Keychain token persistence across reinstall |
+| Future `NOBSTests` unit tests (TankClient decode, snapshot writer) | QR scan and `nobs://pair` deep link |
+| Future UI test: onboarding → Today smoke | Real Home Screen / Lock Screen widget refresh |
+| Backend `python3 scripts/dev.py check` | Siri phrases and notification actions |
+| Dashboard pairing URL generation (API test) | LAN discovery when `tank.local` does not resolve |
+
 ## Release blockers
 
 The prototype is not yet “works on any device” and must not be described that way externally. Before a public beta:
 
 - [ ] Run the approve, reject, undo, and privacy-receipt paths through an automated UI test.
-- [ ] Validate on at least one physical iPhone.
+- [ ] Complete physical iPhone checklist in [`PHYSICAL_DEVICE_QA.md`](PHYSICAL_DEVICE_QA.md) on at least one device.
 - [ ] Validate on a physical iPad if iPad is included in the first beta.
 - [ ] Test light and dark appearance.
 - [ ] Test standard and accessibility Dynamic Type sizes.

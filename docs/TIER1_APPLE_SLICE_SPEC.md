@@ -1,7 +1,8 @@
 # Tier 1 Apple slice — implementation spec
 
-**Status:** Ready to implement  
+**Status:** Shipped (July 2026)  
 **Captured:** July 6, 2026  
+**Shipped:** July 8, 2026 — all five features implemented; physical device sign-off tracked in [`PHYSICAL_DEVICE_QA.md`](PHYSICAL_DEVICE_QA.md)  
 **Source:** [`APPLE_PLATFORM_BRAINSTORM.md`](APPLE_PLATFORM_BRAINSTORM.md) Tier 1  
 **Product anchors:** [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md) §§5–6, 19  
 **Depends on:** Morning Briefing v2 (shipped), physical iPhone QA path in [`CURRENT_STATE.md`](CURRENT_STATE.md)
@@ -27,7 +28,7 @@ All five features read from the same on-device preference and briefing state.
 
 ### 1. `UserProfile` (local, JSON in App Group + Keychain for device token only)
 
-Store in App Group `group.com.nobs.app` as `user-profile.json`. Codable, versioned.
+Store in App Group `group.com.nobsdash.nobs` as `user-profile.json`. Codable, versioned.
 
 ```swift
 struct UserProfile: Codable {
@@ -74,7 +75,7 @@ struct AccessibilityPreferences: Codable {
 | `NOBSWidgets` | `com.nobs.app.widgets` | Home Screen + Lock Screen widgets |
 | `NOBSIntents` | (same as app) | App Intents live in main target |
 
-- Enable App Group `group.com.nobs.app` on both targets.  
+- Enable App Group `group.com.nobsdash.nobs` on both targets (see `NOBS/Services/AppGroupStore.swift`).  
 - Share: `user-profile.json`, `latest-briefing.json`, `widget-snapshot.json` (redacted public fields only).
 
 ### 3. `BriefingSnapshot` (widget-safe)
@@ -465,16 +466,15 @@ No new routes required. Existing `python3 scripts/dev.py check` must stay green.
 
 ## Documentation updates on ship
 
-- [`CURRENT_STATE.md`](CURRENT_STATE.md) — add Tier 1 capabilities under Working now  
-- [`APPLE_PLATFORM_BRAINSTORM.md`](APPLE_PLATFORM_BRAINSTORM.md) — mark Tier 1 items implemented  
-- [`ISSUE_BACKLOG.md`](ISSUE_BACKLOG.md) — close or link related onboarding/Siri/widget issues  
+- [x] [`CURRENT_STATE.md`](CURRENT_STATE.md) — Tier 1 capabilities under Working now  
+- [ ] [`APPLE_PLATFORM_BRAINSTORM.md`](APPLE_PLATFORM_BRAINSTORM.md) — mark Tier 1 items implemented  
+- [ ] [`ISSUE_BACKLOG.md`](ISSUE_BACKLOG.md) — close or link related onboarding/Siri/widget issues  
+- [x] [`PHYSICAL_DEVICE_QA.md`](PHYSICAL_DEVICE_QA.md) — physical validation template (Tier 1.1)
 
 ---
 
-## Open questions (resolve before PR A merges)
+## Resolved decisions (at ship)
 
-1. **Bundle ID prefix** — confirm `com.nobs.app` or match existing Xcode setting.  
-2. **Sign in with Apple during onboarding** — keep optional after chat, or required before Tank pairing?  
-3. **Lock Screen detail opt-in** — default redacted; offer chat toggle "Show event names on Lock Screen widget"?  
-
-Default recommendations: use existing bundle root; keep Sign in optional; default redacted.
+1. **App Group ID** — `group.com.nobsdash.nobs` (entitlements + `AppGroupStore.swift`).  
+2. **Sign in with Apple** — optional after conversational onboarding; Tank pairing via QR or manual token.  
+3. **Lock Screen detail** — default redacted (`redactDetailsOnLockScreen == true`).
