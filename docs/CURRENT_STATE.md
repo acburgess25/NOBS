@@ -42,6 +42,7 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 - Today shows a local evening wrap-up after 5pm from calendar, reminders, and briefing context.
 - Shared `NOBSTheme` modifiers (`nobsScreenBackground`, `nobsSectionCard`, `NOBSEmptyState`, `NOBSBetaBadge`) and `Color+NOBS` tokens unify Chat, Today, onboarding, Privacy, Activity, and the briefing widget palette.
 - App Store beta prep: metadata templates in `docs/app-store/`, checklist in `docs/APP_STORE_BETA_CHECKLIST.md`, privacy policy at `website/public/privacy.html`.
+- Smart-home direction documented in `docs/GOOGLE_HOME_INTEGRATION.md` (Home Assistant bridge first; Google Home APIs later).
 
 - iOS 27 simulator build verified with Xcode 27 beta (`scripts/build-ios-simulator.sh` or `CODE_SIGNING_ALLOWED=NO`).
 

@@ -88,6 +88,8 @@ Simulator defaults Tank address to `http://127.0.0.1:8000` when none is saved. W
 | Widget | `NOBSWidgets/BriefingWidget.swift`, `NOBS/Services/BriefingSnapshotWriter.swift` |
 | Design tokens | `NOBS/Color+NOBS.swift`, `NOBS/Views/NOBSTheme.swift`, `design/tokens.json` |
 | App Store prep | `docs/APP_STORE_BETA_CHECKLIST.md`, `docs/app-store/*`, `website/public/privacy.html` |
+| Smart home / Google | `docs/GOOGLE_HOME_INTEGRATION.md`, `app/home_assistant.py`, `app/agent_tools.py` |
+| CI failures | `docs/CI_TROUBLESHOOTING.md` |
 | Tank client | `NOBS/Services/TankClient.swift`, `NOBS/Services/TankConfiguration.swift` |
 | Intents | `NOBS/Intents/NOBSAppIntents.swift` |
 | Shared storage | `NOBS/Services/AppGroupStore.swift` |
