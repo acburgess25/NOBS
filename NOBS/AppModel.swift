@@ -326,6 +326,24 @@ final class AppModel: ObservableObject {
         Calendar.current.component(.hour, from: Date()) >= 17
     }
 
+    var dayRescueState: DayRescueState? {
+        BriefingCoordinator.dayRescueState(
+            from: briefing,
+            eventCount: events.count,
+            clarifyingConflict: clarifyingConflict
+        )
+    }
+
+    func performDayRescueAction(_ action: DayRescueAction) {
+        switch action.kind {
+        case .chatPrompt(let prompt):
+            handleDeepLink(chatPrompt: prompt)
+        case .resolveOverlap:
+            section = .today
+            showConflictSheet = true
+        }
+    }
+
     func generateEveningWrapUp() -> EveningWrapUp {
         let now = Date()
         let formatter = DateFormatter()
@@ -421,6 +439,7 @@ final class AppModel: ObservableObject {
         briefingSnapshotWriter.write(
             from: briefing,
             profile: profile,
+            eventCount: events.count,
             eveningHeadline: eveningHeadline
         )
         if let conflict = briefing?.clarifyingConflict ?? clarifyingConflict {

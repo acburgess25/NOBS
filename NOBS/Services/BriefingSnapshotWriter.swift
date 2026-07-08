@@ -5,6 +5,7 @@ struct BriefingSnapshotWriter {
     func write(
         from briefing: DailyBriefing?,
         profile: UserProfile,
+        eventCount: Int = 0,
         eveningHeadline: String? = nil,
         redactDetailsOnLockScreen: Bool = true
     ) {
@@ -16,6 +17,7 @@ struct BriefingSnapshotWriter {
         let snapshot = BriefingSnapshot(
             briefing: briefing,
             profile: profile,
+            eventCount: eventCount,
             eveningHeadline: eveningHeadline,
             redactDetailsOnLockScreen: redactDetailsOnLockScreen
         )

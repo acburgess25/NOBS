@@ -61,6 +61,9 @@
 		F10000000000000000000006 /* NOBSWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = F20000000000000000000006 /* NOBSWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		F10000000000000000000007 /* Color+NOBS.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000008 /* Color+NOBS.swift */; };
 		B10000000000000000000031 /* NOBSTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000031 /* NOBSTheme.swift */; };
+		B10000000000000000000032 /* DayRescueState.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000032 /* DayRescueState.swift */; };
+		B10000000000000000000033 /* BriefingCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000033 /* BriefingCoordinator.swift */; };
+		B10000000000000000000034 /* DayRescueCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000034 /* DayRescueCard.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -110,6 +113,9 @@
 		B20000000000000000000029 /* StoreKitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreKitService.swift; sourceTree = "<group>"; };
 		B20000000000000000000030 /* SupportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupportView.swift; sourceTree = "<group>"; };
 		B20000000000000000000031 /* NOBSTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NOBSTheme.swift; sourceTree = "<group>"; };
+		B20000000000000000000032 /* DayRescueState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayRescueState.swift; sourceTree = "<group>"; };
+		B20000000000000000000033 /* BriefingCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BriefingCoordinator.swift; sourceTree = "<group>"; };
+		B20000000000000000000034 /* DayRescueCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayRescueCard.swift; sourceTree = "<group>"; };
 		G20000000000000000000001 /* NOBS.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = NOBS.storekit; sourceTree = "<group>"; };
 		E20000000000000000000001 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		F20000000000000000000001 /* NOBSWidgetsBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NOBSWidgetsBundle.swift; sourceTree = "<group>"; };
@@ -236,6 +242,7 @@
 				B20000000000000000000018 /* BriefingSnapshot+Briefing.swift */,
 				B20000000000000000000020 /* ClarifyingConflict.swift */,
 				B20000000000000000000028 /* StoreProducts.swift */,
+				B20000000000000000000032 /* DayRescueState.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -254,6 +261,7 @@
 				B20000000000000000000021 /* NotificationScheduler.swift */,
 				B20000000000000000000022 /* NotificationDelegate.swift */,
 				B20000000000000000000029 /* StoreKitService.swift */,
+				B20000000000000000000033 /* BriefingCoordinator.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -281,6 +289,7 @@
 				B20000000000000000000023 /* ConflictResolutionSheet.swift */,
 				B20000000000000000000030 /* SupportView.swift */,
 				B20000000000000000000031 /* NOBSTheme.swift */,
+				B20000000000000000000034 /* DayRescueCard.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -497,6 +506,9 @@
 				B10000000000000000000029 /* StoreKitService.swift in Sources */,
 				B10000000000000000000030 /* SupportView.swift in Sources */,
 				B10000000000000000000031 /* NOBSTheme.swift in Sources */,
+				B10000000000000000000032 /* DayRescueState.swift in Sources */,
+				B10000000000000000000033 /* BriefingCoordinator.swift in Sources */,
+				B10000000000000000000034 /* DayRescueCard.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

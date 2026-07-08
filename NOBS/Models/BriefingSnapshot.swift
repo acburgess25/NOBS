@@ -56,6 +56,8 @@ struct BriefingSnapshot: Codable, Sendable {
     var topPriority: String?
     var hasConflict: Bool
     var conflictSummary: String?
+    var needsDayRescue: Bool = false
+    var rescueSummary: String?
     var route: String
     var generatedAt: Date
     var redactDetailsOnLockScreen: Bool = true
@@ -84,6 +86,8 @@ struct BriefingSnapshot: Codable, Sendable {
         topPriority: String?,
         hasConflict: Bool,
         conflictSummary: String?,
+        needsDayRescue: Bool = false,
+        rescueSummary: String? = nil,
         route: String,
         generatedAt: Date,
         redactDetailsOnLockScreen: Bool = true,
@@ -97,6 +101,8 @@ struct BriefingSnapshot: Codable, Sendable {
         self.topPriority = topPriority
         self.hasConflict = hasConflict
         self.conflictSummary = conflictSummary
+        self.needsDayRescue = needsDayRescue
+        self.rescueSummary = rescueSummary
         self.route = route
         self.generatedAt = generatedAt
         self.redactDetailsOnLockScreen = redactDetailsOnLockScreen

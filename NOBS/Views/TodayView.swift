@@ -14,6 +14,11 @@ struct TodayView: View {
                 Text("A realistic day, not another list.")
                     .font(.system(size: 30, design: .serif))
                 briefingCard
+                if let rescue = model.dayRescueState {
+                    DayRescueCard(state: rescue) { action in
+                        model.performDayRescueAction(action)
+                    }
+                }
                 switch model.calendarStatus {
                 case .fullAccess, .authorized:
                     if model.isLoadingCalendar {

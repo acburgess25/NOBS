@@ -4,6 +4,7 @@ extension BriefingSnapshot {
     init(
         briefing: DailyBriefing,
         profile: UserProfile,
+        eventCount: Int = 0,
         eveningHeadline: String? = nil,
         redactDetailsOnLockScreen: Bool = true
     ) {
@@ -13,6 +14,11 @@ extension BriefingSnapshot {
         let conflictSummary: String? = hasConflict
             ? briefing.conflictsOrRisks.first
             : nil
+        let rescue = BriefingCoordinator.dayRescueState(
+            from: briefing,
+            eventCount: eventCount,
+            clarifyingConflict: briefing.clarifyingConflict
+        )
         let priorities = Array(briefing.priorities.prefix(responseLength.maxWidgetPriorities))
         self.init(
             date: briefing.date,
@@ -22,6 +28,8 @@ extension BriefingSnapshot {
             topPriority: briefing.priorities.first,
             hasConflict: hasConflict,
             conflictSummary: conflictSummary,
+            needsDayRescue: rescue != nil,
+            rescueSummary: rescue?.explanation,
             route: briefing.route.rawValue,
             generatedAt: Self.parseGeneratedAt(briefing.generatedAt) ?? .now,
             redactDetailsOnLockScreen: redactDetailsOnLockScreen,
