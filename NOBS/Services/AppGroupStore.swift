@@ -5,8 +5,11 @@ enum AppGroupStore {
 
     static let userProfileFile = "user-profile.json"
     static let briefingSnapshotFile = "widget-snapshot.json"
+    static let eveningBriefingSnapshotFile = "widget-evening-snapshot.json"
     static let latestBriefingFile = "latest-briefing.json"
+    static let latestEveningBriefingFile = "latest-evening-briefing.json"
     static let clarifyingConflictFile = "clarifying-conflict.json"
+    static let offlineChatQueueFile = "offline-chat-queue.json"
     static let briefingWidgetKind = "NOBSBriefingWidget"
 
     static var containerURL: URL {

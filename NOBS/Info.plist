@@ -25,12 +25,16 @@
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>CFBundleURLName</key>
-			<string>com.nobsdash.nobs</string>
+			<string>com.acburgess25.NOBS</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>nobs</string>
 			</array>
 		</dict>
+	</array>
+	<key>NSBonjourServices</key>
+	<array>
+		<string>_nobs._tcp</string>
 	</array>
 </dict>
 </plist>

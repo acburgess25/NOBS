@@ -51,3 +51,24 @@ jobs:
 
       - name: Test and lint
         run: /opt/homebrew/bin/python3.13 scripts/dev.py check
+
+  ios-macos:
+    name: NOBSTests on Mac runner
+    runs-on: [self-hosted, macOS, ARM64]
+    env:
+      DEVELOPER_DIR: /Applications/Xcode-beta.app/Contents/Developer
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run NOBSTests
+        run: |
+          set -euo pipefail
+          xcodebuild -resolvePackageDependencies -project NOBS.xcodeproj
+          xcodebuild test \
+            -project NOBS.xcodeproj \
+            -scheme NOBS \
+            -destination 'platform=iOS Simulator,name=iPhone 17 Pro,arch=arm64' \
+            -only-testing:NOBSTests \
+            ONLY_ACTIVE_ARCH=YES \
+            CODE_SIGNING_ALLOWED=NO
