@@ -251,6 +251,18 @@ final class AppModel: ObservableObject {
         }
         if let token = components.queryItems?.first(where: { $0.name == "token" })?.value {
             tankToken = token
+        } else if let code = components.queryItems?.first(where: { $0.name == "code" })?.value {
+            Task { await exchangePairingCode(code) }
+        }
+    }
+
+    func exchangePairingCode(_ code: String) async {
+        do {
+            let response = try await tank.exchangePairingCode(code)
+            tankToken = response.deviceToken
+            await refreshTankStatus()
+        } catch {
+            lastError = "Could not complete Tank pairing. Try again from Privacy."
         }
     }
 

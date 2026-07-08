@@ -154,6 +154,18 @@ actor TankClient {
         return try await fetch(AppleAuthResponse.self, for: request)
     }
 
+    func exchangePairingCode(_ code: String) async throws -> AppleAuthResponse {
+        guard let baseURL = TankConfiguration.currentURL else {
+            throw URLError(.userAuthenticationRequired)
+        }
+        var request = URLRequest(url: baseURL.appending(path: "auth/pair"))
+        request.httpMethod = "POST"
+        request.timeoutInterval = 10
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONEncoder().encode(PairRequest(code: code))
+        return try await fetch(AppleAuthResponse.self, for: request)
+    }
+
     private func authorizedRequest(path: String, method: String) throws -> URLRequest {
         guard let baseURL = TankConfiguration.currentURL,
               let token = TankConfiguration.currentToken,
@@ -244,6 +256,10 @@ struct AppleAuthRequest: Codable {
         case userIdentifier = "user_identifier"
         case identityToken = "identity_token"
     }
+}
+
+struct PairRequest: Codable {
+    let code: String
 }
 
 struct AppleAuthResponse: Codable {
