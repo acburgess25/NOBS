@@ -389,6 +389,8 @@ Do not connect messages, health, location, or high-risk home controls until the 
 | [`NOBS_Apple_Integration_Map.md`](NOBS_Apple_Integration_Map.md) | Phased framework delivery plan |
 | [`WWDC26_IMPACT.md`](WWDC26_IMPACT.md) | Siri AI, Foundation Models, and architectural order |
 | [`BRIEFING_SLICE_SPEC.md`](BRIEFING_SLICE_SPEC.md) | Morning briefing implementation detail |
+| [`FEATURE_BRAINSTORM.md`](FEATURE_BRAINSTORM.md) | Broader feature brainstorm and next-five portfolio |
+| [`VERTICAL_SLICES.md`](VERTICAL_SLICES.md) | Next two vertical slice specs (unified briefing + Day Rescue) |
 | This file | Ranked opportunity backlog for user value and personalization |
 
 ---
