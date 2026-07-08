@@ -1,6 +1,6 @@
 # iOS session handoff
 
-**Last updated:** July 7, 2026  
+**Last updated:** July 8, 2026  
 **Purpose:** Fast context for any agent or contributor picking up NOBS iPhone work mid-stream.
 
 Read first: [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md) (product truth), [`CURRENT_STATE.md`](CURRENT_STATE.md) (Apple app section), and [`APP_STORE_BETA_CHECKLIST.md`](APP_STORE_BETA_CHECKLIST.md) (TestFlight / review prep).

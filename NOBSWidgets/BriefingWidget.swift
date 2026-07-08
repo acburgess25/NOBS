@@ -101,8 +101,8 @@ struct BriefingWidgetView: View {
                     .minimumScaleFactor(0.85)
             } else {
                 Text(snapshot.topline)
-                    .font(.subheadline)
-                .foregroundStyle(Color.nobsInk)
+                    .font(snapshot.responseLength == .brief ? .caption.weight(.medium) : .subheadline)
+                    .foregroundStyle(Color.nobsInk)
                     .lineLimit(snapshot.responseLength.toplineLineLimit)
                     .minimumScaleFactor(0.85)
             }
