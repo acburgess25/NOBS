@@ -79,7 +79,7 @@ async def build_dashboard_status(
     agent_for_frontend["pending_approvals"] = frontend_pending
 
     gpu_status = _gpu_status()
-    pairing = _pairing_payload(device_token)
+    pairing = _pairing_payload(store, settings, device_token)
     return {
         "generated_at": datetime.now(UTC).isoformat(),
         "display_name": settings.dashboard_name,
@@ -97,13 +97,18 @@ async def build_dashboard_status(
     }
 
 
-def _pairing_payload(device_token: str | None) -> dict[str, str] | None:
+def _pairing_payload(
+    store: AgentStore,
+    settings: Settings,
+    device_token: str | None,
+) -> dict[str, str] | None:
     if not device_token:
         return None
     ip = local_lan_ip()
+    code = store.create_pairing_code(settings.pairing_code_ttl_seconds)
     return {
         "url": f"http://{ip}:8000",
-        "token": device_token,
+        "code": code,
     }
 
 

@@ -214,6 +214,10 @@ class TestReadUrl:
         with pytest.raises(ValueError, match="HTTP"):
             _registry().execute("read_url", {"url": "file:///etc/passwd"})
 
+    def test_private_network_url_raises(self) -> None:
+        with pytest.raises(ValueError, match="not allowed"):
+            _registry().execute("read_url", {"url": "http://127.0.0.1/internal"})
+
     def test_fetch_returns_none_gives_error(self) -> None:
         with patch("app.agent_tools.trafilatura.fetch_url", return_value=None):
             result = _registry().execute("read_url", {"url": "https://example.com"})

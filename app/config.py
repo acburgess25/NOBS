@@ -15,8 +15,12 @@ class Settings(BaseSettings):
     )
 
     environment: str = "development"
-    database_url: str = "sqlite:///./nobs.db"
     version: str = "0.1.0"
+    timezone: str = Field(
+        default="America/Chicago",
+        description="IANA timezone for briefing schedules and scheduler matching",
+    )
+    stale_approval_minutes: int = Field(default=15, ge=1, le=1440)
     ollama_base_url: str = "http://127.0.0.1:11434"
     ollama_model: str = "qwen3:8b"
     coding_model: str = "qwen2.5-coder:14b"
@@ -40,6 +44,7 @@ class Settings(BaseSettings):
 
     # Web search: max results returned per query (1–10)
     web_search_max_results: int = Field(default=5, ge=1, le=10)
+    pairing_code_ttl_seconds: int = Field(default=900, ge=60, le=3600)
 
 
 @lru_cache

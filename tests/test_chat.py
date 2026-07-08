@@ -56,8 +56,14 @@ def test_chat_rejects_missing_device_token() -> None:
 
 
 def test_ready_requires_a_valid_device_token() -> None:
-    assert client().get("/ready").status_code == 401
-    assert client().get("/ready", headers=auth()).json() == {"status": "ready"}
+    def ollama_tags(_: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"models": [{"name": "qwen3:8b"}]})
+
+    app_client = client(httpx.MockTransport(ollama_tags))
+    assert app_client.get("/ready").status_code == 401
+    body = app_client.get("/ready", headers=auth()).json()
+    assert body["status"] == "ready"
+    assert body["checks"]["database"] == "ok"
 
 
 def test_chat_rejects_client_system_messages() -> None:

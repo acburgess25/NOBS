@@ -8,7 +8,8 @@ from pathlib import Path
 import platform
 import re
 from typing import Any
-from urllib.parse import urlparse
+
+from app.url_safety import UnsafeURLError, assert_public_http_url
 
 import feedparser
 import httpx
@@ -878,9 +879,10 @@ class ToolRegistry:
         url = str(arguments.get("url", "")).strip()
         if not url:
             raise ValueError("URL is required")
-        parsed = urlparse(url)
-        if parsed.scheme not in {"http", "https"}:
-            raise ValueError("Only HTTP and HTTPS URLs are allowed")
+        try:
+            assert_public_http_url(url)
+        except UnsafeURLError as error:
+            raise ValueError(str(error)) from error
         try:
             downloaded = trafilatura.fetch_url(url)
             if downloaded is None:

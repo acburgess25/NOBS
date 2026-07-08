@@ -1,5 +1,6 @@
 import httpx
 from fastapi.testclient import TestClient
+from pathlib import Path
 import subprocess  # Import subprocess module
 
 from app.config import Settings
@@ -57,16 +58,22 @@ def test_dashboard_status_is_room_safe(tmp_path) -> None:
     assert pairing is not None
     assert pairing["url"].startswith("http://")
     assert pairing["url"].endswith(":8000")
-    assert pairing["token"] == "pairing-test-token"
+    assert pairing["code"]
+    assert "token" not in pairing
 
 
-def test_dashboard_status_includes_gpu_when_available(monkeypatch) -> None:
+def test_dashboard_status_includes_gpu_when_available(monkeypatch, tmp_path: Path) -> None:
     def mock_subprocess_run(*args, **kwargs):
         return subprocess.CompletedProcess(args=args, returncode=0, stdout="37, 4096, 12288, 51\n")
 
     monkeypatch.setattr(subprocess, "run", mock_subprocess_run)
 
-    app = create_app(Settings())
+    app = create_app(
+        Settings(
+            agent_database_path=tmp_path / "agent.db",
+            agent_workspace_path=tmp_path / "workspace",
+        )
+    )
     response = TestClient(app).get("/dashboard/status")
 
     assert response.status_code == 200
@@ -79,13 +86,18 @@ def test_dashboard_status_includes_gpu_when_available(monkeypatch) -> None:
     assert gpu_status["temperature_c"] == 51
 
 
-def test_dashboard_status_gpu_none_when_unavailable(monkeypatch) -> None:
+def test_dashboard_status_gpu_none_when_unavailable(monkeypatch, tmp_path: Path) -> None:
     def mock_subprocess_run(*args, **kwargs):
         raise FileNotFoundError
 
     monkeypatch.setattr(subprocess, "run", mock_subprocess_run)
 
-    app = create_app(Settings())
+    app = create_app(
+        Settings(
+            agent_database_path=tmp_path / "agent.db",
+            agent_workspace_path=tmp_path / "workspace",
+        )
+    )
     response = TestClient(app).get("/dashboard/status")
 
     assert response.status_code == 200

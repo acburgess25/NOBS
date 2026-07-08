@@ -3,12 +3,15 @@ root.dataset.theme = "dark"; // Force premium dark mode
 
 function renderPairingQR(pairing) {
   const container = document.getElementById("qrcode");
-  if (!container || !pairing?.url || !pairing?.token) return;
+  if (!container || !pairing?.url) return;
+  if (!pairing.code && !pairing.token) return;
 
-  const params = new URLSearchParams({
-    url: pairing.url,
-    token: pairing.token,
-  });
+  const params = new URLSearchParams({ url: pairing.url });
+  if (pairing.code) {
+    params.set("code", pairing.code);
+  } else if (pairing.token) {
+    params.set("token", pairing.token);
+  }
   const pairingUri = `nobs://pair?${params.toString()}`;
 
   container.replaceChildren();

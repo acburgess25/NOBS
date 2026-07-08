@@ -96,6 +96,13 @@ class TankAgent:
             request.context,
             request.triggered_by,
         )
+        try:
+            return await self._run_loop(run_id, request)
+        except (AgentModelError, httpx.HTTPError, ValueError, TypeError, OSError):
+            self.store.update_run(run_id, "failed")
+            raise
+
+    async def _run_loop(self, run_id: str, request: AgentTaskRequest) -> AgentTaskResponse:
         messages: list[dict[str, Any]] = [
             {
                 "role": "system",

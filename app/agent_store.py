@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 import json
 from pathlib import Path
+import secrets
 import sqlite3
 from threading import Lock
 from typing import Any
@@ -20,6 +21,7 @@ class AgentStore:
         self.database_path = database_path
         self._connection: sqlite3.Connection | None = None
         self._lock = Lock()
+        self._stale_recovery_done = False
 
     def _connect(self) -> sqlite3.Connection:
         if self._connection is None:
@@ -121,6 +123,78 @@ class AgentStore:
             )
             self._migrate(self._connection)
         return self._connection
+
+    def recover_stale_state(
+        self,
+        *,
+        approval_minutes: int = 15,
+        run_timeout_seconds: float = 180.0,
+    ) -> dict[str, int]:
+        """Reset interrupted approvals and agent runs after a crash or restart."""
+        connection = self._connect()
+        if getattr(self, "_stale_recovery_done", False):
+            return {"approvals_reset": 0, "runs_failed": 0}
+        approval_cutoff = (datetime.now(UTC) - timedelta(minutes=approval_minutes)).isoformat()
+        run_cutoff = (datetime.now(UTC) - timedelta(seconds=run_timeout_seconds)).isoformat()
+        recovered_result = json.dumps({"error": "Recovered after Tank restart"})
+        with self._lock:
+            approval_cursor = connection.execute(
+                """
+                UPDATE approvals
+                SET status = 'pending', decided_at = NULL, result_json = ?
+                WHERE status = 'executing' AND created_at < ?
+                """,
+                (recovered_result, approval_cutoff),
+            )
+            run_cursor = connection.execute(
+                """
+                UPDATE agent_runs
+                SET status = 'failed', updated_at = ?
+                WHERE status = 'running' AND created_at < ?
+                """,
+                (_now(), run_cutoff),
+            )
+            research_cursor = connection.execute(
+                """
+                UPDATE research_jobs
+                SET status = 'failed', completed_at = ?, summary = 'Interrupted during Tank restart'
+                WHERE status = 'running' AND created_at < ?
+                """,
+                (_now(), run_cutoff),
+            )
+            connection.commit()
+        self._stale_recovery_done = True
+        return {
+            "approvals_reset": approval_cursor.rowcount,
+            "runs_failed": run_cursor.rowcount,
+            "research_failed": research_cursor.rowcount,
+        }
+
+    def create_pairing_code(self, ttl_seconds: int) -> str:
+        """Create a short-lived pairing code for dashboard QR (one-time use)."""
+        code = secrets.token_urlsafe(9)
+        expires_at = (datetime.now(UTC) + timedelta(seconds=ttl_seconds)).isoformat()
+        self.set_kv(f"pairing_code:{code}", expires_at)
+        return code
+
+    def consume_pairing_code(self, code: str) -> bool:
+        """Return True when the code is valid; delete it after successful use."""
+        key = f"pairing_code:{code.strip()}"
+        raw = self.get_kv(key)
+        if not raw:
+            return False
+        try:
+            expires_at = datetime.fromisoformat(raw)
+        except ValueError:
+            self.delete_kv(key)
+            return False
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=UTC)
+        if datetime.now(UTC) >= expires_at:
+            self.delete_kv(key)
+            return False
+        self.delete_kv(key)
+        return True
 
     def _migrate(self, connection: sqlite3.Connection) -> None:
         try:
@@ -612,6 +686,12 @@ class AgentStore:
                 "INSERT OR REPLACE INTO kv (key, value) VALUES (?, ?)",
                 (key, value),
             )
+            connection.commit()
+
+    def delete_kv(self, key: str) -> None:
+        with self._lock:
+            connection = self._connect()
+            connection.execute("DELETE FROM kv WHERE key = ?", (key,))
             connection.commit()
 
     def create_memory(self, content: str, category: str, source: str) -> dict[str, Any]:
