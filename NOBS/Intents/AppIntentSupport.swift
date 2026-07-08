@@ -82,6 +82,8 @@ enum AppIntentSupport {
         switch route {
         case .local:
             "Processed on this iPhone"
+        case .onDeviceAI:
+            "Processed with on-device AI"
         case .tank:
             "Refined on Tank"
         case .cloud:

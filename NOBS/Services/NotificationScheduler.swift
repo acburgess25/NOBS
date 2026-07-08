@@ -4,6 +4,8 @@ import UserNotifications
 enum NotificationScheduler {
     static let clarifyCategoryID = "NOBS_CLARIFY"
     static let clarifyNotificationID = "nobs.clarify.daily"
+    static let eveningCategoryID = "NOBS_EVENING"
+    static let eveningNotificationID = "nobs.evening.wrapup"
     static let actionOpen = "OPEN_NOBS"
     static let actionDismiss = "DISMISS"
     static let actionKeepPrefix = "KEEP_"
@@ -11,6 +13,7 @@ enum NotificationScheduler {
     static let permissionMessage = "NOBS can ask one quick question when your day needs a decision — not a stream of alerts."
 
     private static let lastScheduledDayKey = "nobs.clarify.lastScheduledDay"
+    private static let lastEveningScheduledDayKey = "nobs.evening.lastScheduledDay"
 
     @MainActor
     static func registerCategories() {
@@ -30,7 +33,18 @@ enum NotificationScheduler {
             intentIdentifiers: [],
             options: []
         )
-        UNUserNotificationCenter.current().setNotificationCategories([category])
+        let eveningOpen = UNNotificationAction(
+            identifier: actionOpen,
+            title: "Open wrap-up",
+            options: [.foreground]
+        )
+        let eveningCategory = UNNotificationCategory(
+            identifier: eveningCategoryID,
+            actions: [eveningOpen, dismiss],
+            intentIdentifiers: [],
+            options: []
+        )
+        UNUserNotificationCenter.current().setNotificationCategories([category, eveningCategory])
     }
 
     @MainActor
@@ -121,6 +135,54 @@ enum NotificationScheduler {
         do {
             try await UNUserNotificationCenter.current().add(request)
             UserDefaults.standard.set(today, forKey: lastScheduledDayKey)
+            return true
+        } catch {
+            return false
+        }
+    }
+
+    @MainActor
+    static func cancelEveningWrapUpNotification() async {
+        UNUserNotificationCenter.current().removePendingNotificationRequests(withIdentifiers: [eveningNotificationID])
+        UNUserNotificationCenter.current().removeDeliveredNotifications(withIdentifiers: [eveningNotificationID])
+    }
+
+    @MainActor
+    static func scheduleEveningWrapUpNotification(
+        topline: String,
+        allowsSchedule: Bool
+    ) async -> Bool {
+        registerCategories()
+        guard allowsSchedule else {
+            await cancelEveningWrapUpNotification()
+            return false
+        }
+
+        let trimmed = String(topline.prefix(180))
+        guard !trimmed.isEmpty else { return false }
+
+        let today = dayStamp()
+        if UserDefaults.standard.string(forKey: lastEveningScheduledDayKey) == today {
+            return false
+        }
+
+        let authorized = await requestAuthorizationIfNeeded()
+        guard authorized else { return false }
+
+        await cancelEveningWrapUpNotification()
+
+        let content = UNMutableNotificationContent()
+        content.title = "NOBS — evening wrap-up"
+        content.body = trimmed
+        content.categoryIdentifier = eveningCategoryID
+        content.sound = .default
+        content.userInfo = ["topline": trimmed, "kind": "evening"]
+
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 90, repeats: false)
+        let request = UNNotificationRequest(identifier: eveningNotificationID, content: content, trigger: trigger)
+        do {
+            try await UNUserNotificationCenter.current().add(request)
+            UserDefaults.standard.set(today, forKey: lastEveningScheduledDayKey)
             return true
         } catch {
             return false

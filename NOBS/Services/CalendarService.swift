@@ -14,8 +14,16 @@ final class CalendarService {
     }
 
     func todayEvents() -> [DayEvent] {
-        let start = Calendar.current.startOfDay(for: Date())
-        let end = Calendar.current.date(byAdding: .day, value: 1, to: start) ?? Date()
+        events(from: Calendar.current.startOfDay(for: Date()), days: 1)
+    }
+
+    func tomorrowEvents() -> [DayEvent] {
+        let start = Calendar.current.date(byAdding: .day, value: 1, to: Calendar.current.startOfDay(for: Date())) ?? Date()
+        return events(from: start, days: 1)
+    }
+
+    private func events(from start: Date, days: Int) -> [DayEvent] {
+        let end = Calendar.current.date(byAdding: .day, value: days, to: start) ?? start
         let predicate = store.predicateForEvents(withStart: start, end: end, calendars: nil)
         let source = store.events(matching: predicate).sorted { $0.startDate < $1.startDate }
         var result = source.map {
@@ -36,8 +44,16 @@ final class CalendarService {
     }
 
     func todayReminders() async -> [DayReminder] {
-        let start = Calendar.current.startOfDay(for: Date())
-        let end = Calendar.current.date(byAdding: .day, value: 1, to: start) ?? Date()
+        await reminders(from: Calendar.current.startOfDay(for: Date()), days: 1)
+    }
+
+    func tomorrowReminders() async -> [DayReminder] {
+        let start = Calendar.current.date(byAdding: .day, value: 1, to: Calendar.current.startOfDay(for: Date())) ?? Date()
+        return await reminders(from: start, days: 1)
+    }
+
+    private func reminders(from start: Date, days: Int) async -> [DayReminder] {
+        let end = Calendar.current.date(byAdding: .day, value: days, to: start) ?? start
         let predicate = store.predicateForIncompleteReminders(
             withDueDateStarting: start,
             ending: end,

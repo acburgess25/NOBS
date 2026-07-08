@@ -3,6 +3,7 @@ import SwiftUI
 struct ActivityView: View {
     @EnvironmentObject private var model: AppModel
     let onSelectReceipt: (PrivacyReceipt) -> Void
+    @State private var researchTopic = ""
     private let accent = Color.nobsAccent
 
     var body: some View {
@@ -29,6 +30,9 @@ struct ActivityView: View {
                     }
                     .buttonStyle(.plain)
                 }
+            }
+            Section("Research briefs") {
+                researchContent
             }
             Section("Sync schedules") {
                 schedulesContent
@@ -72,7 +76,7 @@ struct ActivityView: View {
                                 } label: {
                                     Label(
                                         item.route.rawValue,
-                                        systemImage: item.route == .tank ? "server.rack" : "iphone"
+                                        systemImage: item.route.symbol
                                     )
                                     .font(.caption.weight(.semibold))
                                 }
@@ -100,8 +104,115 @@ struct ActivityView: View {
                 }
             }
         }
-        .nobsListScreen()
-        .task { await model.loadSchedules() }
+        .scrollContentBackground(.hidden)
+        .task {
+            await model.loadSchedules()
+            await model.loadResearchJobs()
+        }
+    }
+
+    @ViewBuilder
+    private var researchContent: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Ask Tank to research a topic while you're away. Results include cited sources; any external action still needs approval.")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            HStack(spacing: 10) {
+                TextField("Research topic…", text: $researchTopic)
+                    .textFieldStyle(.roundedBorder)
+                Button {
+                    let topic = researchTopic
+                    researchTopic = ""
+                    Task { await model.startResearch(topic: topic) }
+                } label: {
+                    if model.isSubmittingResearch {
+                        ProgressView()
+                    } else {
+                        Text("Start")
+                            .font(.subheadline.weight(.semibold))
+                    }
+                }
+                .disabled(
+                    model.isSubmittingResearch
+                    || researchTopic.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                    || !model.tankAvailable
+                )
+            }
+        }
+        .padding(.vertical, 4)
+
+        if model.isLoadingResearch && model.researchJobs.isEmpty {
+            HStack(spacing: 10) {
+                ProgressView()
+                Text("Loading research jobs…")
+                    .foregroundStyle(.secondary)
+            }
+        } else if model.researchFetchState == .unavailable && model.researchJobs.isEmpty {
+            Text("Connect Tank to request research briefs.")
+                .foregroundStyle(.secondary)
+        } else if let message = model.researchFetchState.errorMessage, model.researchJobs.isEmpty {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(message)
+                    .foregroundStyle(.secondary)
+                Button("Retry") { Task { await model.loadResearchJobs() } }
+                    .buttonStyle(.bordered)
+                    .tint(accent)
+            }
+        } else if model.researchJobs.isEmpty {
+            Text("No research jobs yet")
+                .foregroundStyle(.secondary)
+        } else {
+            ForEach(model.researchJobs) { job in
+                researchJobRow(job)
+            }
+        }
+    }
+
+    private func researchJobRow(_ job: ResearchJob) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text(job.topic)
+                    .font(.subheadline.weight(.semibold))
+                Spacer()
+                Text(job.statusTitle)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(job.status == "completed" ? accent : .secondary)
+            }
+            if let summary = job.summary, !summary.isEmpty {
+                Text(summary)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(4)
+            }
+            if !job.sources.isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Sources")
+                        .font(.caption.weight(.semibold))
+                    ForEach(job.sources.prefix(5)) { source in
+                        if let url = URL(string: source.url) {
+                            Link(destination: url) {
+                                Label(source.title, systemImage: "link")
+                                    .font(.caption)
+                            }
+                        } else {
+                            Text(source.title)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    if job.sources.count > 5 {
+                        Text("+\(job.sources.count - 5) more sources")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+            Text(job.displayDate)
+                .font(.caption2)
+                .foregroundStyle(.secondary)
+        }
+        .padding(.vertical, 4)
     }
 
     @ViewBuilder

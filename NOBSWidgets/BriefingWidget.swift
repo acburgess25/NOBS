@@ -19,14 +19,13 @@ struct BriefingWidgetProvider: TimelineProvider {
     func getTimeline(in context: Context, completion: @escaping (Timeline<BriefingWidgetEntry>) -> Void) {
         let snapshot = BriefingSnapshotReader.load()
         let entry = BriefingWidgetEntry(date: .now, snapshot: snapshot)
-        let refresh = nextRefreshDate(from: snapshot?.generatedAt ?? .now, evening: snapshot?.showsEveningContext == true)
+        let refresh = nextRefreshDate(from: snapshot?.generatedAt ?? .now)
         completion(Timeline(entries: [entry], policy: .after(refresh)))
     }
 
-    private func nextRefreshDate(from generatedAt: Date, evening: Bool) -> Date {
+    private func nextRefreshDate(from generatedAt: Date) -> Date {
         let calendar = Calendar.current
-        let interval: TimeInterval = evening ? 20 * 60 : 30 * 60
-        let thirtyMinutes = generatedAt.addingTimeInterval(interval)
+        let thirtyMinutes = generatedAt.addingTimeInterval(30 * 60)
         let startOfNextHour = calendar.date(
             byAdding: .hour,
             value: 1,
@@ -46,7 +45,7 @@ struct BriefingWidget: Widget {
                 .containerBackground(.fill.tertiary, for: .widget)
         }
         .configurationDisplayName("Today's plan")
-        .description("Your latest NOBS briefing at a glance — morning or evening.")
+        .description("Morning briefing or evening wrap-up at a glance.")
         .supportedFamilies([.systemSmall, .systemMedium, .accessoryRectangular])
     }
 }
@@ -92,77 +91,66 @@ struct BriefingWidgetView: View {
 
     private func smallView(snapshot: BriefingSnapshot, redacted: Bool) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            header(for: snapshot)
-            if snapshot.showsEveningContext, let evening = snapshot.eveningHeadline {
-                Text(evening)
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(Color.nobsInk)
-                    .lineLimit(snapshot.responseLength.toplineLineLimit)
-                    .minimumScaleFactor(0.85)
-            } else {
-                Text(snapshot.topline)
-                    .font(snapshot.responseLength == .brief ? .caption.weight(.medium) : .subheadline)
-                    .foregroundStyle(Color.nobsInk)
-                    .lineLimit(snapshot.responseLength.toplineLineLimit)
-                    .minimumScaleFactor(0.85)
+            header
+            Text(snapshot.topline)
+                .font(.subheadline)
+                .foregroundStyle(WidgetColors.ink)
+                .lineLimit(2)
+                .minimumScaleFactor(0.85)
+            if snapshot.briefingKind == .evening, let preview = snapshot.tomorrowPreview {
+                Text(preview)
+                    .font(.caption2)
+                    .foregroundStyle(WidgetColors.muted)
+                    .lineLimit(1)
             }
             Spacer(minLength: 0)
-            footerRow(snapshot: snapshot, redacted: redacted, compact: true)
+            HStack(spacing: 8) {
+                if snapshot.hasConflict {
+                    Label(snapshot.conflictLabel(redacted: redacted) ?? "Conflict", systemImage: "exclamationmark.triangle.fill")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.orange)
+                        .lineLimit(1)
+                }
+                Spacer(minLength: 0)
+                routePill(snapshot.route)
+            }
         }
         .padding(12)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(smallAccessibilityLabel(snapshot: snapshot, redacted: redacted))
     }
 
     private func mediumView(snapshot: BriefingSnapshot, redacted: Bool) -> some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .top) {
-                header(for: snapshot)
-                Spacer(minLength: 0)
-                if snapshot.isStale {
-                    Text("Stale")
-                        .font(.caption2.weight(.bold))
-                        .foregroundStyle(Color.nobsWarning)
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 3)
-                        .background(Color.nobsWarning.opacity(0.15), in: Capsule())
-                }
-            }
+            header
             Text(snapshot.topline)
                 .font(.subheadline.weight(.medium))
-                .foregroundStyle(Color.nobsInk)
-                .lineLimit(snapshot.responseLength.toplineLineLimit)
+                .foregroundStyle(WidgetColors.ink)
+                .lineLimit(2)
                 .minimumScaleFactor(0.85)
 
-            if snapshot.showsEveningContext, let evening = snapshot.eveningHeadline {
-                Text(evening)
+            if snapshot.briefingKind == .evening, let preview = snapshot.tomorrowPreview, !redacted {
+                Text(preview)
                     .font(.caption)
-                    .foregroundStyle(Color.nobsMuted)
-                    .lineLimit(2)
+                    .foregroundStyle(WidgetColors.muted)
+                    .lineLimit(1)
             }
 
             if redacted {
                 if snapshot.priorityCount > 0 {
                     Text("\(snapshot.priorityCount) priorit\(snapshot.priorityCount == 1 ? "y" : "ies")")
                         .font(.caption)
-                        .foregroundStyle(Color.nobsMuted)
+                        .foregroundStyle(WidgetColors.muted)
                 }
             } else if !snapshot.priorities.isEmpty {
                 VStack(alignment: .leading, spacing: 4) {
-                    ForEach(Array(snapshot.priorities.prefix(snapshot.responseLength.maxWidgetPriorities).enumerated()), id: \.offset) { _, item in
+                    ForEach(Array(snapshot.priorities.prefix(2).enumerated()), id: \.offset) { _, item in
                         HStack(alignment: .top, spacing: 6) {
                             Text("•")
-                                .foregroundStyle(Color.nobsAccent)
+                                .foregroundStyle(WidgetColors.accent)
                             Text(item)
                                 .font(.caption)
-                                .foregroundStyle(Color.nobsInk)
+                                .foregroundStyle(WidgetColors.ink)
                                 .lineLimit(1)
                         }
-                    }
-                    if snapshot.priorityCount > snapshot.responseLength.maxWidgetPriorities {
-                        Text("+\(snapshot.priorityCount - snapshot.responseLength.maxWidgetPriorities) more in app")
-                            .font(.caption2)
-                            .foregroundStyle(Color.nobsMuted)
                     }
                 }
             }
@@ -170,119 +158,79 @@ struct BriefingWidgetView: View {
             Spacer(minLength: 0)
 
             HStack {
-                Text(relativeUpdated(snapshot.generatedAt))
-                    .font(.caption2)
-                    .foregroundStyle(Color.nobsMuted)
+                if let conflict = snapshot.conflictLabel(redacted: redacted) {
+                    Label(conflict, systemImage: "exclamationmark.triangle.fill")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(.orange)
+                        .lineLimit(1)
+                }
                 Spacer()
                 Text("Open plan")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(Color.nobsForest)
+                    .foregroundStyle(WidgetColors.forest)
                 routePill(snapshot.route)
             }
-            footerRow(snapshot: snapshot, redacted: redacted, compact: false)
         }
         .padding(14)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(mediumAccessibilityLabel(snapshot: snapshot, redacted: redacted))
     }
 
     private func lockScreenView(snapshot: BriefingSnapshot, redacted: Bool) -> some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(snapshot.showsEveningContext ? "NOBS · Evening" : "NOBS")
+            Text("NOBS")
                 .font(.caption2.weight(.bold))
-                .foregroundStyle(Color.nobsAccent)
-            Text(snapshot.eveningHeadline ?? snapshot.topline)
+                .foregroundStyle(WidgetColors.accent)
+            Text(snapshot.topline)
                 .font(.caption)
                 .lineLimit(2)
             if snapshot.hasConflict {
                 Text(snapshot.conflictLabel(redacted: true) ?? "Conflict")
                     .font(.caption2)
-                    .foregroundStyle(Color.nobsWarning)
+                    .foregroundStyle(.orange)
                     .lineLimit(1)
             }
         }
-        .accessibilityElement(children: .combine)
     }
 
     private var emptyState: some View {
         VStack(alignment: .leading, spacing: 8) {
-            header(for: nil)
+            header
             Text("Open NOBS to build today's plan.")
                 .font(.subheadline)
-                .foregroundStyle(Color.nobsMuted)
+                .foregroundStyle(WidgetColors.muted)
                 .lineLimit(3)
-            Text("Add this widget after your first briefing.")
-                .font(.caption2)
-                .foregroundStyle(Color.nobsMuted)
             Spacer(minLength: 0)
         }
         .padding(12)
-        .accessibilityLabel("NOBS plan not ready. Open the app to build today's plan.")
     }
 
-    @ViewBuilder
-    private func header(for snapshot: BriefingSnapshot?) -> some View {
+    private var header: some View {
         HStack(spacing: 6) {
-            Image(systemName: snapshot?.showsEveningContext == true ? "moon.stars.fill" : "leaf.fill")
+            Image(systemName: entry.snapshot?.briefingKind == .evening ? "moon.stars.fill" : "leaf.fill")
                 .font(.caption.weight(.bold))
-                .foregroundStyle(Color.nobsAccent)
-            Text(snapshot?.showsEveningContext == true ? "NOBS · Evening" : "NOBS")
+                .foregroundStyle(WidgetColors.accent)
+            Text(entry.snapshot?.briefingKind == .evening ? "Wrap-up" : "NOBS")
                 .font(.caption.weight(.bold))
-                .foregroundStyle(Color.nobsForest)
+                .foregroundStyle(WidgetColors.forest)
             Spacer()
-        }
-    }
-
-    @ViewBuilder
-    private func footerRow(snapshot: BriefingSnapshot, redacted: Bool, compact: Bool) -> some View {
-        HStack(spacing: 8) {
-            if snapshot.hasConflict {
-                Label(snapshot.conflictLabel(redacted: redacted) ?? "Conflict", systemImage: "exclamationmark.triangle.fill")
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(Color.nobsWarning)
-                    .lineLimit(1)
-            }
-            if !compact {
-                Spacer(minLength: 0)
-            } else {
-                Spacer(minLength: 0)
-                routePill(snapshot.route)
-            }
         }
     }
 
     private func routePill(_ route: String) -> some View {
         Text(route)
             .font(.caption2.weight(.semibold))
-            .foregroundStyle(Color.nobsAccent)
+            .foregroundStyle(WidgetColors.accent)
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
-            .background(Color.nobsSagePale, in: Capsule())
-            .accessibilityLabel("Processed on \(route)")
+            .background(WidgetColors.surface, in: Capsule())
     }
+}
 
-    private func relativeUpdated(_ date: Date) -> String {
-        let relative = RelativeDateTimeFormatter()
-        relative.unitsStyle = .abbreviated
-        return "Updated \(relative.localizedString(for: date, relativeTo: .now))"
-    }
-
-    private func smallAccessibilityLabel(snapshot: BriefingSnapshot, redacted: Bool) -> String {
-        var parts = [snapshot.showsEveningContext ? "Evening plan" : "Today's plan", snapshot.eveningHeadline ?? snapshot.topline]
-        if snapshot.hasConflict {
-            parts.append(snapshot.conflictLabel(redacted: redacted) ?? "Schedule conflict")
-        }
-        parts.append("Processed on \(snapshot.route)")
-        return parts.joined(separator: ". ")
-    }
-
-    private func mediumAccessibilityLabel(snapshot: BriefingSnapshot, redacted: Bool) -> String {
-        var parts = smallAccessibilityLabel(snapshot: snapshot, redacted: redacted)
-        if !redacted, !snapshot.priorities.isEmpty {
-            parts += ". Priorities: \(snapshot.priorities.joined(separator: ", "))"
-        }
-        return parts
-    }
+private enum WidgetColors {
+    static let ink = Color(red: 42 / 255, green: 51 / 255, blue: 40 / 255)
+    static let accent = Color(red: 110 / 255, green: 139 / 255, blue: 98 / 255)
+    static let forest = Color(red: 74 / 255, green: 93 / 255, blue: 69 / 255)
+    static let muted = Color(red: 112 / 255, green: 122 / 255, blue: 114 / 255)
+    static let surface = Color(red: 234 / 255, green: 238 / 255, blue: 230 / 255)
 }
 
 #Preview(as: .systemSmall) {

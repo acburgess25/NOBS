@@ -105,9 +105,19 @@ struct ApprovalsView: View {
             )
         } else {
             ForEach(model.approvals.filter { $0.status == "pending" }) { approval in
-                ApprovalCard(approval: approval, accent: accent) { decision in
-                    Task { await model.decideApproval(approval, decision: decision) }
-                }
+                ApprovalCard(
+                    approval: approval,
+                    accent: accent,
+                    onDecide: { decision in
+                        Task { await model.decideApproval(approval, decision: decision) }
+                    },
+                    onRequestReversal: {
+                        model.requestApprovalReversal(for: approval)
+                    },
+                    onShowAuditTrail: {
+                        model.showApprovalAuditTrail(for: approval)
+                    }
+                )
             }
         }
         refreshButton(action: { Task { await model.loadApprovals() } }, loading: model.isLoadingApprovals)
@@ -204,8 +214,21 @@ private struct ApprovalCard: View {
     let approval: PendingApproval
     let accent: Color
     let onDecide: (String) -> Void
+    let onRequestReversal: () -> Void
+    let onShowAuditTrail: () -> Void
 
-    @State private var showArguments = false
+    @State private var showTechnicalDetails = false
+
+    private var summaryLines: [ApprovalDetailFormatter.DetailLine] {
+        ApprovalDetailFormatter.summaryLines(
+            toolName: approval.toolName,
+            arguments: approval.arguments
+        )
+    }
+
+    private var reversal: ApprovalDetailFormatter.Reversal? {
+        ApprovalDetailFormatter.reversal(for: approval)
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -218,7 +241,7 @@ private struct ApprovalCard: View {
                     .background(Color.nobsSagePale, in: RoundedRectangle(cornerRadius: 8))
 
                 VStack(alignment: .leading, spacing: 3) {
-                    Text(approval.toolName.replacingOccurrences(of: "_", with: " ").capitalized)
+                    Text(ApprovalDetailFormatter.humanToolTitle(approval.toolName))
                         .font(.headline)
                     RiskBadge(risk: approval.risk)
                 }
@@ -231,10 +254,61 @@ private struct ApprovalCard: View {
                 .foregroundStyle(.primary.opacity(0.85))
                 .fixedSize(horizontal: false, vertical: true)
 
-            // Arguments disclosure
+            executionContextSection
+
+            if !summaryLines.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("What will change")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                    ForEach(summaryLines) { line in
+                        HStack(alignment: .top, spacing: 8) {
+                            if let symbol = line.systemImage {
+                                Image(systemName: symbol)
+                                    .font(.caption)
+                                    .foregroundStyle(accent)
+                                    .frame(width: 16)
+                            }
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(line.label)
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(.secondary)
+                                Text(line.value)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.primary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+                    }
+                }
+                .padding(12)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.white.opacity(0.45), in: RoundedRectangle(cornerRadius: 12))
+            }
+
+            if let reversal {
+                VStack(alignment: .leading, spacing: 8) {
+                    Label(reversal.label, systemImage: "arrow.uturn.backward.circle")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(accent)
+                    Text(reversal.detail)
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Button(action: onRequestReversal) {
+                        Label("Prepare undo in chat", systemImage: "bubble.left")
+                            .font(.caption.weight(.semibold))
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(accent)
+                }
+                .padding(12)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(accent.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
+            }
+
             if !approval.arguments.isEmpty {
-                // TODO(feature): Expand approval details with richer argument formatting and full execution context.
-                DisclosureGroup(isExpanded: $showArguments) {
+                DisclosureGroup(isExpanded: $showTechnicalDetails) {
                     VStack(alignment: .leading, spacing: 6) {
                         ForEach(Array(approval.arguments.keys.sorted()), id: \.self) { key in
                             HStack(alignment: .top, spacing: 8) {
@@ -245,13 +319,13 @@ private struct ApprovalCard: View {
                                 Text(approval.arguments[key]?.displayString ?? "")
                                     .font(.caption)
                                     .foregroundStyle(.primary)
-                                    .lineLimit(3)
+                                    .lineLimit(5)
                             }
                         }
                     }
                     .padding(.top, 6)
                 } label: {
-                    Text("Arguments (\(approval.arguments.count))")
+                    Text("Technical arguments")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(accent)
                 }
@@ -288,7 +362,85 @@ private struct ApprovalCard: View {
                 .strokeBorder(riskColor(for: approval.risk).opacity(0.25), lineWidth: 1.5)
         )
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("Approval request: \(approval.toolName). Risk: \(approval.risk). \(approval.reason)")
+        .accessibilityLabel(accessibilitySummary)
+    }
+
+    private var executionContextSection: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .top, spacing: 8) {
+                Image(systemName: ApprovalDetailFormatter.triggeredBySymbol(approval.triggeredBy))
+                    .font(.caption)
+                    .foregroundStyle(accent)
+                    .frame(width: 16)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Triggered by")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                    Text(ApprovalDetailFormatter.triggeredByLabel(approval.triggeredBy))
+                        .font(.subheadline)
+                }
+                Spacer()
+                Text(ApprovalDetailFormatter.contextLabel(approval.runContext))
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(accent)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(accent.opacity(0.12), in: Capsule())
+            }
+
+            if let objective = approval.runObjective?.trimmingCharacters(in: .whitespacesAndNewlines),
+               !objective.isEmpty {
+                Text(objective)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(3)
+            }
+
+            if let created = isoDate(approval.createdAt) {
+                Text("Queued \(created.formatted(.relative(presentation: .named)))")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+
+            if let events = approval.auditEvents, !events.isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Audit trail")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                    ForEach(events) { event in
+                        Text(ApprovalDetailFormatter.auditEventLabel(event))
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
+                    Button(action: onShowAuditTrail) {
+                        Label("Open activity log", systemImage: "clock.arrow.circlepath")
+                            .font(.caption.weight(.semibold))
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(accent)
+                }
+            }
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.white.opacity(0.35), in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private var accessibilitySummary: String {
+        let summary = summaryLines.map { "\($0.label): \($0.value)" }.joined(separator: ". ")
+        return """
+        Approval request: \(ApprovalDetailFormatter.humanToolTitle(approval.toolName)). \
+        Risk: \(approval.risk). \(approval.reason). \
+        \(ApprovalDetailFormatter.triggeredByLabel(approval.triggeredBy)). \(summary)
+        """
+    }
+
+    private func isoDate(_ string: String) -> Date? {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = formatter.date(from: string) { return date }
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter.date(from: string)
     }
 
     private func toolIcon(for toolName: String) -> String {
@@ -436,7 +588,7 @@ private struct ProposalTypeBadge: View {
 private func riskColor(for risk: String) -> Color {
     switch risk.lowercased() {
     case "low": return .nobsAccent
-    case "medium": return .nobsWarning
+    case "medium": return .orange
     case "high", "critical": return .red
     default: return .secondary
     }

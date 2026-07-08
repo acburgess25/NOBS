@@ -14,6 +14,9 @@ struct TodayView: View {
                 Text("A realistic day, not another list.")
                     .font(.system(size: 30, design: .serif))
                 briefingCard
+                if model.showsEveningWrapUp {
+                    eveningBriefingCard
+                }
                 switch model.calendarStatus {
                 case .fullAccess, .authorized:
                     if model.isLoadingCalendar {
@@ -40,9 +43,6 @@ struct TodayView: View {
                     .background(surface, in: RoundedRectangle(cornerRadius: 16))
                 }
                 reminderSection
-                if model.shouldShowEveningWrapUp {
-                    eveningWrapUpCard
-                }
             }
             .padding(20)
         }
@@ -50,34 +50,9 @@ struct TodayView: View {
 
     private var briefingCard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .firstTextBaseline) {
-                Label("Morning briefing", systemImage: "sunrise")
-                    .font(.headline)
-                Spacer()
-                if model.briefing != nil {
-                    Button {
-                        Task { await model.generateBriefing() }
-                    } label: {
-                        if model.isGeneratingBriefing {
-                            ProgressView()
-                                .controlSize(.small)
-                        } else {
-                            Label("Refresh", systemImage: "arrow.clockwise")
-                                .font(.caption.weight(.semibold))
-                        }
-                    }
-                    .buttonStyle(.borderless)
-                    .disabled(model.isGeneratingBriefing)
-                    .accessibilityLabel("Refresh morning briefing")
-                }
-            }
+            Label(BriefingKind.morning.title, systemImage: BriefingKind.morning.systemImage)
+                .font(.headline)
             if let briefing = model.briefing {
-                if let generatedLabel = briefingGeneratedLabel(briefing.generatedAt) {
-                    Text(generatedLabel)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .accessibilityLabel("Briefing generated \(generatedLabel)")
-                }
                 briefingParagraph("Topline", text: briefing.topline)
                 briefingListSection("Priorities", items: briefing.priorities)
                 briefingListSection("Conflicts or risks", items: briefing.conflictsOrRisks)
@@ -90,7 +65,7 @@ struct TodayView: View {
                                 .font(.caption.weight(.semibold))
                                 .foregroundStyle(accent)
                                 .padding(10)
-                                .background(Color.nobsWarning.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
+                                .background(Color.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
                         }
                         if model.clarifyingConflict != nil {
                             Button("Resolve overlap") {
@@ -102,10 +77,9 @@ struct TodayView: View {
                 }
                 briefingListSection("Suggested next actions", items: briefing.suggestedNextActions)
                 HStack(spacing: 10) {
-                    Label(briefing.route.rawValue, systemImage: briefing.route == .tank ? "server.rack" : "iphone")
+                    Label(briefing.route.rawValue, systemImage: briefing.route.symbol)
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(accent)
-                        .accessibilityLabel("Processed on \(briefing.route.rawValue)")
                     Spacer()
                     Button("Privacy receipt") { onShowReceipt(briefing.privacyReceipt) }
                         .font(.caption.weight(.semibold))
@@ -130,58 +104,49 @@ struct TodayView: View {
         }
         .padding(18)
         .background(surface, in: RoundedRectangle(cornerRadius: 16))
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel("Morning briefing")
     }
 
-    private var listItemLimit: Int {
-        model.profile.accessibilityPreferences.responseLength.maxListItems
-    }
-
-    private func briefingGeneratedLabel(_ isoString: String) -> String? {
-        guard let date = ISO8601DateFormatter().date(from: isoString) else { return nil }
-        let relative = RelativeDateTimeFormatter()
-        relative.unitsStyle = .full
-        return "Updated \(relative.localizedString(for: date, relativeTo: .now))"
-    }
-
-    private var eveningWrapUpCard: some View {
-        let wrapUp = model.generateEveningWrapUp()
-        return VStack(alignment: .leading, spacing: 12) {
-            Label("Evening wrap-up", systemImage: "moon.stars")
+    private var eveningBriefingCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label(BriefingKind.evening.title, systemImage: BriefingKind.evening.systemImage)
                 .font(.headline)
-            Text(wrapUp.headline)
-                .font(.subheadline.weight(.medium))
-            if !wrapUp.completedItems.isEmpty {
-                eveningListSection("What you moved forward", items: wrapUp.completedItems)
+            if let briefing = model.eveningBriefing {
+                briefingParagraph("Wrap-up", text: briefing.topline)
+                briefingListSection("Accomplishments", items: briefing.priorities)
+                briefingListSection("Unfinished (no guilt)", items: briefing.conflictsOrRisks)
+                briefingListSection("Tomorrow prep", items: briefing.recommendedPlan)
+                if let question = briefing.oneUsefulQuestion, !question.isEmpty {
+                    briefingParagraph("One useful question", text: question)
+                }
+                briefingListSection("Gentle next steps", items: briefing.suggestedNextActions)
+                HStack(spacing: 10) {
+                    Label(briefing.route.rawValue, systemImage: briefing.route.symbol)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(accent)
+                    Spacer()
+                    Button("Privacy receipt") { onShowReceipt(briefing.privacyReceipt) }
+                        .font(.caption.weight(.semibold))
+                }
+            } else {
+                Text("Summarize today without guilt, carry forward what matters, and preview tomorrow — on-device first, Tank when connected.")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                Button {
+                    Task { await model.generateEveningBriefing() }
+                } label: {
+                    if model.isGeneratingEveningBriefing {
+                        ProgressView()
+                    } else {
+                        Text("Wrap up today")
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(forest)
+                .disabled(model.isGeneratingEveningBriefing)
             }
-            if !wrapUp.stillOpen.isEmpty {
-                eveningListSection("Can wait or carry forward", items: wrapUp.stillOpen)
-            }
-            Text(wrapUp.gentleClose)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .lineSpacing(3)
         }
         .padding(18)
-        .background(surface, in: RoundedRectangle(cornerRadius: 16))
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel("Evening wrap-up")
-    }
-
-    @ViewBuilder
-    private func eveningListSection(_ title: String, items: [String]) -> some View {
-        let visible = Array(items.prefix(listItemLimit))
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title).font(.caption.weight(.bold)).foregroundStyle(accent)
-            ForEach(Array(visible.enumerated()), id: \.offset) { _, item in
-                HStack(alignment: .top, spacing: 6) {
-                    Text("•").foregroundStyle(accent)
-                    Text(item).font(.subheadline)
-                }
-            }
-        }
-        .accessibilityElement(children: .combine)
+        .background(surface.opacity(0.85), in: RoundedRectangle(cornerRadius: 16))
     }
 
     private var reminderSection: some View {
@@ -217,32 +182,19 @@ struct TodayView: View {
     private func briefingParagraph(_ title: String, text: String) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title).font(.caption.weight(.bold)).foregroundStyle(accent)
-            Text(text)
-                .font(.subheadline)
-                .lineLimit(model.profile.accessibilityPreferences.responseLength == .brief ? 3 : nil)
+            Text(text).font(.subheadline)
         }
     }
 
-    @ViewBuilder
     private func briefingListSection(_ title: String, items: [String]) -> some View {
-        let visible = Array(items.prefix(listItemLimit))
-        if !visible.isEmpty {
-            VStack(alignment: .leading, spacing: 6) {
-                Text(title).font(.caption.weight(.bold)).foregroundStyle(accent)
-                ForEach(Array(visible.enumerated()), id: \.offset) { _, item in
-                    HStack(alignment: .top, spacing: 6) {
-                        Text("•").foregroundStyle(accent)
-                        Text(item).font(.subheadline)
-                    }
-                }
-                if items.count > visible.count {
-                    Text("\(items.count - visible.count) more in chat")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title).font(.caption.weight(.bold)).foregroundStyle(accent)
+            ForEach(Array(items.prefix(6).enumerated()), id: \.offset) { _, item in
+                HStack(alignment: .top, spacing: 6) {
+                    Text("•").foregroundStyle(accent)
+                    Text(item).font(.subheadline)
                 }
             }
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel("\(title): \(visible.joined(separator: ", "))")
         }
     }
 
@@ -250,12 +202,12 @@ struct TodayView: View {
         HStack(alignment: .top, spacing: 14) {
             Text(event.start, format: .dateTime.hour().minute())
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(event.overlapsNext ? Color.nobsWarning : accent)
+                .foregroundStyle(event.overlapsNext ? .orange : accent)
                 .frame(width: 76, alignment: .leading)
             VStack(alignment: .leading, spacing: 3) {
                 HStack {
                     Text(event.title).font(.headline)
-                    if event.overlapsNext { Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(Color.nobsWarning) }
+                    if event.overlapsNext { Image(systemName: "exclamationmark.triangle.fill").foregroundStyle(.orange) }
                 }
                 Text(event.calendarName).font(.caption).foregroundStyle(.secondary)
                 if let location = event.location, !location.isEmpty {
