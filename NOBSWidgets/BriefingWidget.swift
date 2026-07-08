@@ -96,13 +96,13 @@ struct BriefingWidgetView: View {
             if snapshot.showsEveningContext, let evening = snapshot.eveningHeadline {
                 Text(evening)
                     .font(.subheadline.weight(.medium))
-                    .foregroundStyle(WidgetColors.ink)
+                    .foregroundStyle(Color.nobsInk)
                     .lineLimit(snapshot.responseLength.toplineLineLimit)
                     .minimumScaleFactor(0.85)
             } else {
                 Text(snapshot.topline)
                     .font(snapshot.responseLength == .brief ? .caption.weight(.medium) : .subheadline)
-                    .foregroundStyle(WidgetColors.ink)
+                    .foregroundStyle(Color.nobsInk)
                     .lineLimit(snapshot.responseLength.toplineLineLimit)
                     .minimumScaleFactor(0.85)
             }
@@ -122,22 +122,22 @@ struct BriefingWidgetView: View {
                 if snapshot.isStale {
                     Text("Stale")
                         .font(.caption2.weight(.bold))
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(Color.nobsWarning)
                         .padding(.horizontal, 6)
                         .padding(.vertical, 3)
-                        .background(Color.orange.opacity(0.15), in: Capsule())
+                        .background(Color.nobsWarning.opacity(0.15), in: Capsule())
                 }
             }
             Text(snapshot.topline)
                 .font(.subheadline.weight(.medium))
-                .foregroundStyle(WidgetColors.ink)
+                .foregroundStyle(Color.nobsInk)
                 .lineLimit(snapshot.responseLength.toplineLineLimit)
                 .minimumScaleFactor(0.85)
 
             if snapshot.showsEveningContext, let evening = snapshot.eveningHeadline {
                 Text(evening)
                     .font(.caption)
-                    .foregroundStyle(WidgetColors.muted)
+                    .foregroundStyle(Color.nobsMuted)
                     .lineLimit(2)
             }
 
@@ -145,24 +145,24 @@ struct BriefingWidgetView: View {
                 if snapshot.priorityCount > 0 {
                     Text("\(snapshot.priorityCount) priorit\(snapshot.priorityCount == 1 ? "y" : "ies")")
                         .font(.caption)
-                        .foregroundStyle(WidgetColors.muted)
+                        .foregroundStyle(Color.nobsMuted)
                 }
             } else if !snapshot.priorities.isEmpty {
                 VStack(alignment: .leading, spacing: 4) {
                     ForEach(Array(snapshot.priorities.prefix(snapshot.responseLength.maxWidgetPriorities).enumerated()), id: \.offset) { _, item in
                         HStack(alignment: .top, spacing: 6) {
                             Text("•")
-                                .foregroundStyle(WidgetColors.accent)
+                                .foregroundStyle(Color.nobsAccent)
                             Text(item)
                                 .font(.caption)
-                                .foregroundStyle(WidgetColors.ink)
+                                .foregroundStyle(Color.nobsInk)
                                 .lineLimit(1)
                         }
                     }
                     if snapshot.priorityCount > snapshot.responseLength.maxWidgetPriorities {
                         Text("+\(snapshot.priorityCount - snapshot.responseLength.maxWidgetPriorities) more in app")
                             .font(.caption2)
-                            .foregroundStyle(WidgetColors.muted)
+                            .foregroundStyle(Color.nobsMuted)
                     }
                 }
             }
@@ -172,11 +172,11 @@ struct BriefingWidgetView: View {
             HStack {
                 Text(relativeUpdated(snapshot.generatedAt))
                     .font(.caption2)
-                    .foregroundStyle(WidgetColors.muted)
+                    .foregroundStyle(Color.nobsMuted)
                 Spacer()
                 Text("Open plan")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(WidgetColors.forest)
+                    .foregroundStyle(Color.nobsForest)
                 routePill(snapshot.route)
             }
             footerRow(snapshot: snapshot, redacted: redacted, compact: false)
@@ -190,14 +190,14 @@ struct BriefingWidgetView: View {
         VStack(alignment: .leading, spacing: 2) {
             Text(snapshot.showsEveningContext ? "NOBS · Evening" : "NOBS")
                 .font(.caption2.weight(.bold))
-                .foregroundStyle(WidgetColors.accent)
+                .foregroundStyle(Color.nobsAccent)
             Text(snapshot.eveningHeadline ?? snapshot.topline)
                 .font(.caption)
                 .lineLimit(2)
             if snapshot.hasConflict {
                 Text(snapshot.conflictLabel(redacted: true) ?? "Conflict")
                     .font(.caption2)
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(Color.nobsWarning)
                     .lineLimit(1)
             }
         }
@@ -209,11 +209,11 @@ struct BriefingWidgetView: View {
             header(for: nil)
             Text("Open NOBS to build today's plan.")
                 .font(.subheadline)
-                .foregroundStyle(WidgetColors.muted)
+                .foregroundStyle(Color.nobsMuted)
                 .lineLimit(3)
             Text("Add this widget after your first briefing.")
                 .font(.caption2)
-                .foregroundStyle(WidgetColors.muted)
+                .foregroundStyle(Color.nobsMuted)
             Spacer(minLength: 0)
         }
         .padding(12)
@@ -225,10 +225,10 @@ struct BriefingWidgetView: View {
         HStack(spacing: 6) {
             Image(systemName: snapshot?.showsEveningContext == true ? "moon.stars.fill" : "leaf.fill")
                 .font(.caption.weight(.bold))
-                .foregroundStyle(WidgetColors.accent)
+                .foregroundStyle(Color.nobsAccent)
             Text(snapshot?.showsEveningContext == true ? "NOBS · Evening" : "NOBS")
                 .font(.caption.weight(.bold))
-                .foregroundStyle(WidgetColors.forest)
+                .foregroundStyle(Color.nobsForest)
             Spacer()
         }
     }
@@ -239,7 +239,7 @@ struct BriefingWidgetView: View {
             if snapshot.hasConflict {
                 Label(snapshot.conflictLabel(redacted: redacted) ?? "Conflict", systemImage: "exclamationmark.triangle.fill")
                     .font(.caption2.weight(.semibold))
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(Color.nobsWarning)
                     .lineLimit(1)
             }
             if !compact {
@@ -254,10 +254,10 @@ struct BriefingWidgetView: View {
     private func routePill(_ route: String) -> some View {
         Text(route)
             .font(.caption2.weight(.semibold))
-            .foregroundStyle(WidgetColors.accent)
+            .foregroundStyle(Color.nobsAccent)
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
-            .background(WidgetColors.surface, in: Capsule())
+            .background(Color.nobsSagePale, in: Capsule())
             .accessibilityLabel("Processed on \(route)")
     }
 
@@ -283,14 +283,6 @@ struct BriefingWidgetView: View {
         }
         return parts
     }
-}
-
-private enum WidgetColors {
-    static let ink = Color(red: 42 / 255, green: 51 / 255, blue: 40 / 255)
-    static let accent = Color(red: 110 / 255, green: 139 / 255, blue: 98 / 255)
-    static let forest = Color(red: 74 / 255, green: 93 / 255, blue: 69 / 255)
-    static let muted = Color(red: 112 / 255, green: 122 / 255, blue: 114 / 255)
-    static let surface = Color(red: 234 / 255, green: 238 / 255, blue: 230 / 255)
 }
 
 #Preview(as: .systemSmall) {

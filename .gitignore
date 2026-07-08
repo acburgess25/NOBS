@@ -24,6 +24,7 @@ CLAUDE.local.md
 *.xcuserstate
 xcuserdata/
 .aider*
+build/
 
 # Host-specific tunnel config (use deploy/tank/cloudflared-nobsdash.yml.example)
 deploy/tank/cloudflared-nobsdash.yml

@@ -96,8 +96,11 @@ struct ConversationView: View {
             .accessibilityLabel("Open navigation\(model.pendingDecisionCount > 0 ? ", \(model.pendingDecisionCount) items need your attention" : "")")
 
             VStack(alignment: .leading, spacing: 1) {
-                Text(model.section.rawValue)
-                    .font(.system(size: 22, weight: .medium, design: .serif))
+                HStack(spacing: 8) {
+                    Text(model.section.rawValue)
+                        .font(.system(size: 22, weight: .medium, design: .serif))
+                    NOBSBetaBadge()
+                }
                 Text("NOBS · Private by design")
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -285,9 +288,12 @@ struct ConversationView: View {
                 }
             }
             .navigationTitle("NOBS")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(Color.nobsCanvas, for: .navigationBar)
             .toolbar { Button("Done") { showNavigation = false } }
         }
         .presentationDetents([.medium, .large])
+        .presentationBackground(Color.nobsCanvas)
     }
 
     private var welcomeDetail: String {

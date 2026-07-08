@@ -64,7 +64,7 @@ struct PrivacyView: View {
                 Label("No data is sold or used for advertising", systemImage: "eye.slash")
             }
         }
-        .scrollContentBackground(.hidden)
+        .nobsListScreen()
         .sheet(isPresented: $isScanningQR) {
             NavigationStack {
                 ScannerView(

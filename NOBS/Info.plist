@@ -25,7 +25,7 @@
 			<key>CFBundleTypeRole</key>
 			<string>Editor</string>
 			<key>CFBundleURLName</key>
-			<string>com.acburgess25.NOBS</string>
+			<string>com.nobsdash.nobs</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>nobs</string>

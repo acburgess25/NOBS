@@ -4,18 +4,18 @@ import { ArrowRight, Check, Cloud, DeviceMobile, Copy, GithubLogo, HardDrives, H
 const githubUrl = "https://github.com/acburgess25/NOBS";
 const navItems = [["Vision", "vision"], ["Work so far", "work"], ["Architecture", "architecture"], ["Roadmap", "roadmap"], ["Support", "support"]];
 const milestones = [
-  { label: "iPhone app (SwiftUI)", detail: "Authenticated chat with visible Local/Tank routing, day-at-a-glance, privacy receipts, and conversational onboarding.", icon: DeviceMobile },
-  { label: "Apple-native day surface", detail: "Home Screen and Lock Screen briefing widget, Siri shortcuts, and Focus-aware planning that respects Do Not Disturb.", icon: DeviceMobile },
+  { label: "iPhone app (SwiftUI)", detail: "Authenticated chat with visible Local/Tank routing, conversational onboarding, and privacy receipts — now in public TestFlight beta.", icon: DeviceMobile },
+  { label: "Apple-native day surface", detail: "Home Screen and Lock Screen briefing widget, Siri shortcuts, Focus-aware planning, and evening wrap-up on Today.", icon: DeviceMobile },
   { label: "Tank agent core", detail: "A local model with allowlisted tools. Nothing state-changing runs without explicit approval.", icon: HardDrives },
   { label: "Room-safe dashboard", detail: "Always-on status display for a shared screen—live on Tank today, private details stay on the phone.", icon: Monitor },
   { label: "Local-first contract", detail: "Token-authenticated boundary between devices. Anonymous requests are rejected, keys live in the Keychain.", icon: LockKey },
 ];
 const roadmap = [
-  ["Make the conversation real", "The iPhone app talks to a local model on Tank with clear processing receipts—no cloud in the loop.", "shipped"],
+  ["Ship the public beta", "TestFlight build with Today, Chat, widget, onboarding, and honest local-first boundaries — Tank optional.", "shipped"],
   ["Connect the private Tank", "Authenticated local-network routing with honest offline fallback when Tank is unreachable.", "shipped"],
   ["Personalize on Apple", "Conversational onboarding, briefing widget, Focus-aware priorities, clarifying notifications, and Siri shortcuts.", "shipped"],
-  ["Earn trust through action", "The agent core proposes, you approve. Approvals queue is live; the in-app review screen is being built now.", "in progress"],
-  ["Understand the day", "Scheduled daily briefing from calendar and reminders, with progressive permission prompts.", "in progress"],
+  ["Earn trust through action", "The agent core proposes, you approve. Activity queue and in-app review surfaces continue to mature.", "in progress"],
+  ["Understand the day", "Morning briefing and evening wrap-up from calendar and reminders, with progressive permission prompts.", "in progress"],
   ["Grow without lock-in", "Optional cloud capacity and integrations while useful local features stay free.", "later"],
 ];
 
@@ -87,12 +87,12 @@ export function App() {
       <main>
         <section className="hero section" id="vision">
           <div className="hero-copy reveal">
-            <div className="status-pill"><span /> In development</div>
+            <div className="status-pill"><span /> TestFlight beta</div>
             <p className="eyebrow">A personal project, built in the open</p>
             <h1>NOBS</h1>
             <h2>Your technology.<br />Finally working for you.</h2>
             <p className="lede">I’m building a private, local-first personal assistant for Apple devices—one that runs on your terms, keeps your context under your control, and helps make everyday technology genuinely useful.</p>
-            <p className="honesty-note">This is an ongoing prototype. Everything here reflects real work so far, not a finished product.</p>
+            <p className="honesty-note">The iPhone app is in public TestFlight beta. Core planning works on-device; Tank is optional. Expect rough edges while the build matures.</p>
             <a className="primary-link" href={githubUrl} target="_blank" rel="noreferrer"><GithubLogo weight="fill" /> Follow the build on GitHub <ArrowRight /></a>
           </div>
           <div className="hero-art reveal" aria-label="Current NOBS iPhone prototype">
@@ -101,10 +101,10 @@ export function App() {
             <div className="annotation annotation-two"><span>Processing stays visible</span><i /></div>
           </div>
           <div className="code-window reveal" aria-label="SwiftUI code excerpt">
-            <div className="window-bar"><span /><span /><span /><b>ConversationView.swift</b></div>
-            <pre><code><em>struct</em> MorningHighlight: View {`{`}{"\n"}  <em>var</em> body: some View {`{`}{"\n"}    Label(<q>Morning highlight</q>,{`\n`}      systemImage: <q>sun.max</q>){`\n`}  {`}`}{"\n"}{`}`}</code></pre>
+            <div className="window-bar"><span /><span /><span /><b>TodayView.swift</b></div>
+            <pre><code><em>if</em> model.shouldShowEveningWrapUp {`{`}{"\n"}  EveningWrapUpCard({`\n`}    wrapUp: model.eveningWrapUp{`\n`}  ){`\n`}  .nobsSectionCard(){`\n`}{`}`}</code></pre>
           </div>
-          <p className="code-note">SwiftUI, in progress</p>
+          <p className="code-note">SwiftUI · shared NOBS design tokens</p>
         </section>
 
         <section className="architecture section" id="architecture">
@@ -199,7 +199,7 @@ export function App() {
           <a className="github-card" href={githubUrl} target="_blank" rel="noreferrer"><GithubLogo weight="fill" /><span><strong>Follow the build on GitHub</strong><small>See the code, roadmap, and latest progress.</small></span><ArrowRight /></a>
         </section>
       </main>
-      <footer><span>© 2026 Alexander Burgess</span><button onClick={() => goTo("vision")}>Back to top ↑</button><span>nobsdash.com</span></footer>
+      <footer><span>© 2026 Alexander Burgess</span><button onClick={() => goTo("vision")}>Back to top ↑</button><span><a href="/privacy.html">Privacy</a> · nobsdash.com</span></footer>
     </div>
   );
 }
