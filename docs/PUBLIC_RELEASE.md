@@ -2,6 +2,12 @@
 
 Use this before switching the repository from private to public.
 
+## Repository split (done)
+
+- [x] Internal fundraising, discovery, ops docs, and QA captures moved to **NOBS-private** (`https://github.com/acburgess25/NOBS-private`).
+- [x] Public tree keeps redirect stubs under `docs/internal/` and `docs/app-store/review-notes.md`.
+- [x] `outputs/` gitignored in the public repo.
+
 ## Repository hygiene
 
 - [ ] Scan for secrets: `git grep -iE 'password|api[_-]?key|BEGIN PRIVATE|mobileprovision|\.p8'` and review `deploy/`, `docs/`, and `scripts/`.
