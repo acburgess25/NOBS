@@ -85,9 +85,9 @@ struct TodayView: View {
                         if model.highlightClarifyingQuestion {
                             Text("Notifications are off — answer here when you have a moment.")
                                 .font(.caption.weight(.semibold))
-                                .foregroundStyle(accent)
+                                .foregroundStyle(Color.nobsWarning)
                                 .padding(10)
-                                .background(Color.nobsWarning.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
+                                .background(Color.nobsWarningWash, in: RoundedRectangle(cornerRadius: 10))
                         }
                         if model.clarifyingConflict != nil {
                             Button("Resolve overlap") {

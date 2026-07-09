@@ -109,16 +109,27 @@ struct ConversationView: View {
             }
             Spacer()
             Button { Task { await model.refreshTankStatus() } } label: {
-                Label(
-                    model.tankAvailable ? "Tank" : "Local",
-                    systemImage: model.tankAvailable ? "server.rack" : "iphone"
-                )
+                HStack(spacing: 7) {
+                    Circle()
+                        .fill(model.tankAvailable ? Color.nobsOnline : Color.nobsMuted)
+                        .frame(width: 8, height: 8)
+                        .background(
+                            Circle()
+                                .fill(Color.nobsAccent.opacity(0.12))
+                                .frame(width: 16, height: 16)
+                                .opacity(model.tankAvailable ? 1 : 0)
+                        )
+                        .accessibilityHidden(true)
+                    Image(systemName: model.tankAvailable ? "server.rack" : "iphone")
+                    Text(model.tankAvailable ? "Tank" : "Local")
+                }
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(forest)
                 .padding(.horizontal, 11)
                 .padding(.vertical, 8)
                 .background(surface, in: Capsule())
             }
+            .accessibilityLabel(model.tankAvailable ? "Processing on Tank, connected" : "Processing locally")
             .accessibilityHint("Checks the current processing connection")
         }
         .padding(.horizontal, 14)
