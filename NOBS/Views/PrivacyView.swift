@@ -3,6 +3,7 @@ import SwiftUI
 struct PrivacyView: View {
     @EnvironmentObject private var model: AppModel
     @State private var isScanningQR = false
+    @State private var isPickingConfigFolder = false
     private let accent = Color.nobsAccent
 
     var body: some View {
@@ -26,6 +27,47 @@ struct PrivacyView: View {
                 Text("Quick Connect")
             } footer: {
                 Text("Sign in once and NOBS automatically reconnects to Tank whenever you're home.")
+            }
+
+            Section {
+                if let name = model.externalConfigFolderName {
+                    LabeledContent("Folder", value: name)
+                } else {
+                    Text("No folder linked")
+                        .foregroundStyle(.secondary)
+                }
+                if let synced = model.externalConfigLastSyncAt {
+                    LabeledContent("Last sync") {
+                        Text(synced, style: .relative)
+                    }
+                }
+                if let status = model.externalConfigStatus, !status.isEmpty {
+                    Text(status)
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                Button {
+                    isPickingConfigFolder = true
+                } label: {
+                    Label(
+                        model.externalConfigFolderName == nil ? "Choose iCloud folder" : "Change folder",
+                        systemImage: "folder.badge.gearshape"
+                    )
+                }
+                if model.externalConfigFolderName != nil {
+                    Button {
+                        Task { await model.syncExternalConfigFromFolder() }
+                    } label: {
+                        Label("Sync now", systemImage: "arrow.clockwise")
+                    }
+                    Button("Unlink folder", role: .destructive) {
+                        model.unlinkExternalConfigFolder()
+                    }
+                }
+            } header: {
+                Text("iCloud config folder")
+            } footer: {
+                Text("Place profile.json and tank.json in an iCloud Drive folder. NOBS re-reads them when you open the app. Never put device tokens in these files.")
             }
 
             Section("Manual Tank Setup") {
@@ -80,6 +122,16 @@ struct PrivacyView: View {
                     }
                 }
             }
+        }
+        .sheet(isPresented: $isPickingConfigFolder) {
+            ConfigFolderPicker(
+                onPick: { url in
+                    isPickingConfigFolder = false
+                    Task { await model.linkExternalConfigFolder(url) }
+                },
+                onCancel: { isPickingConfigFolder = false }
+            )
+            .ignoresSafeArea()
         }
     }
 

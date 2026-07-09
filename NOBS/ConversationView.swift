@@ -3,6 +3,7 @@ import SwiftUI
 struct ConversationView: View {
     @EnvironmentObject private var model: AppModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.scenePhase) private var scenePhase
     @State private var draft = ""
     @State private var selectedReceipt: PrivacyReceipt?
     @State private var showNavigation = false
@@ -26,6 +27,11 @@ struct ConversationView: View {
             }
         }
         .task { await model.start() }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active {
+                Task { await model.syncExternalConfigFromFolder() }
+            }
+        }
         .onChange(of: model.needsOnboarding) { _, needsOnboarding in
             guard !needsOnboarding, let prompt = model.consumePendingChatPrompt() else { return }
             draft = prompt

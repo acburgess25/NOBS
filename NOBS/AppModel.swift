@@ -44,6 +44,9 @@ final class AppModel: ObservableObject {
     @Published var showConflictSheet = false
     @Published var highlightClarifyingQuestion = false
     @Published var notificationAuthorizationStatus: UNAuthorizationStatus = .notDetermined
+    @Published var externalConfigFolderName: String? = ExternalConfigSync.linkedFolderName
+    @Published var externalConfigLastSyncAt: Date?
+    @Published var externalConfigStatus: String?
 
     var appleUserID: String? { TankConfiguration.savedAppleUserID }
 
@@ -129,6 +132,45 @@ final class AppModel: ObservableObject {
             }
         }
         startAutoRefresh()
+        await syncExternalConfigFromFolder()
+    }
+
+    func linkExternalConfigFolder(_ url: URL) async {
+        do {
+            try ExternalConfigSync.saveFolderBookmark(url)
+            externalConfigFolderName = url.lastPathComponent
+            externalConfigStatus = "Linked \(url.lastPathComponent)."
+            await syncExternalConfigFromFolder()
+        } catch {
+            lastError = "Could not link config folder."
+            externalConfigStatus = "Link failed."
+        }
+    }
+
+    func unlinkExternalConfigFolder() {
+        ExternalConfigSync.clearFolderBookmark()
+        externalConfigFolderName = nil
+        externalConfigStatus = "Config folder unlinked."
+    }
+
+    func syncExternalConfigFromFolder() async {
+        guard ExternalConfigSync.hasLinkedFolder else { return }
+        let syncResult = await ExternalConfigSync.sync(profile: profile, tankAddress: tankAddress)
+        let result = syncResult.result
+        if result.appliedProfile {
+            profile = syncResult.profile
+            persistProfile()
+        }
+        if result.appliedTankAddress {
+            tankAddress = syncResult.tankAddress
+        }
+        if result.appliedProfile || result.appliedTankAddress {
+            externalConfigLastSyncAt = Date()
+        }
+        externalConfigStatus = result.summary
+        if result.appliedTankAddress, TankConfiguration.currentToken != nil {
+            await refreshTankStatus()
+        }
     }
 
     func signInWithApple(userIdentifier: String, identityToken: String?) async {
