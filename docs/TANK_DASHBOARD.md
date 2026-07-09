@@ -56,4 +56,4 @@ python3 scripts/dev.py check
 curl -fsS http://127.0.0.1:8000/dashboard/status
 ```
 
-Visual QA evidence is stored under `outputs/dashboard-qa/`.
+Visual QA evidence is stored in the private repo under `outputs/dashboard-qa/` (see [`docs/internal/README.md`](internal/README.md)).

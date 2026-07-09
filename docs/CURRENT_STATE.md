@@ -1,6 +1,6 @@
 # NOBS Current State
 
-**Last updated:** July 7, 2026 (App Store beta polish + unified NOBS theme; macOS mobile Tank menu-bar app + App Intents/Siri)
+**Last updated:** July 8, 2026 (iOS session handoff merged with App Store beta polish + macOS mobile Tank)
 **Purpose:** Tool-neutral handoff for any contributor entering without prior chat history.
 
 This records implementation state, not product direction. [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md) remains the approved product source of truth. Verify the branch, tests, and live services before treating deployment facts as current.
@@ -36,12 +36,14 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 - Today can include local reminders (when permission is granted) alongside
   calendar events in briefing context.
 - Activity lists pending Tank changes and provides explicit Approve and Deny actions.
+- A Live Activity (`NOBSWidgets/ApprovalLiveActivity.swift`) shows the latest pending Tank approval on the Lock Screen and Dynamic Island — concise tool name, reason, risk badge, and a "+N more waiting" count. Approve/Deny deep-link into the app (`nobs://approvals?id=…&action=…`) rather than executing from the extension, so every decision still goes through the same atomic, audited `AppModel.decideApproval` path. `ApprovalActivityManager` starts/updates/ends the activity from `AppModel.loadApprovals()`; it reattaches to a still-visible activity on relaunch and requires no new backend API.
 - Activity shows Tank schedules and supports pause/revoke actions, plus sync action receipts with Local/Tank processing labels.
 - Today briefing lists respect `UserProfile.accessibilityPreferences.responseLength`; refresh control and relative timestamp shown when a briefing exists.
 - Onboarding collects response length (brief / standard / detailed) conversationally.
 - Today shows a local evening wrap-up after 5pm from calendar, reminders, and briefing context.
 - Shared `NOBSTheme` modifiers (`nobsScreenBackground`, `nobsSectionCard`, `NOBSEmptyState`, `NOBSBetaBadge`) and `Color+NOBS` tokens unify Chat, Today, onboarding, Privacy, Activity, and the briefing widget palette.
 - App Store beta prep: metadata templates in `docs/app-store/`, checklist in `docs/APP_STORE_BETA_CHECKLIST.md`, privacy policy at `website/public/privacy.html`.
+- Smart-home direction documented in `docs/GOOGLE_HOME_INTEGRATION.md` (Home Assistant bridge first; Google Home APIs later).
 
 - iOS 27 simulator build verified with Xcode 27 beta (`scripts/build-ios-simulator.sh` or `CODE_SIGNING_ALLOWED=NO`).
 
@@ -79,6 +81,8 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 - SQLite-backed approval queue for state-changing tools.
 - Atomic, non-replayable approval execution and local audit events.
 - Current tools: Tank status, bounded workspace listing, approval-gated Markdown note creation, plus developer-mode project listing, project file reading, and project text search.
+- Home control tools: `list_home_devices`, `control_home_device`, `control_secure_home_device`, `list_home_scenes`, `run_home_scene` — all backed by the existing Home Assistant bridge (`app/home_assistant.py`); state-changing calls always create a pending approval. No direct HomeKit protocol code on Tank (cross-platform requirement); Apple Home accessories reach Tank by being bridged into Home Assistant. iOS Home tab and Activity rendering for these proposals are still pending (see `docs/GOOGLE_HOME_INTEGRATION.md`).
+- Overnight Tank queue: `overnight_tasks` SQLite table plus `POST/GET /overnight/tasks`, `GET /overnight/tasks/{id}`, `POST /overnight/tasks/{id}/cancel`. The scheduler claims and runs one queued task at a time through the normal agent/approval path when the current time falls inside the configured `NOBS_TIMEZONE` overnight window and Tank's recent CPU load is idle. See `docs/TANK_AGENT_CORE.md`.
 - Deterministic tests plus live Tank verification for read-only execution and denied changes.
 - Device-authenticated daily briefing generation with validated contexts, a
   privacy receipt, and latest-per-date SQLite persistence.
@@ -120,7 +124,7 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 - No household identity, subscription, or NOBScloud implementation.
 - No arbitrary MCP server is trusted or installed by the NOBS agent.
 - mDNS (`tank.local`) may not resolve on every LAN; clients can use the Tank host IP directly (for example `http://192.168.1.100:8000`).
-- Physical iPhone validation and TestFlight upload remain pending (simulator build verified; archive requires home signing).
+- Physical iPhone validation and TestFlight upload remain pending (simulator build verified; archive requires home signing). See [`docs/CI_TROUBLESHOOTING.md`](CI_TROUBLESHOOTING.md) for current CI failure modes.
 
 ## Recommended next vertical slice
 

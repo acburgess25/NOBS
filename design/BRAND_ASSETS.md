@@ -74,8 +74,8 @@ Use official marks per each vendor’s brand guidelines. The HTML board loads ne
 | Asset | Size | Status |
 |-------|------|--------|
 | App icon | 1024×1024 PNG | ✅ Generated (placeholder “N”) |
-| iPhone screenshots | 6.7" (1290×2796), 6.5" (1284×2778), etc. | Use `outputs/device-hub-live-audit/*.png` |
-| iPad screenshots | 12.9" (2048×2732) if supporting iPad | `outputs/device-hub-qa/ipad-pro-13.png` |
+| iPhone screenshots | 6.7" (1290×2796), 6.5" (1284×2778), etc. | Private repo `outputs/device-hub-live-audit/` |
+| iPad screenshots | 12.9" (2048×2732) if supporting iPad | Private repo `outputs/device-hub-qa/ipad-pro-13.png` |
 | Export compliance | `ITSAppUsesNonExemptEncryption = false` | ✅ In `NOBS/Info.plist` |
 | Privacy policy URL | Required for external TestFlight | Add before public beta |
 | App Store description | — | Draft from `docs/PRODUCT_DECISIONS.md` |
@@ -93,7 +93,7 @@ Use official marks per each vendor’s brand guidelines. The HTML board loads ne
 | Asset | Path |
 |-------|------|
 | Dashboard UI | `dashboard/` |
-| Dashboard QA | `outputs/dashboard-qa/` |
+| Dashboard QA | Private repo `outputs/dashboard-qa/` (see [`docs/internal/README.md`](../docs/internal/README.md)) |
 | Kiosk script | `scripts/start-dashboard-kiosk.sh` |
 
 ---

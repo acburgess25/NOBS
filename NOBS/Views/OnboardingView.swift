@@ -60,6 +60,7 @@ struct OnboardingView: View {
         }
         .padding(28)
         .nobsScreenBackground()
+        .accessibilityElement(children: .contain)
     }
 
     private func applyPhaseChange(_ next: Phase) {

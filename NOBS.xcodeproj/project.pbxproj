@@ -7,12 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		DA0000000000000000000001 /* NOBSTankApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB0000000000000000000001 /* NOBSTankApp.swift */; };
-		DA0000000000000000000002 /* TankSupervisor.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB0000000000000000000002 /* TankSupervisor.swift */; };
-		DA0000000000000000000003 /* TankClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB0000000000000000000003 /* TankClient.swift */; };
-		DA0000000000000000000004 /* LocalAssistant.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB0000000000000000000004 /* LocalAssistant.swift */; };
-		DA0000000000000000000005 /* MenuContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB0000000000000000000005 /* MenuContentView.swift */; };
-		DA0000000000000000000006 /* AskNOBSIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB0000000000000000000006 /* AskNOBSIntent.swift */; };
 		A10000000000000000000001 /* NOBSApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000001 /* NOBSApp.swift */; };
 		A10000000000000000000002 /* ConversationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000002 /* ConversationView.swift */; };
 		A10000000000000000000003 /* AppModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000004 /* AppModel.swift */; };
@@ -32,12 +26,12 @@
 		B10000000000000000000010 /* PrivacyReceiptView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000010 /* PrivacyReceiptView.swift */; };
 		B10000000000000000000011 /* UserProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000011 /* UserProfile.swift */; };
 		B10000000000000000000012 /* BriefingSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000012 /* BriefingSnapshot.swift */; };
-		B10000000000000000000018 /* BriefingSnapshot+Briefing.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000018 /* BriefingSnapshot+Briefing.swift */; };
 		B10000000000000000000013 /* AppGroupStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000013 /* AppGroupStore.swift */; };
 		B10000000000000000000014 /* UserProfileStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000014 /* UserProfileStore.swift */; };
 		B10000000000000000000015 /* BriefingSnapshotWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000015 /* BriefingSnapshotWriter.swift */; };
 		B10000000000000000000016 /* DeepLinkRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000016 /* DeepLinkRouter.swift */; };
 		B10000000000000000000017 /* OnboardingChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000017 /* OnboardingChatView.swift */; };
+		B10000000000000000000018 /* BriefingSnapshot+Briefing.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000018 /* BriefingSnapshot+Briefing.swift */; };
 		B10000000000000000000019 /* FocusContextService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000019 /* FocusContextService.swift */; };
 		B10000000000000000000020 /* ClarifyingConflict.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000020 /* ClarifyingConflict.swift */; };
 		B10000000000000000000021 /* NotificationScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000021 /* NotificationScheduler.swift */; };
@@ -49,9 +43,15 @@
 		B10000000000000000000028 /* StoreProducts.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000028 /* StoreProducts.swift */; };
 		B10000000000000000000029 /* StoreKitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000029 /* StoreKitService.swift */; };
 		B10000000000000000000030 /* SupportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000030 /* SupportView.swift */; };
-		G10000000000000000000001 /* NOBS.storekit in Resources */ = {isa = PBXBuildFile; fileRef = G20000000000000000000001 /* NOBS.storekit */; };
+		B10000000000000000000031 /* NOBSTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000031 /* NOBSTheme.swift */; };
 		C10000000000000000000001 /* KeychainAccess in Frameworks */ = {isa = PBXBuildFile; productRef = C30000000000000000000001 /* KeychainAccess */; };
 		C10000000000000000000002 /* AnyCodable in Frameworks */ = {isa = PBXBuildFile; productRef = C30000000000000000000002 /* AnyCodable */; };
+		DA0000000000000000000001 /* NOBSTankApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB0000000000000000000001 /* NOBSTankApp.swift */; };
+		DA0000000000000000000002 /* TankSupervisor.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB0000000000000000000002 /* TankSupervisor.swift */; };
+		DA0000000000000000000003 /* TankClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB0000000000000000000003 /* TankClient.swift */; };
+		DA0000000000000000000004 /* LocalAssistant.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB0000000000000000000004 /* LocalAssistant.swift */; };
+		DA0000000000000000000005 /* MenuContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB0000000000000000000005 /* MenuContentView.swift */; };
+		DA0000000000000000000006 /* AskNOBSIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB0000000000000000000006 /* AskNOBSIntent.swift */; };
 		E10000000000000000000001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = E20000000000000000000001 /* Assets.xcassets */; };
 		F10000000000000000000001 /* NOBSWidgetsBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20000000000000000000001 /* NOBSWidgetsBundle.swift */; };
 		F10000000000000000000002 /* BriefingWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = F20000000000000000000002 /* BriefingWidget.swift */; };
@@ -60,65 +60,15 @@
 		F10000000000000000000005 /* BriefingSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000012 /* BriefingSnapshot.swift */; };
 		F10000000000000000000006 /* NOBSWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = F20000000000000000000006 /* NOBSWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		F10000000000000000000007 /* Color+NOBS.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000008 /* Color+NOBS.swift */; };
-		B10000000000000000000031 /* NOBSTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000031 /* NOBSTheme.swift */; };
+		G10000000000000000000001 /* NOBS.storekit in Resources */ = {isa = PBXBuildFile; fileRef = G20000000000000000000001 /* NOBS.storekit */; };
+		H10000000000000000000001 /* ApprovalActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = H20000000000000000000001 /* ApprovalActivityAttributes.swift */; };
+		H10000000000000000000002 /* ApprovalActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = H20000000000000000000001 /* ApprovalActivityAttributes.swift */; };
+		H10000000000000000000003 /* ApprovalActivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = H20000000000000000000002 /* ApprovalActivityManager.swift */; };
+		H10000000000000000000004 /* ApprovalLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = H20000000000000000000003 /* ApprovalLiveActivity.swift */; };
+		I10000000000000000000001 /* ExternalConfigFiles.swift in Sources */ = {isa = PBXBuildFile; fileRef = I20000000000000000000001 /* ExternalConfigFiles.swift */; };
+		I10000000000000000000002 /* ExternalConfigSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = I20000000000000000000002 /* ExternalConfigSync.swift */; };
+		I10000000000000000000003 /* ConfigFolderPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = I20000000000000000000003 /* ConfigFolderPicker.swift */; };
 /* End PBXBuildFile section */
-
-/* Begin PBXFileReference section */
-		DB0000000000000000000001 /* NOBSTankApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NOBSTankApp.swift; sourceTree = "<group>"; };
-		DB0000000000000000000002 /* TankSupervisor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TankSupervisor.swift; sourceTree = "<group>"; };
-		DB0000000000000000000003 /* TankClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TankClient.swift; sourceTree = "<group>"; };
-		DB0000000000000000000004 /* LocalAssistant.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalAssistant.swift; sourceTree = "<group>"; };
-		DB0000000000000000000005 /* MenuContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuContentView.swift; sourceTree = "<group>"; };
-		DB0000000000000000000006 /* AskNOBSIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AskNOBSIntent.swift; sourceTree = "<group>"; };
-		DB00000000000000000000007 /* NOBSTank.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NOBSTank.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		A20000000000000000000001 /* NOBSApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NOBSApp.swift; sourceTree = "<group>"; };
-		A20000000000000000000002 /* ConversationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationView.swift; sourceTree = "<group>"; };
-		A20000000000000000000003 /* NOBS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NOBS.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		A20000000000000000000004 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
-		A20000000000000000000005 /* ScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScannerView.swift; sourceTree = "<group>"; };
-		A20000000000000000000006 /* ApprovalsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApprovalsView.swift; sourceTree = "<group>"; };
-		A20000000000000000000007 /* SignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInView.swift; sourceTree = "<group>"; };
-		A20000000000000000000008 /* Color+NOBS.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+NOBS.swift"; sourceTree = "<group>"; };
-		A20000000000000000000009 /* NOBS.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = NOBS.entitlements; sourceTree = "<group>"; };
-		B20000000000000000000001 /* NOBSModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NOBSModels.swift; sourceTree = "<group>"; };
-		B20000000000000000000002 /* TankConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TankConfiguration.swift; sourceTree = "<group>"; };
-		B20000000000000000000003 /* TankClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TankClient.swift; sourceTree = "<group>"; };
-		B20000000000000000000004 /* CalendarService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarService.swift; sourceTree = "<group>"; };
-		B20000000000000000000005 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
-		B20000000000000000000006 /* TodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayView.swift; sourceTree = "<group>"; };
-		B20000000000000000000007 /* ActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityView.swift; sourceTree = "<group>"; };
-		B20000000000000000000008 /* PrivacyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyView.swift; sourceTree = "<group>"; };
-		B20000000000000000000009 /* ComingSoonView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComingSoonView.swift; sourceTree = "<group>"; };
-		B20000000000000000000010 /* PrivacyReceiptView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyReceiptView.swift; sourceTree = "<group>"; };
-		B20000000000000000000011 /* UserProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfile.swift; sourceTree = "<group>"; };
-		B20000000000000000000012 /* BriefingSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BriefingSnapshot.swift; sourceTree = "<group>"; };
-		B20000000000000000000018 /* BriefingSnapshot+Briefing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BriefingSnapshot+Briefing.swift"; sourceTree = "<group>"; };
-		B20000000000000000000013 /* AppGroupStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppGroupStore.swift; sourceTree = "<group>"; };
-		B20000000000000000000014 /* UserProfileStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfileStore.swift; sourceTree = "<group>"; };
-		B20000000000000000000015 /* BriefingSnapshotWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BriefingSnapshotWriter.swift; sourceTree = "<group>"; };
-		B20000000000000000000016 /* DeepLinkRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepLinkRouter.swift; sourceTree = "<group>"; };
-		B20000000000000000000017 /* OnboardingChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingChatView.swift; sourceTree = "<group>"; };
-		B20000000000000000000019 /* FocusContextService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusContextService.swift; sourceTree = "<group>"; };
-		B20000000000000000000020 /* ClarifyingConflict.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClarifyingConflict.swift; sourceTree = "<group>"; };
-		B20000000000000000000021 /* NotificationScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationScheduler.swift; sourceTree = "<group>"; };
-		B20000000000000000000022 /* NotificationDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationDelegate.swift; sourceTree = "<group>"; };
-		B20000000000000000000023 /* ConflictResolutionSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConflictResolutionSheet.swift; sourceTree = "<group>"; };
-		B20000000000000000000025 /* AppIntentSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppIntentSupport.swift; sourceTree = "<group>"; };
-		B20000000000000000000026 /* NOBSAppIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NOBSAppIntents.swift; sourceTree = "<group>"; };
-		B20000000000000000000027 /* NOBSShortcuts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NOBSShortcuts.swift; sourceTree = "<group>"; };
-		B20000000000000000000028 /* StoreProducts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreProducts.swift; sourceTree = "<group>"; };
-		B20000000000000000000029 /* StoreKitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreKitService.swift; sourceTree = "<group>"; };
-		B20000000000000000000030 /* SupportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupportView.swift; sourceTree = "<group>"; };
-		B20000000000000000000031 /* NOBSTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NOBSTheme.swift; sourceTree = "<group>"; };
-		G20000000000000000000001 /* NOBS.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = NOBS.storekit; sourceTree = "<group>"; };
-		E20000000000000000000001 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		F20000000000000000000001 /* NOBSWidgetsBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NOBSWidgetsBundle.swift; sourceTree = "<group>"; };
-		F20000000000000000000002 /* BriefingWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BriefingWidget.swift; sourceTree = "<group>"; };
-		F20000000000000000000003 /* BriefingSnapshotReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BriefingSnapshotReader.swift; sourceTree = "<group>"; };
-		F20000000000000000000004 /* NOBSWidgets.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = NOBSWidgets.entitlements; sourceTree = "<group>"; };
-		F20000000000000000000005 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		F20000000000000000000006 /* NOBSWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = NOBSWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
-/* End PBXFileReference section */
 
 /* Begin PBXContainerItemProxy section */
 		F80000000000000000000001 /* PBXContainerItemProxy */ = {
@@ -144,7 +94,79 @@
 		};
 /* End PBXCopyFilesBuildPhase section */
 
+/* Begin PBXFileReference section */
+		A20000000000000000000001 /* NOBSApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NOBSApp.swift; sourceTree = "<group>"; };
+		A20000000000000000000002 /* ConversationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConversationView.swift; sourceTree = "<group>"; };
+		A20000000000000000000003 /* NOBS.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NOBS.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A20000000000000000000004 /* AppModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppModel.swift; sourceTree = "<group>"; };
+		A20000000000000000000005 /* ScannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScannerView.swift; sourceTree = "<group>"; };
+		A20000000000000000000006 /* ApprovalsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApprovalsView.swift; sourceTree = "<group>"; };
+		A20000000000000000000007 /* SignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInView.swift; sourceTree = "<group>"; };
+		A20000000000000000000008 /* Color+NOBS.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Color+NOBS.swift"; sourceTree = "<group>"; };
+		A20000000000000000000009 /* NOBS.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = NOBS.entitlements; sourceTree = "<group>"; };
+		B20000000000000000000001 /* NOBSModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NOBSModels.swift; sourceTree = "<group>"; };
+		B20000000000000000000002 /* TankConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TankConfiguration.swift; sourceTree = "<group>"; };
+		B20000000000000000000003 /* TankClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TankClient.swift; sourceTree = "<group>"; };
+		B20000000000000000000004 /* CalendarService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarService.swift; sourceTree = "<group>"; };
+		B20000000000000000000005 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
+		B20000000000000000000006 /* TodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayView.swift; sourceTree = "<group>"; };
+		B20000000000000000000007 /* ActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityView.swift; sourceTree = "<group>"; };
+		B20000000000000000000008 /* PrivacyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyView.swift; sourceTree = "<group>"; };
+		B20000000000000000000009 /* ComingSoonView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ComingSoonView.swift; sourceTree = "<group>"; };
+		B20000000000000000000010 /* PrivacyReceiptView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PrivacyReceiptView.swift; sourceTree = "<group>"; };
+		B20000000000000000000011 /* UserProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfile.swift; sourceTree = "<group>"; };
+		B20000000000000000000012 /* BriefingSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BriefingSnapshot.swift; sourceTree = "<group>"; };
+		B20000000000000000000013 /* AppGroupStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppGroupStore.swift; sourceTree = "<group>"; };
+		B20000000000000000000014 /* UserProfileStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserProfileStore.swift; sourceTree = "<group>"; };
+		B20000000000000000000015 /* BriefingSnapshotWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BriefingSnapshotWriter.swift; sourceTree = "<group>"; };
+		B20000000000000000000016 /* DeepLinkRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepLinkRouter.swift; sourceTree = "<group>"; };
+		B20000000000000000000017 /* OnboardingChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingChatView.swift; sourceTree = "<group>"; };
+		B20000000000000000000018 /* BriefingSnapshot+Briefing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "BriefingSnapshot+Briefing.swift"; sourceTree = "<group>"; };
+		B20000000000000000000019 /* FocusContextService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusContextService.swift; sourceTree = "<group>"; };
+		B20000000000000000000020 /* ClarifyingConflict.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClarifyingConflict.swift; sourceTree = "<group>"; };
+		B20000000000000000000021 /* NotificationScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationScheduler.swift; sourceTree = "<group>"; };
+		B20000000000000000000022 /* NotificationDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationDelegate.swift; sourceTree = "<group>"; };
+		B20000000000000000000023 /* ConflictResolutionSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConflictResolutionSheet.swift; sourceTree = "<group>"; };
+		B20000000000000000000025 /* AppIntentSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppIntentSupport.swift; sourceTree = "<group>"; };
+		B20000000000000000000026 /* NOBSAppIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NOBSAppIntents.swift; sourceTree = "<group>"; };
+		B20000000000000000000027 /* NOBSShortcuts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NOBSShortcuts.swift; sourceTree = "<group>"; };
+		B20000000000000000000028 /* StoreProducts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreProducts.swift; sourceTree = "<group>"; };
+		B20000000000000000000029 /* StoreKitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StoreKitService.swift; sourceTree = "<group>"; };
+		B20000000000000000000030 /* SupportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupportView.swift; sourceTree = "<group>"; };
+		B20000000000000000000031 /* NOBSTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NOBSTheme.swift; sourceTree = "<group>"; };
+		DB00000000000000000000007 /* NOBSTank.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = NOBSTank.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		DB0000000000000000000001 /* NOBSTankApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NOBSTankApp.swift; sourceTree = "<group>"; };
+		DB0000000000000000000002 /* TankSupervisor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TankSupervisor.swift; sourceTree = "<group>"; };
+		DB0000000000000000000003 /* TankClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TankClient.swift; sourceTree = "<group>"; };
+		DB0000000000000000000004 /* LocalAssistant.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalAssistant.swift; sourceTree = "<group>"; };
+		DB0000000000000000000005 /* MenuContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuContentView.swift; sourceTree = "<group>"; };
+		DB0000000000000000000006 /* AskNOBSIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AskNOBSIntent.swift; sourceTree = "<group>"; };
+		E20000000000000000000001 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		F20000000000000000000001 /* NOBSWidgetsBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NOBSWidgetsBundle.swift; sourceTree = "<group>"; };
+		F20000000000000000000002 /* BriefingWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BriefingWidget.swift; sourceTree = "<group>"; };
+		F20000000000000000000003 /* BriefingSnapshotReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BriefingSnapshotReader.swift; sourceTree = "<group>"; };
+		F20000000000000000000004 /* NOBSWidgets.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = NOBSWidgets.entitlements; sourceTree = "<group>"; };
+		F20000000000000000000005 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		F20000000000000000000006 /* NOBSWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = NOBSWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		G20000000000000000000001 /* NOBS.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = NOBS.storekit; sourceTree = "<group>"; };
+		H20000000000000000000001 /* ApprovalActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApprovalActivityAttributes.swift; sourceTree = "<group>"; };
+		H20000000000000000000002 /* ApprovalActivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApprovalActivityManager.swift; sourceTree = "<group>"; };
+		H20000000000000000000003 /* ApprovalLiveActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApprovalLiveActivity.swift; sourceTree = "<group>"; };
+		I20000000000000000000001 /* ExternalConfigFiles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExternalConfigFiles.swift; sourceTree = "<group>"; };
+		I20000000000000000000002 /* ExternalConfigSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExternalConfigSync.swift; sourceTree = "<group>"; };
+		I20000000000000000000003 /* ConfigFolderPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigFolderPicker.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
 /* Begin PBXFrameworksBuildPhase section */
+		A30000000000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C10000000000000000000002 /* AnyCodable in Frameworks */,
+				C10000000000000000000001 /* KeychainAccess in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		DC00000000000000000000001 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
@@ -159,31 +181,9 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		A30000000000000000000001 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				C10000000000000000000002 /* AnyCodable in Frameworks */,
-				C10000000000000000000001 /* KeychainAccess in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		DD00000000000000000000001 /* NOBSTankMac */ = {
-			isa = PBXGroup;
-			children = (
-				DB0000000000000000000001 /* NOBSTankApp.swift */,
-				DB0000000000000000000002 /* TankSupervisor.swift */,
-				DB0000000000000000000003 /* TankClient.swift */,
-				DB0000000000000000000004 /* LocalAssistant.swift */,
-				DB0000000000000000000005 /* MenuContentView.swift */,
-				DB0000000000000000000006 /* AskNOBSIntent.swift */,
-			);
-			path = NOBSTankMac;
-			sourceTree = "<group>";
-		};
 		A40000000000000000000001 = {
 			isa = PBXGroup;
 			children = (
@@ -192,18 +192,6 @@
 				DD00000000000000000000001 /* NOBSTankMac */,
 				A40000000000000000000003 /* Products */,
 			);
-			sourceTree = "<group>";
-		};
-		F40000000000000000000001 /* NOBSWidgets */ = {
-			isa = PBXGroup;
-			children = (
-				F20000000000000000000001 /* NOBSWidgetsBundle.swift */,
-				F20000000000000000000002 /* BriefingWidget.swift */,
-				F20000000000000000000003 /* BriefingSnapshotReader.swift */,
-				F20000000000000000000004 /* NOBSWidgets.entitlements */,
-				F20000000000000000000005 /* Info.plist */,
-			);
-			path = NOBSWidgets;
 			sourceTree = "<group>";
 		};
 		A40000000000000000000002 /* NOBS */ = {
@@ -227,6 +215,16 @@
 			path = NOBS;
 			sourceTree = "<group>";
 		};
+		A40000000000000000000003 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				A20000000000000000000003 /* NOBS.app */,
+				F20000000000000000000006 /* NOBSWidgets.appex */,
+				DB00000000000000000000007 /* NOBSTank.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
 		B40000000000000000000004 /* Models */ = {
 			isa = PBXGroup;
 			children = (
@@ -236,6 +234,8 @@
 				B20000000000000000000018 /* BriefingSnapshot+Briefing.swift */,
 				B20000000000000000000020 /* ClarifyingConflict.swift */,
 				B20000000000000000000028 /* StoreProducts.swift */,
+				H20000000000000000000001 /* ApprovalActivityAttributes.swift */,
+				I20000000000000000000001 /* ExternalConfigFiles.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -254,18 +254,10 @@
 				B20000000000000000000021 /* NotificationScheduler.swift */,
 				B20000000000000000000022 /* NotificationDelegate.swift */,
 				B20000000000000000000029 /* StoreKitService.swift */,
+				H20000000000000000000002 /* ApprovalActivityManager.swift */,
+				I20000000000000000000002 /* ExternalConfigSync.swift */,
 			);
 			path = Services;
-			sourceTree = "<group>";
-		};
-		B40000000000000000000007 /* Intents */ = {
-			isa = PBXGroup;
-			children = (
-				B20000000000000000000025 /* AppIntentSupport.swift */,
-				B20000000000000000000026 /* NOBSAppIntents.swift */,
-				B20000000000000000000027 /* NOBSShortcuts.swift */,
-			);
-			path = Intents;
 			sourceTree = "<group>";
 		};
 		B40000000000000000000006 /* Views */ = {
@@ -281,23 +273,73 @@
 				B20000000000000000000023 /* ConflictResolutionSheet.swift */,
 				B20000000000000000000030 /* SupportView.swift */,
 				B20000000000000000000031 /* NOBSTheme.swift */,
+				I20000000000000000000003 /* ConfigFolderPicker.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
 		};
-		A40000000000000000000003 /* Products */ = {
+		B40000000000000000000007 /* Intents */ = {
 			isa = PBXGroup;
 			children = (
-				A20000000000000000000003 /* NOBS.app */,
-				F20000000000000000000006 /* NOBSWidgets.appex */,
-				DB00000000000000000000007 /* NOBSTank.app */,
+				B20000000000000000000025 /* AppIntentSupport.swift */,
+				B20000000000000000000026 /* NOBSAppIntents.swift */,
+				B20000000000000000000027 /* NOBSShortcuts.swift */,
 			);
-			name = Products;
+			path = Intents;
+			sourceTree = "<group>";
+		};
+		DD00000000000000000000001 /* NOBSTankMac */ = {
+			isa = PBXGroup;
+			children = (
+				DB0000000000000000000001 /* NOBSTankApp.swift */,
+				DB0000000000000000000002 /* TankSupervisor.swift */,
+				DB0000000000000000000003 /* TankClient.swift */,
+				DB0000000000000000000004 /* LocalAssistant.swift */,
+				DB0000000000000000000005 /* MenuContentView.swift */,
+				DB0000000000000000000006 /* AskNOBSIntent.swift */,
+			);
+			path = NOBSTankMac;
+			sourceTree = "<group>";
+		};
+		F40000000000000000000001 /* NOBSWidgets */ = {
+			isa = PBXGroup;
+			children = (
+				F20000000000000000000001 /* NOBSWidgetsBundle.swift */,
+				F20000000000000000000002 /* BriefingWidget.swift */,
+				F20000000000000000000003 /* BriefingSnapshotReader.swift */,
+				H20000000000000000000003 /* ApprovalLiveActivity.swift */,
+				F20000000000000000000004 /* NOBSWidgets.entitlements */,
+				F20000000000000000000005 /* Info.plist */,
+			);
+			path = NOBSWidgets;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		A50000000000000000000001 /* NOBS */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A90000000000000000000002 /* Build configuration list for PBXNativeTarget "NOBS" */;
+			buildPhases = (
+				A60000000000000000000001 /* Sources */,
+				A30000000000000000000001 /* Frameworks */,
+				A70000000000000000000001 /* Resources */,
+				F70000000000000000000002 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				F80000000000000000000002 /* PBXTargetDependency */,
+			);
+			name = NOBS;
+			packageProductDependencies = (
+				C30000000000000000000002 /* AnyCodable */,
+				C30000000000000000000001 /* KeychainAccess */,
+			);
+			productName = NOBS;
+			productReference = A20000000000000000000003 /* NOBS.app */;
+			productType = "com.apple.product-type.application";
+		};
 		DE00000000000000000000001 /* NOBSTank */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = CC00000000000000000000001 /* Build configuration list for PBXNativeTarget "NOBSTank" */;
@@ -332,29 +374,6 @@
 			productReference = F20000000000000000000006 /* NOBSWidgets.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
-		A50000000000000000000001 /* NOBS */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = A90000000000000000000002 /* Build configuration list for PBXNativeTarget "NOBS" */;
-			buildPhases = (
-				A60000000000000000000001 /* Sources */,
-				A30000000000000000000001 /* Frameworks */,
-				A70000000000000000000001 /* Resources */,
-				F70000000000000000000002 /* Embed Foundation Extensions */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-				F80000000000000000000002 /* PBXTargetDependency */,
-			);
-			name = NOBS;
-			packageProductDependencies = (
-				C30000000000000000000002 /* AnyCodable */,
-				C30000000000000000000001 /* KeychainAccess */,
-			);
-			productName = NOBS;
-			productReference = A20000000000000000000003 /* NOBS.app */;
-			productType = "com.apple.product-type.application";
-		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -368,10 +387,10 @@
 					A50000000000000000000001 = {
 						CreatedOnToolsVersion = 27.0;
 					};
-					F50000000000000000000001 = {
+					DE00000000000000000000001 = {
 						CreatedOnToolsVersion = 27.0;
 					};
-					DE00000000000000000000001 = {
+					F50000000000000000000001 = {
 						CreatedOnToolsVersion = 27.0;
 					};
 				};
@@ -401,13 +420,6 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		CA00000000000000000000001 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		A70000000000000000000001 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -417,9 +429,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-/* End PBXResourcesBuildPhase section */
-
-/* Begin PBXResourcesBuildPhase section */
+		CA00000000000000000000001 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		F70000000000000000000001 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -430,32 +446,6 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		DF00000000000000000000001 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				DA0000000000000000000001 /* NOBSTankApp.swift in Sources */,
-				DA0000000000000000000002 /* TankSupervisor.swift in Sources */,
-				DA0000000000000000000003 /* TankClient.swift in Sources */,
-				DA0000000000000000000004 /* LocalAssistant.swift in Sources */,
-				DA0000000000000000000005 /* MenuContentView.swift in Sources */,
-				DA0000000000000000000006 /* AskNOBSIntent.swift in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		F60000000000000000000002 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				F10000000000000000000001 /* NOBSWidgetsBundle.swift in Sources */,
-				F10000000000000000000002 /* BriefingWidget.swift in Sources */,
-				F10000000000000000000003 /* BriefingSnapshotReader.swift in Sources */,
-				F10000000000000000000004 /* AppGroupStore.swift in Sources */,
-				F10000000000000000000005 /* BriefingSnapshot.swift in Sources */,
-				F10000000000000000000007 /* Color+NOBS.swift in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 		A60000000000000000000001 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -497,6 +487,39 @@
 				B10000000000000000000029 /* StoreKitService.swift in Sources */,
 				B10000000000000000000030 /* SupportView.swift in Sources */,
 				B10000000000000000000031 /* NOBSTheme.swift in Sources */,
+				H10000000000000000000001 /* ApprovalActivityAttributes.swift in Sources */,
+				H10000000000000000000003 /* ApprovalActivityManager.swift in Sources */,
+				I10000000000000000000001 /* ExternalConfigFiles.swift in Sources */,
+				I10000000000000000000002 /* ExternalConfigSync.swift in Sources */,
+				I10000000000000000000003 /* ConfigFolderPicker.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DF00000000000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DA0000000000000000000001 /* NOBSTankApp.swift in Sources */,
+				DA0000000000000000000002 /* TankSupervisor.swift in Sources */,
+				DA0000000000000000000003 /* TankClient.swift in Sources */,
+				DA0000000000000000000004 /* LocalAssistant.swift in Sources */,
+				DA0000000000000000000005 /* MenuContentView.swift in Sources */,
+				DA0000000000000000000006 /* AskNOBSIntent.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F60000000000000000000002 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F10000000000000000000001 /* NOBSWidgetsBundle.swift in Sources */,
+				F10000000000000000000002 /* BriefingWidget.swift in Sources */,
+				F10000000000000000000003 /* BriefingSnapshotReader.swift in Sources */,
+				F10000000000000000000004 /* AppGroupStore.swift in Sources */,
+				F10000000000000000000005 /* BriefingSnapshot.swift in Sources */,
+				F10000000000000000000007 /* Color+NOBS.swift in Sources */,
+				H10000000000000000000002 /* ApprovalActivityAttributes.swift in Sources */,
+				H10000000000000000000004 /* ApprovalLiveActivity.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -509,38 +532,6 @@
 			targetProxy = F80000000000000000000001 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
-
-/* Begin XCRemoteSwiftPackageReference section */
-		C20000000000000000000001 /* XCRemoteSwiftPackageReference "KeychainAccess" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/kishikawakatsumi/KeychainAccess";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 4.2.2;
-			};
-		};
-		C20000000000000000000002 /* XCRemoteSwiftPackageReference "AnyCodable" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/Flight-School/AnyCodable";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 0.6.7;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
-
-/* Begin XCSwiftPackageProductDependency section */
-		C30000000000000000000001 /* KeychainAccess */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = C20000000000000000000001 /* XCRemoteSwiftPackageReference "KeychainAccess" */;
-			productName = KeychainAccess;
-		};
-		C30000000000000000000002 /* AnyCodable */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = C20000000000000000000002 /* XCRemoteSwiftPackageReference "AnyCodable" */;
-			productName = AnyCodable;
-		};
-/* End XCSwiftPackageProductDependency section */
 
 /* Begin XCBuildConfiguration section */
 		CB00000000000000000000001 /* Debug */ = {
@@ -624,7 +615,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = NOBS/NOBS.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 16;
+				CURRENT_PROJECT_VERSION = 17;
 				DEVELOPMENT_TEAM = K853LKQLAS;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = NOBS/Info.plist;
@@ -632,9 +623,9 @@
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsLocalNetworking = YES;
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "NOBS uses your calendar on this iPhone to build a realistic day plan and identify conflicts.";
-				INFOPLIST_KEY_NSRemindersFullAccessUsageDescription = "NOBS uses your reminders on this iPhone to keep your Tank planning context up to date.";
-				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "NOBS connects to your private Tank to process requests on hardware you control.";
 				INFOPLIST_KEY_NSCameraUsageDescription = "NOBS uses the camera to scan a QR code to pair with your local Tank.";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "NOBS connects to your private Tank to process requests on hardware you control.";
+				INFOPLIST_KEY_NSRemindersFullAccessUsageDescription = "NOBS uses your reminders on this iPhone to keep your Tank planning context up to date.";
 				INFOPLIST_KEY_NSUserNotificationsUsageDescription = "NOBS can ask one quick question when your day needs a decision — not a stream of alerts.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -654,7 +645,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = NOBS/NOBS.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 16;
+				CURRENT_PROJECT_VERSION = 17;
 				DEVELOPMENT_TEAM = K853LKQLAS;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = NOBS/Info.plist;
@@ -662,9 +653,9 @@
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.productivity";
 				INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsLocalNetworking = YES;
 				INFOPLIST_KEY_NSCalendarsFullAccessUsageDescription = "NOBS uses your calendar on this iPhone to build a realistic day plan and identify conflicts.";
-				INFOPLIST_KEY_NSRemindersFullAccessUsageDescription = "NOBS uses your reminders on this iPhone to keep your Tank planning context up to date.";
-				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "NOBS connects to your private Tank to process requests on hardware you control.";
 				INFOPLIST_KEY_NSCameraUsageDescription = "NOBS uses the camera to scan a QR code to pair with your local Tank.";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "NOBS connects to your private Tank to process requests on hardware you control.";
+				INFOPLIST_KEY_NSRemindersFullAccessUsageDescription = "NOBS uses your reminders on this iPhone to keep your Tank planning context up to date.";
 				INFOPLIST_KEY_NSUserNotificationsUsageDescription = "NOBS can ask one quick question when your day needs a decision — not a stream of alerts.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -683,7 +674,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = NOBSWidgets/NOBSWidgets.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 16;
+				CURRENT_PROJECT_VERSION = 17;
 				DEVELOPMENT_TEAM = K853LKQLAS;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = NOBSWidgets/Info.plist;
@@ -709,7 +700,7 @@
 			buildSettings = {
 				CODE_SIGN_ENTITLEMENTS = NOBSWidgets/NOBSWidgets.entitlements;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 16;
+				CURRENT_PROJECT_VERSION = 17;
 				DEVELOPMENT_TEAM = K853LKQLAS;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = NOBSWidgets/Info.plist;
@@ -733,15 +724,6 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		CC00000000000000000000001 /* Build configuration list for PBXNativeTarget "NOBSTank" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				CB00000000000000000000001 /* Debug */,
-				CB00000000000000000000002 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
 		A90000000000000000000001 /* Build configuration list for PBXProject "NOBS" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -769,7 +751,48 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		CC00000000000000000000001 /* Build configuration list for PBXNativeTarget "NOBSTank" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				CB00000000000000000000001 /* Debug */,
+				CB00000000000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		C20000000000000000000001 /* XCRemoteSwiftPackageReference "KeychainAccess" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/kishikawakatsumi/KeychainAccess";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 4.2.2;
+			};
+		};
+		C20000000000000000000002 /* XCRemoteSwiftPackageReference "AnyCodable" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Flight-School/AnyCodable";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.6.7;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		C30000000000000000000001 /* KeychainAccess */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C20000000000000000000001 /* XCRemoteSwiftPackageReference "KeychainAccess" */;
+			productName = KeychainAccess;
+		};
+		C30000000000000000000002 /* AnyCodable */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C20000000000000000000002 /* XCRemoteSwiftPackageReference "AnyCodable" */;
+			productName = AnyCodable;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = A80000000000000000000001 /* Project object */;
 }

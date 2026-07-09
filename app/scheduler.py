@@ -3,8 +3,10 @@ import json
 import logging
 from datetime import UTC, datetime, timedelta
 from typing import Any
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import httpx
+import psutil
 
 from app.agent import AgentModelError, AgentTaskRequest, TankAgent
 from app.agent_store import AgentStore
@@ -38,6 +40,13 @@ _IDEA_OBJECTIVE = (
     "tool to submit it for approval. Do not do anything else."
 )
 
+# Overnight tasks are deferred, evening-queued work (research, memory
+# consolidation, briefing prep, etc.) processed one at a time while Tank is
+# idle and inside the configured overnight window. See docs/TANK_AGENT_CORE.md.
+_OVERNIGHT_TASK_TYPES = frozenset(
+    {"research", "memory_consolidation", "briefing_prep", "custom"}
+)
+
 
 async def run_scheduler(
     settings: Settings,
@@ -48,6 +57,7 @@ async def run_scheduler(
     """Background task: fires scheduled briefings and autonomous idea proposals."""
     last_triggered_minute: str | None = None
     _background_tasks: set[asyncio.Task[None]] = set()
+    overnight_state: dict[str, bool] = {"running": False}
 
     while True:
         now = datetime.now(UTC)
@@ -86,7 +96,122 @@ async def run_scheduler(
         except Exception:
             logger.exception("Scheduler error during autonomous idea check")
 
+        try:
+            if (
+                settings.overnight_queue_enabled
+                and not overnight_state["running"]
+                and is_overnight_window(settings, now)
+                and is_tank_idle(settings)
+            ):
+                next_task = store.claim_next_overnight_task()
+                if next_task is not None:
+                    overnight_state["running"] = True
+                    logger.info(
+                        "Dequeuing overnight task %s (%s) for overnight processing.",
+                        next_task["id"],
+                        next_task["task_type"],
+                    )
+                    task = asyncio.create_task(
+                        process_overnight_task(
+                            settings, store, tools, transport, next_task, overnight_state
+                        )
+                    )
+                    _background_tasks.add(task)
+                    task.add_done_callback(_background_tasks.discard)
+        except Exception:
+            logger.exception("Scheduler error during overnight queue check")
+
         await asyncio.sleep(15)
+
+
+def _resolve_timezone(name: str) -> ZoneInfo:
+    try:
+        return ZoneInfo(name or "UTC")
+    except (ZoneInfoNotFoundError, ValueError):
+        logger.warning("Unrecognized NOBS_TIMEZONE %r; falling back to UTC.", name)
+        return ZoneInfo("UTC")
+
+
+def _parse_hhmm(value: str) -> tuple[int, int] | None:
+    try:
+        hour_text, minute_text = value.strip().split(":", 1)
+        hour, minute = int(hour_text), int(minute_text)
+    except (ValueError, AttributeError):
+        return None
+    if 0 <= hour <= 23 and 0 <= minute <= 59:
+        return hour, minute
+    return None
+
+
+def is_overnight_window(settings: Settings, now_utc: datetime) -> bool:
+    """Return True when `now_utc`, converted to the configured timezone, falls
+    inside the configured overnight window. The window may wrap past midnight
+    (e.g. 23:00 -> 06:00)."""
+    tz = _resolve_timezone(settings.timezone)
+    local_now = now_utc.astimezone(tz)
+    now_minutes = local_now.hour * 60 + local_now.minute
+
+    start = _parse_hhmm(settings.overnight_window_start) or (23, 0)
+    end = _parse_hhmm(settings.overnight_window_end) or (6, 0)
+    start_minutes = start[0] * 60 + start[1]
+    end_minutes = end[0] * 60 + end[1]
+
+    if start_minutes == end_minutes:
+        return False
+    if start_minutes < end_minutes:
+        return start_minutes <= now_minutes < end_minutes
+    return now_minutes >= start_minutes or now_minutes < end_minutes
+
+
+def is_tank_idle(settings: Settings) -> bool:
+    """Cheap idle heuristic: recent CPU load at or below the configured threshold.
+
+    This intentionally yields quickly to any foreground workload rather than
+    trying to model "idle" precisely; the overnight window already restricts
+    processing to configured off-hours.
+    """
+    try:
+        cpu_percent = psutil.cpu_percent(interval=0.3)
+    except OSError:
+        # Some sandboxes/containers cannot read load metrics; fail open so the
+        # overnight window itself still gates processing.
+        return True
+    return cpu_percent <= settings.overnight_idle_cpu_percent
+
+
+async def process_overnight_task(
+    settings: Settings,
+    store: AgentStore,
+    tools: ToolRegistry,
+    transport: Any,
+    task: dict[str, Any],
+    state: dict[str, bool],
+) -> None:
+    """Run one claimed overnight task through the agent and record the outcome.
+
+    Uses the same tool registry and approval policy as any other agent run:
+    read-only tools execute automatically, and state-changing tools still
+    create a pending approval rather than bypassing consent.
+    """
+    task_id = task["id"]
+    try:
+        agent = TankAgent(settings=settings, tools=tools, store=store, transport=transport)
+        request = AgentTaskRequest(
+            objective=task["objective"],
+            context=task["context"],
+            mode=task["mode"],
+        )
+        response = await agent.run(request)
+        store.complete_overnight_task(task_id, response.model_dump(mode="json"))
+        logger.info("Completed overnight task %s (%s).", task_id, task["task_type"])
+    except (AgentModelError, httpx.HTTPError, ValueError, TypeError, OSError) as error:
+        logger.exception("Overnight task %s failed: %s", task_id, error)
+        try:
+            store.fail_overnight_task(task_id, str(error))
+        except ValueError:
+            logger.exception("Could not record failure for overnight task %s", task_id)
+    finally:
+        state["running"] = False
 
 
 async def trigger_autonomous_idea(

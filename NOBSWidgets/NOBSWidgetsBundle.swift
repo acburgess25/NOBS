@@ -5,5 +5,6 @@ import WidgetKit
 struct NOBSWidgetsBundle: WidgetBundle {
     var body: some Widget {
         BriefingWidget()
+        ApprovalLiveActivity()
     }
 }

@@ -41,6 +41,17 @@ class Settings(BaseSettings):
     # Web search: max results returned per query (1–10)
     web_search_max_results: int = Field(default=5, ge=1, le=10)
 
+    # Overnight Tank queue: IANA timezone used to evaluate the overnight window
+    # (e.g. "America/Chicago"). Falls back to UTC if unset or unrecognized.
+    timezone: str = Field(default="UTC")
+    overnight_queue_enabled: bool = True
+    # HH:MM (24h, local to `timezone`); the window may wrap past midnight.
+    overnight_window_start: str = Field(default="23:00")
+    overnight_window_end: str = Field(default="06:00")
+    # Queue only advances when recent CPU load is at or below this percentage,
+    # so overnight work yields to anything the user is actively doing.
+    overnight_idle_cpu_percent: float = Field(default=40.0, ge=0, le=100)
+
 
 @lru_cache
 def get_settings() -> Settings:
