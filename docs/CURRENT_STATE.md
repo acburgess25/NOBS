@@ -1,6 +1,6 @@
 # NOBS Current State
 
-**Last updated:** July 8, 2026 (iOS session handoff merged with App Store beta polish + macOS mobile Tank)
+**Last updated:** July 8, 2026 (iOS session handoff merged with App Store beta polish + macOS mobile Tank; iPhone design-system polish + Tank/Local connection status dot)
 **Purpose:** Tool-neutral handoff for any contributor entering without prior chat history.
 
 This records implementation state, not product direction. [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md) remains the approved product source of truth. Verify the branch, tests, and live services before treating deployment facts as current.
@@ -42,6 +42,8 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 - Onboarding collects response length (brief / standard / detailed) conversationally.
 - Today shows a local evening wrap-up after 5pm from calendar, reminders, and briefing context.
 - Shared `NOBSTheme` modifiers (`nobsScreenBackground`, `nobsSectionCard`, `NOBSEmptyState`, `NOBSBetaBadge`) and `Color+NOBS` tokens unify Chat, Today, onboarding, Privacy, Activity, and the briefing widget palette.
+- Chat header shows a live Tank/Local connection status dot (online sage-green with a soft glow when Tank is connected, muted when working locally) while keeping the server/iPhone icon and "Tank"/"Local" text as non-color state indicators; VoiceOver announces the connection state.
+- Design-system color alignment: caution split into warning ink (`#A8672E`) and a 12% callout wash, with the "notifications off" callout using amber-on-amber; new `nobsOnline` and `nobsWarningWash` tokens in `Color+NOBS`.
 - App Store beta prep: metadata templates in `docs/app-store/`, checklist in `docs/APP_STORE_BETA_CHECKLIST.md`, privacy policy at `website/public/privacy.html`.
 - Smart-home direction documented in `docs/GOOGLE_HOME_INTEGRATION.md` (Home Assistant bridge first; Google Home APIs later).
 
