@@ -1,0 +1,12 @@
+{
+  "displayName": "Alexander",
+  "preferredTone": "warm",
+  "proactivityLevel": "balanced",
+  "privacyComfort": "tankPreferred",
+  "workingHoursStart": "09:00",
+  "workingHoursEnd": "18:00",
+  "completeOnboarding": true,
+  "accessibilityPreferences": {
+    "responseLength": "standard"
+  }
+}
