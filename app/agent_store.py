@@ -97,6 +97,20 @@ class AgentStore:
                     key TEXT PRIMARY KEY,
                     value TEXT NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS overnight_tasks (
+                    id TEXT PRIMARY KEY,
+                    objective TEXT NOT NULL,
+                    context TEXT NOT NULL,
+                    mode TEXT NOT NULL,
+                    task_type TEXT NOT NULL,
+                    priority INTEGER NOT NULL,
+                    status TEXT NOT NULL,
+                    result_json TEXT,
+                    error TEXT,
+                    created_at TEXT NOT NULL,
+                    started_at TEXT,
+                    completed_at TEXT
+                );
                 """
             )
         return self._connection
@@ -500,3 +514,159 @@ class AgentStore:
                 (key, value),
             )
             connection.commit()
+
+    # ------------------------------------------------------------------
+    # Overnight Tank queue (deferred/long-running work processed off-hours)
+    # ------------------------------------------------------------------
+
+    def enqueue_overnight_task(
+        self,
+        objective: str,
+        context: str,
+        task_type: str,
+        mode: str = "assistant",
+        priority: int = 0,
+    ) -> dict[str, Any]:
+        task_id = str(uuid4())
+        created_at = _now()
+        with self._lock:
+            connection = self._connect()
+            connection.execute(
+                "INSERT INTO overnight_tasks VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    task_id,
+                    objective,
+                    context,
+                    mode,
+                    task_type,
+                    priority,
+                    "queued",
+                    None,
+                    None,
+                    created_at,
+                    None,
+                    None,
+                ),
+            )
+            connection.commit()
+        return self.get_overnight_task(task_id)
+
+    def get_overnight_task(self, task_id: str) -> dict[str, Any]:
+        with self._lock:
+            row = (
+                self._connect()
+                .execute("SELECT * FROM overnight_tasks WHERE id = ?", (task_id,))
+                .fetchone()
+            )
+        if row is None:
+            raise KeyError(task_id)
+        return self._overnight_task_dict(row)
+
+    def list_overnight_tasks(self, status: str | None = None) -> list[dict[str, Any]]:
+        with self._lock:
+            connection = self._connect()
+            if status is None:
+                rows = connection.execute(
+                    "SELECT * FROM overnight_tasks ORDER BY priority DESC, created_at ASC"
+                ).fetchall()
+            else:
+                rows = connection.execute(
+                    "SELECT * FROM overnight_tasks WHERE status = ? "
+                    "ORDER BY priority DESC, created_at ASC",
+                    (status,),
+                ).fetchall()
+        return [self._overnight_task_dict(row) for row in rows]
+
+    def claim_next_overnight_task(self) -> dict[str, Any] | None:
+        """Atomically reserve the oldest, highest-priority queued task.
+
+        Returns None if there is nothing queued. Once claimed, a task moves to
+        `running` and cannot be claimed again, mirroring the approval claim
+        pattern used for state-changing agent tools.
+        """
+        with self._lock:
+            connection = self._connect()
+            candidate = connection.execute(
+                "SELECT id FROM overnight_tasks WHERE status = 'queued' "
+                "ORDER BY priority DESC, created_at ASC LIMIT 1"
+            ).fetchone()
+            if candidate is None:
+                return None
+            task_id = candidate["id"]
+            cursor = connection.execute(
+                """
+                UPDATE overnight_tasks SET status = 'running', started_at = ?
+                WHERE id = ? AND status = 'queued'
+                """,
+                (_now(), task_id),
+            )
+            connection.commit()
+            if cursor.rowcount != 1:
+                return None
+            row = connection.execute(
+                "SELECT * FROM overnight_tasks WHERE id = ?", (task_id,)
+            ).fetchone()
+        return self._overnight_task_dict(row)
+
+    def complete_overnight_task(self, task_id: str, result: dict[str, Any]) -> dict[str, Any]:
+        with self._lock:
+            connection = self._connect()
+            cursor = connection.execute(
+                """
+                UPDATE overnight_tasks SET status = 'completed', result_json = ?, completed_at = ?
+                WHERE id = ? AND status = 'running'
+                """,
+                (json.dumps(result), _now(), task_id),
+            )
+            connection.commit()
+        if cursor.rowcount != 1:
+            raise ValueError("Overnight task is not running")
+        return self.get_overnight_task(task_id)
+
+    def fail_overnight_task(self, task_id: str, error: str) -> dict[str, Any]:
+        with self._lock:
+            connection = self._connect()
+            cursor = connection.execute(
+                """
+                UPDATE overnight_tasks SET status = 'failed', error = ?, completed_at = ?
+                WHERE id = ? AND status = 'running'
+                """,
+                (error, _now(), task_id),
+            )
+            connection.commit()
+        if cursor.rowcount != 1:
+            raise ValueError("Overnight task is not running")
+        return self.get_overnight_task(task_id)
+
+    def cancel_overnight_task(self, task_id: str) -> dict[str, Any]:
+        """Cancel a task that has not started yet. Running/finished tasks cannot be cancelled."""
+        with self._lock:
+            connection = self._connect()
+            cursor = connection.execute(
+                """
+                UPDATE overnight_tasks SET status = 'cancelled', completed_at = ?
+                WHERE id = ? AND status = 'queued'
+                """,
+                (_now(), task_id),
+            )
+            connection.commit()
+        if cursor.rowcount != 1:
+            raise ValueError("Overnight task is missing, already started, or already finished")
+        return self.get_overnight_task(task_id)
+
+    @staticmethod
+    def _overnight_task_dict(row: sqlite3.Row) -> dict[str, Any]:
+        return {
+            "id": row["id"],
+            "objective": row["objective"],
+            "context": row["context"],
+            "mode": row["mode"],
+            "task_type": row["task_type"],
+            "priority": row["priority"],
+            "status": row["status"],
+            "result": json.loads(row["result_json"]) if row["result_json"] else None,
+            "error": row["error"],
+            "created_at": row["created_at"],
+            "started_at": row["started_at"],
+            "completed_at": row["completed_at"],
+        }

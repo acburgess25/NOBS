@@ -6,7 +6,7 @@ import json
 import secrets
 from pathlib import Path
 import time
-from typing import AsyncIterator, Literal
+from typing import Any, AsyncIterator, Literal
 
 import httpx
 from fastapi import Depends, FastAPI, Header, HTTPException, status
@@ -129,6 +129,36 @@ class CreateScheduleRequest(BaseModel):
 
 class UpdateScheduleRequest(BaseModel):
     status: Literal["active", "paused", "revoked"]
+
+
+class OvernightTaskType(str, Enum):
+    research = "research"
+    memory_consolidation = "memory_consolidation"
+    briefing_prep = "briefing_prep"
+    custom = "custom"
+
+
+class OvernightTaskCreateRequest(BaseModel):
+    objective: str = Field(min_length=1, max_length=10_000)
+    context: Literal["personal", "business", "shared"] = "personal"
+    mode: Literal["assistant", "developer"] = "assistant"
+    task_type: OvernightTaskType = OvernightTaskType.custom
+    priority: int = Field(default=0, ge=0, le=10)
+
+
+class OvernightTaskView(BaseModel):
+    id: str
+    objective: str
+    context: str
+    mode: str
+    task_type: str
+    priority: int
+    status: str
+    result: dict[str, Any] | None
+    error: str | None
+    created_at: str
+    started_at: str | None
+    completed_at: str | None
 
 
 class SyncCalendarRequest(BaseModel):
@@ -583,6 +613,64 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             raise HTTPException(status_code=404, detail="Schedule not found") from error
         except ValueError as error:
             raise HTTPException(status_code=409, detail=str(error)) from error
+
+    @app.post(
+        "/overnight/tasks",
+        response_model=OvernightTaskView,
+        tags=["overnight"],
+        dependencies=[Depends(require_device_token)],
+    )
+    async def enqueue_overnight_task(request: OvernightTaskCreateRequest) -> OvernightTaskView:
+        task = app.state.agent_store.enqueue_overnight_task(
+            objective=request.objective,
+            context=request.context,
+            task_type=request.task_type.value,
+            mode=request.mode,
+            priority=request.priority,
+        )
+        return OvernightTaskView.model_validate(task)
+
+    @app.get(
+        "/overnight/tasks",
+        response_model=list[OvernightTaskView],
+        tags=["overnight"],
+        dependencies=[Depends(require_device_token)],
+    )
+    async def list_overnight_tasks(task_status: str | None = None) -> list[OvernightTaskView]:
+        return [
+            OvernightTaskView.model_validate(item)
+            for item in app.state.agent_store.list_overnight_tasks(task_status)
+        ]
+
+    @app.get(
+        "/overnight/tasks/{task_id}",
+        response_model=OvernightTaskView,
+        tags=["overnight"],
+        dependencies=[Depends(require_device_token)],
+    )
+    async def get_overnight_task(task_id: str) -> OvernightTaskView:
+        try:
+            task = app.state.agent_store.get_overnight_task(task_id)
+        except KeyError as error:
+            raise HTTPException(status_code=404, detail="Overnight task not found") from error
+        return OvernightTaskView.model_validate(task)
+
+    @app.post(
+        "/overnight/tasks/{task_id}/cancel",
+        response_model=OvernightTaskView,
+        tags=["overnight"],
+        dependencies=[Depends(require_device_token)],
+    )
+    async def cancel_overnight_task(task_id: str) -> OvernightTaskView:
+        try:
+            app.state.agent_store.get_overnight_task(task_id)
+        except KeyError as error:
+            raise HTTPException(status_code=404, detail="Overnight task not found") from error
+        try:
+            task = app.state.agent_store.cancel_overnight_task(task_id)
+        except ValueError as error:
+            raise HTTPException(status_code=409, detail=str(error)) from error
+        return OvernightTaskView.model_validate(task)
 
     @app.post(
         "/sync/calendar",
