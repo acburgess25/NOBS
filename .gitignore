@@ -8,6 +8,7 @@ __pycache__/
 *.log
 nobs.db
 data/
+outputs/
 .build/
 design/qa/
 

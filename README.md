@@ -31,6 +31,7 @@ This is a prototype, not a production release. Memory, smart-home control, NOBSc
 | `deploy/tank/` | Tank service definitions |
 | `design/` | Approved visual references |
 | `docs/` | Product truth, architecture, research, and operating guides |
+| `docs/internal/` | Pointer to maintainer-only docs in [NOBS-private](https://github.com/acburgess25/NOBS-private) |
 | `website/` | Public project website |
 
 ## Run the backend

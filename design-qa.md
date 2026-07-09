@@ -52,8 +52,8 @@ final result: passed
 # NOBS Tank Dashboard Design QA
 
 - **Source visual truth:** `design/nobs-option-3-reference.png`
-- **Implementation screenshots:** `outputs/dashboard-qa/dashboard-light.png`, `outputs/dashboard-qa/dashboard-dark.png`, and `outputs/dashboard-qa/dashboard-mobile.png`
-- **Combined comparison evidence:** `outputs/dashboard-qa/comparison-full.png` and `outputs/dashboard-qa/comparison-focus.png`
+- **Implementation screenshots:** private repo `outputs/dashboard-qa/` (see [`docs/internal/README.md`](docs/internal/README.md))
+- **Combined comparison evidence:** same private `outputs/dashboard-qa/` path
 - **Viewport:** 1440 × 900 connected display; 390 × 844 responsive check
 - **State:** local API active, local-development Ollama unavailable alert, zero approvals, Light/Dark/Auto controls
 
