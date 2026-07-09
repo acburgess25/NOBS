@@ -52,6 +52,7 @@ final class AppModel: ObservableObject {
     private let profileStore = UserProfileStore()
     private let briefingSnapshotWriter = BriefingSnapshotWriter()
     private let focusContext = FocusContextService()
+    private let approvalActivityManager = ApprovalActivityManager()
     private var refreshTask: Task<Void, Never>?
 
     var activeRoute: ProcessingRoute { tankAvailable ? .tank : .local }
@@ -101,6 +102,7 @@ final class AppModel: ObservableObject {
             clarifyingConflict = try? AppGroupStore.readJSON(ClarifyingConflict.self, from: AppGroupStore.clarifyingConflictFile)
         }
         notificationAuthorizationStatus = await NotificationScheduler.refreshAuthorizationStatus()
+        approvalActivityManager.reconnectIfNeeded()
         async let health: Void = refreshTankStatus()
         async let approvals: Void = loadApprovals()
         async let proposals: Void = loadProposals()
@@ -274,11 +276,30 @@ final class AppModel: ObservableObject {
                 pendingChatPrompt = "Help me resolve today's schedule conflict."
                 section = .chat
             }
+        case .approvals(let id, let action):
+            section = .approvals
+            if let id, let action {
+                Task { await decideApprovalFromDeepLink(id: id, decision: action) }
+            }
         case .tankPairing(let pairingURL):
             section = .privacy
             applyTankPayload(from: pairingURL)
             Task { await saveTankConnection() }
         }
+    }
+
+    /// Handles Approve/Deny taps from the Live Activity or its notification.
+    /// Reuses `decideApproval` so the decision still goes through the same
+    /// atomic, audited Tank approval route as the in-app button.
+    private func decideApprovalFromDeepLink(id: String, decision: String) async {
+        if approvals.isEmpty {
+            await loadApprovals()
+        }
+        guard let approval = approvals.first(where: { $0.id == id && $0.status == "pending" }) else {
+            lastError = "That approval is no longer pending."
+            return
+        }
+        await decideApproval(approval, decision: decision)
     }
 
     func handleDeepLink(chatPrompt: String) {
@@ -573,6 +594,7 @@ final class AppModel: ObservableObject {
     func loadApprovals() async {
         guard TankConfiguration.currentToken != nil else {
             approvalsFetchState = .unavailable
+            await approvalActivityManager.endActivity()
             return
         }
         isLoadingApprovals = true
@@ -581,6 +603,7 @@ final class AppModel: ObservableObject {
         do {
             approvals = try await tank.approvals()
             approvalsFetchState = tankAvailable ? .loaded : .unavailable
+            await approvalActivityManager.sync(with: approvals)
         } catch {
             approvalsFetchState = fetchState(for: error, resource: "approvals")
             if case .failed = approvalsFetchState {
