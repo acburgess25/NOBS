@@ -86,7 +86,7 @@ struct OnboardingChatView: View {
                 .lineLimit(1...3)
                 .padding(.horizontal, 15)
                 .frame(minHeight: 46)
-                .background(Color.black.opacity(0.05), in: RoundedRectangle(cornerRadius: 18))
+                .background(Color.nobsComposerFill, in: RoundedRectangle(cornerRadius: NOBSTheme.chipRadius))
                 .submitLabel(.send)
                 .onSubmit(submitText)
             Button(action: submitText) {

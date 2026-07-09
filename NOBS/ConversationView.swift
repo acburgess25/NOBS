@@ -82,13 +82,14 @@ struct ConversationView: View {
             Button { showNavigation = true } label: {
                 ZStack(alignment: .topTrailing) {
                     Image(systemName: "line.3.horizontal")
+                        .foregroundStyle(Color.nobsInk)
                         .frame(width: 40, height: 40)
                     if model.pendingDecisionCount > 0 {
                         Text("\(model.pendingDecisionCount)")
                             .font(.system(size: 10, weight: .bold))
                             .foregroundStyle(.white)
                             .padding(4)
-                            .background(Color.red, in: Circle())
+                            .background(Color.nobsDestructive, in: Circle())
                             .offset(x: 6, y: -4)
                     }
                 }
@@ -99,6 +100,7 @@ struct ConversationView: View {
                 HStack(spacing: 8) {
                     Text(model.section.rawValue)
                         .font(.system(size: 22, weight: .medium, design: .serif))
+                        .foregroundStyle(Color.nobsInk)
                     NOBSBetaBadge()
                 }
                 Text("NOBS · Private by design")
@@ -164,7 +166,7 @@ struct ConversationView: View {
     private var welcome: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text(model.personalizedDayPartGreeting)
-                .font(.system(size: 30, weight: .regular, design: .serif))
+                .nobsSerifTitle(30)
                 .accessibilityAddTraits(.isHeader)
             Text(welcomeDetail)
                 .foregroundStyle(.secondary)
@@ -246,7 +248,7 @@ struct ConversationView: View {
                 .lineLimit(1...4)
                 .padding(.horizontal, 15)
                 .frame(minHeight: 46)
-                .background(Color.black.opacity(0.05), in: RoundedRectangle(cornerRadius: 18))
+                .background(Color.nobsComposerFill, in: RoundedRectangle(cornerRadius: NOBSTheme.chipRadius))
                 .submitLabel(.send)
                 .onSubmit(sendDraft)
             Button(action: sendDraft) {
@@ -282,7 +284,7 @@ struct ConversationView: View {
                                 .foregroundStyle(.white)
                                 .padding(.horizontal, 7)
                                 .padding(.vertical, 3)
-                                .background(Color.red, in: Capsule())
+                                .background(Color.nobsDestructive, in: Capsule())
                         }
                     }
                 }
