@@ -53,9 +53,9 @@ Google Home / Nest Hub / Assistant speakers
 | Component | Location |
 |-----------|----------|
 | Home Assistant HTTP client | `app/home_assistant.py` |
-| Agent tools | `list_home_devices`, `control_home_device`, `control_secure_home_device` in `app/agent_tools.py` |
+| Agent tools | `list_home_devices`, `control_home_device`, `control_secure_home_device`, `list_home_scenes`, `run_home_scene` in `app/agent_tools.py` |
 | Tank config | `NOBS_HOMEASSISTANT_URL`, `NOBS_HOMEASSISTANT_TOKEN` in `app/config.py` |
-| Tests | `tests/test_home_assistant.py` |
+| Tests | `tests/test_home_assistant.py`, `tests/test_home_scenes.py` |
 | Honest chat fallback | `NOBS/AppModel.swift` — Google/Alexa unification “coming soon” |
 | Home tab placeholder | `NOBS/ConversationView.swift` → `ComingSoonView` |
 
@@ -74,7 +74,10 @@ Google Home / Nest Hub / Assistant speakers
    NOBS_HOMEASSISTANT_TOKEN=<token>
    ```
 5. Chat: *“What smart home devices do you see?”* → agent calls `list_home_devices`.
-6. Request a state change → flows through **Activity approvals** before execution.
+   *“What scenes do I have set up?”* → agent calls `list_home_scenes`.
+6. Request a state change or *“run Good Night”* → flows through **Activity
+   approvals** before execution (`control_home_device`, `control_secure_home_device`,
+   or `run_home_scene`).
 
 This is Google Home inside NOBS **without** a Google SDK in Swift: Google-linked gear appears as HA entities.
 
@@ -111,8 +114,13 @@ Google’s newer [Home APIs](https://developers.home.google.com/) (structures, r
 ## Near-term implementation slices
 
 1. **Tank:** surface HA configuration status in `/health` or chat errors when unset.
-2. **iOS Home tab:** read-only device list from Tank (`list_home_devices` via API) — no Google SDK yet.
-3. **Activity:** show home control proposals with entity name, service, and route (Local/Tank).
+2. **iOS Home tab (still pending):** read-only device *and scene* list from Tank
+   (`list_home_devices` / `list_home_scenes` via `/agent/tasks`) — no Google SDK
+   yet. The tools exist on Tank today; the Home tab is still `ComingSoonView`.
+3. **iOS Activity (still pending):** show home control proposals — including
+   `run_home_scene` — with entity/scene name, service, and route (Local/Tank).
+   The approval already carries `tool_name` and `arguments`; the UI just needs
+   to render them legibly (e.g. "Run scene: Good Night").
 4. **Docs:** keep this file updated when the first Google-linked device is verified on a real home network.
 
 ---
