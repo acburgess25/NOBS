@@ -1,6 +1,6 @@
 # App Store & TestFlight public beta checklist
 
-**Last updated:** July 7, 2026  
+**Last updated:** July 9, 2026  
 **Purpose:** Everything to prepare before you schedule App Review or open a public TestFlight beta.  
 **You at home:** signing, archive upload, screenshots from Simulator/device, App Store Connect clicks.
 
@@ -22,6 +22,23 @@ Simulator and cloud agents can complete code, copy, privacy text, and visual pol
 - [ ] Archive: `./scripts/stage-testflight-ipa.sh` or Xcode **Product → Archive**
 - [ ] Upload IPA or use CI `.github/workflows/testflight.yml` on self-hosted Mac runner
 - [ ] Processing completes in App Store Connect (no missing compliance icons)
+
+### Provisioning fix — the actual blocker (clears Xcode Cloud CI *and* device/TestFlight signing)
+
+Symptom: the **`NOBS | Default | Build - iOS`** Xcode Cloud check fails with conclusion `action_required` (~2 min), and local/CI archives fail with *"requires a provisioning profile with the App Groups / Sign In with Apple features."* Root cause is **not code** — the App IDs don't grant the capabilities the project entitlements request.
+
+Reference: team `K853LKQLAS`, app `com.nobsdash.nobs`, widget `com.nobsdash.nobs.widgets`, group `group.com.nobsdash.nobs`, App Store Connect app `6772071553`.
+
+1. [developer.apple.com → Identifiers](https://developer.apple.com/account/resources/identifiers/list):
+   - [ ] App Group `group.com.nobsdash.nobs` exists (create it if missing)
+   - [ ] `com.nobsdash.nobs` → **App Groups** enabled **and assigned** to that group; **Sign in with Apple** enabled → Save
+   - [ ] `com.nobsdash.nobs.widgets` → **App Groups** enabled and assigned to that group → Save
+2. Signing is **automatic** (`ExportOptions.plist` → `signingStyle = automatic`), so profiles regenerate on the next build — do not hand-make them:
+   - [ ] Xcode Cloud: re-run the failed build in App Store Connect (clears the PR check); approve signing once if prompted
+   - [ ] Local: **Product → Archive → Distribute → TestFlight & App Store** (enables the upload)
+3. [ ] Confirm the Xcode Cloud check goes green on the re-run — it will **not** clear without a new run *after* step 1
+
+> The Xcode Cloud iOS build is also red on `main`, so until step 1 is done it blocks **every** PR, not just the current one. If a docs/website-only PR needs to merge first, make that check non-required in branch protection temporarily. See [`CI_TROUBLESHOOTING.md`](CI_TROUBLESHOOTING.md).
 
 ### Export compliance
 - [x] `ITSAppUsesNonExemptEncryption = false` in `NOBS/Info.plist` (standard HTTPS only)
