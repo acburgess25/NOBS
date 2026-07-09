@@ -9,7 +9,7 @@ struct PrivacyView: View {
     var body: some View {
         List {
             Section("Processing now") {
-                LabeledContent("Chat", value: model.tankAvailable ? "Tank available" : "Local fallback")
+                LabeledContent("Chat", value: chatProcessingSummary)
                 LabeledContent("Calendar", value: "On this iPhone")
                 if TankConfiguration.hasSavedConnection, !model.tankAvailable {
                     Button {
@@ -18,6 +18,28 @@ struct PrivacyView: View {
                         Label("Try reconnecting to Tank", systemImage: "arrow.clockwise")
                     }
                     .accessibilityHint("Checks whether your saved Tank is reachable on the network")
+                }
+            }
+
+            Section("Apple private cloud") {
+                if model.showPCCBadge {
+                    LabeledContent("Status", value: AppleModelProvider.availabilityDescription)
+                    PCCQuotaStatusView(quota: model.pccQuotaStatus) {
+                        model.showPCCQuotaUpgradeOptions()
+                    }
+                } else {
+                    Label("Apple private cloud — coming soon", systemImage: "lock.icloud")
+                        .foregroundStyle(.secondary)
+                    Text("Private Cloud Compute routing ships in v1.1 after entitlement approval and device testing.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+                LabeledContent("When Tank is away") {
+                    Text(model.routingPreferences.tankOfflineBehavior.title)
+                }
+                Button("Reset routing preferences") {
+                    model.routingPreferences = .default
+                    model.persistRoutingPreferences()
                 }
             }
 
@@ -148,5 +170,16 @@ struct PrivacyView: View {
         model.applyTankPayload(from: url)
         isScanningQR = false
         Task { await model.saveTankConnection() }
+    }
+
+    private var chatProcessingSummary: String {
+        if model.tankAvailable { return "Tank available" }
+        switch model.routingPreferences.tankOfflineBehavior {
+        case .useAppleCloud: return "Apple Cloud when available"
+        case .useNOBScloud: return "NOBScloud when subscribed"
+        case .queueForTank: return "Local until Tank returns"
+        case .localOnly: return "Local only"
+        case .askEachTime: return "Local fallback (asks when needed)"
+        }
     }
 }

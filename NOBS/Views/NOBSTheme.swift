@@ -45,6 +45,13 @@ extension View {
         modifier(NOBSListScreenModifier())
     }
 
+    /// Caps content to a comfortable reading column and centers it horizontally,
+    /// so screens don't stretch edge-to-edge on iPad and large displays.
+    func nobsReadableWidth(_ maxWidth: CGFloat = 600) -> some View {
+        frame(maxWidth: maxWidth, maxHeight: .infinity)
+            .frame(maxWidth: .infinity)
+    }
+
     func nobsSerifTitle(_ size: CGFloat = 30) -> some View {
         font(.system(size: size, weight: .regular, design: .serif))
             .foregroundStyle(Color.nobsInk)

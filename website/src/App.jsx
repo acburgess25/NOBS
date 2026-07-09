@@ -2,16 +2,23 @@ import { useEffect, useState } from "react";
 import { ArrowRight, Check, Cloud, DeviceMobile, Copy, GithubLogo, HardDrives, Heart, List, LockKey, Monitor, Repeat, X } from "@phosphor-icons/react";
 
 const githubUrl = "https://github.com/acburgess25/NOBS";
+// Public TestFlight invite link — the ONLY thing you edit to go live.
+// Get it from App Store Connect → your app → TestFlight → Public Link, once your
+// first build is approved for external testing. Paste it between the quotes.
+// While this is empty, the whole site honestly reads "beta opening soon" instead of
+// linking to a beta that doesn't exist yet.
+const testflightUrl = "";
+const betaLive = Boolean(testflightUrl);
 const navItems = [["Vision", "vision"], ["Work so far", "work"], ["Architecture", "architecture"], ["Roadmap", "roadmap"], ["Support", "support"]];
 const milestones = [
-  { label: "iPhone app (SwiftUI)", detail: "Authenticated chat with visible Local/Tank routing, conversational onboarding, and privacy receipts — now in public TestFlight beta.", icon: DeviceMobile },
+  { label: "iPhone app (SwiftUI)", detail: `Authenticated chat with visible Local/Tank routing, conversational onboarding, and privacy receipts — ${betaLive ? "now in public TestFlight beta" : "heading into public TestFlight beta"}.`, icon: DeviceMobile },
   { label: "Apple-native day surface", detail: "Home Screen and Lock Screen briefing widget, Siri shortcuts, Focus-aware planning, and evening wrap-up on Today.", icon: DeviceMobile },
   { label: "Tank agent core", detail: "A local model with allowlisted tools. Nothing state-changing runs without explicit approval.", icon: HardDrives },
   { label: "Room-safe dashboard", detail: "Always-on status display for a shared screen—live on Tank today, private details stay on the phone.", icon: Monitor },
   { label: "Local-first contract", detail: "Token-authenticated boundary between devices. Anonymous requests are rejected, keys live in the Keychain.", icon: LockKey },
 ];
 const roadmap = [
-  ["Ship the public beta", "TestFlight build with Today, Chat, widget, onboarding, and honest local-first boundaries — Tank optional.", "shipped"],
+  ["Ship the public beta", "TestFlight build with Today, Chat, widget, onboarding, and honest local-first boundaries — Tank optional.", "in progress"],
   ["Connect the private Tank", "Authenticated local-network routing with honest offline fallback when Tank is unreachable.", "shipped"],
   ["Personalize on Apple", "Conversational onboarding, briefing widget, Focus-aware priorities, clarifying notifications, and Siri shortcuts.", "shipped"],
   ["Earn trust through action", "The agent core proposes, you approve. Activity queue and in-app review surfaces continue to mature.", "in progress"],
@@ -87,13 +94,17 @@ export function App() {
       <main>
         <section className="hero section" id="vision">
           <div className="hero-copy reveal">
-            <div className="status-pill"><span /> TestFlight beta</div>
+            <div className="status-pill"><span /> {betaLive ? "In public TestFlight beta" : "TestFlight beta — opening soon"}</div>
             <p className="eyebrow">A personal project, built in the open</p>
             <h1>NOBS</h1>
             <h2>Your technology.<br />Finally working for you.</h2>
             <p className="lede">I’m building a private, local-first personal assistant for Apple devices—one that runs on your terms, keeps your context under your control, and helps make everyday technology genuinely useful.</p>
-            <p className="honesty-note">The iPhone app is in public TestFlight beta. Core planning works on-device; Tank is optional. Expect rough edges while the build matures.</p>
-            <a className="primary-link" href={githubUrl} target="_blank" rel="noreferrer"><GithubLogo weight="fill" /> Follow the build on GitHub <ArrowRight /></a>
+            <p className="honesty-note">{betaLive
+              ? "The iPhone app is in public TestFlight beta. Core planning works on-device; Tank is optional. Expect rough edges while the build matures."
+              : "The iPhone app is heading into public TestFlight beta. Core planning works on-device; Tank is optional. Expect rough edges while the build matures."}</p>
+            {betaLive
+              ? <a className="primary-link" href={testflightUrl} target="_blank" rel="noreferrer"><DeviceMobile weight="fill" /> Join the TestFlight beta <ArrowRight /></a>
+              : <a className="primary-link" href={githubUrl} target="_blank" rel="noreferrer"><GithubLogo weight="fill" /> Follow the build on GitHub <ArrowRight /></a>}
           </div>
           <div className="hero-art reveal" aria-label="Current NOBS iPhone prototype">
             <div className="phone-frame"><img src="/nobs-app-preview.png" alt="NOBS running in the iPhone 17 Pro Simulator with a private morning briefing" /></div>
@@ -132,6 +143,7 @@ export function App() {
         <section className="roadmap section" id="roadmap">
           <div className="section-heading"><div><p className="eyebrow">Roadmap</p><h2>Where it goes next</h2></div><p>No fixed dates. Steady, honest progress.</p></div>
           <div className="roadmap-list">{roadmap.map(([title, copy, status], index) => {
+            if (title === "Ship the public beta") status = betaLive ? "shipped" : "in progress";
             const open = openRoadmap === index;
             return <button className={open ? "roadmap-item open" : "roadmap-item"} onClick={() => setOpenRoadmap(open ? -1 : index)} aria-expanded={open} key={title}>
               <span className="step">{status === "shipped" ? <Check weight="bold" /> : `0${index + 1}`}</span>

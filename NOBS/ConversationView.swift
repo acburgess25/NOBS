@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ConversationView: View {
     @EnvironmentObject private var model: AppModel
+    @EnvironmentObject private var store: StoreKitService
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.scenePhase) private var scenePhase
     @State private var draft = ""
@@ -26,7 +27,13 @@ struct ConversationView: View {
                 mainContent
             }
         }
-        .task { await model.start() }
+        .task {
+            await model.start()
+            model.syncStoreEntitlements(hasNOBScloud: store.hasNOBScloud)
+        }
+        .onChange(of: store.hasNOBScloud) { _, active in
+            model.syncStoreEntitlements(hasNOBScloud: active)
+        }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
                 Task { await model.syncExternalConfigFromFolder() }
@@ -126,8 +133,8 @@ struct ConversationView: View {
                                 .opacity(model.tankAvailable ? 1 : 0)
                         )
                         .accessibilityHidden(true)
-                    Image(systemName: model.tankAvailable ? "server.rack" : "iphone")
-                    Text(model.tankAvailable ? "Tank" : "Local")
+                    Image(systemName: headerRoute.systemImage)
+                    Text(headerRoute.displayLabel(showPCCBadge: model.showPCCBadge))
                 }
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(forest)
@@ -135,13 +142,26 @@ struct ConversationView: View {
                 .padding(.vertical, 8)
                 .background(surface, in: Capsule())
             }
-            .accessibilityLabel(model.tankAvailable ? "Processing on Tank, connected" : "Processing locally")
+            .accessibilityLabel(headerAccessibilityLabel)
             .accessibilityHint("Checks the current processing connection")
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 8)
         .background(canvas)
         .overlay(alignment: .bottom) { Divider() }
+    }
+
+    private var headerRoute: ProcessingRoute {
+        model.tankAvailable ? .tank : model.lastProcessingRoute
+    }
+
+    private var headerAccessibilityLabel: String {
+        switch headerRoute {
+        case .tank: "Processing on Tank, connected"
+        case .pcc where model.showPCCBadge: "Processing on Apple private cloud"
+        case .cloud: "Processing on NOBScloud"
+        default: "Processing locally"
+        }
     }
 
     private var chat: some View {
@@ -157,7 +177,7 @@ struct ConversationView: View {
                         if model.isSending {
                             HStack(spacing: 9) {
                                 ProgressView().tint(accent)
-                                Text(model.tankAvailable ? "Tank is thinking…" : "Working locally…")
+                                Text(sendingStatusText)
                                     .foregroundStyle(.secondary)
                             }
                             .font(.subheadline)
@@ -215,7 +235,10 @@ struct ConversationView: View {
                 Button {
                     selectedReceipt = entry.receipt
                 } label: {
-                    Label(route.rawValue, systemImage: route == .tank ? "server.rack" : "iphone")
+                    Label(
+                        route.displayLabel(showPCCBadge: model.showPCCBadge),
+                        systemImage: route.displaySystemImage(showPCCBadge: model.showPCCBadge)
+                    )
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(accent)
                 }
@@ -259,29 +282,55 @@ struct ConversationView: View {
         }
     }
 
+    private var sendingStatusText: String {
+        if model.tankAvailable { return "Tank is thinking…" }
+        if model.lastProcessingRoute == .pcc, model.showPCCBadge { return "Apple Cloud is thinking…" }
+        return "Working locally…"
+    }
+
     private var composer: some View {
-        HStack(spacing: 10) {
-            TextField("Ask NOBS…", text: $draft, axis: .vertical)
-                .lineLimit(1...4)
-                .padding(.horizontal, 15)
-                .frame(minHeight: 46)
-                .background(Color.nobsComposerFill, in: RoundedRectangle(cornerRadius: NOBSTheme.chipRadius))
-                .submitLabel(.send)
-                .onSubmit(sendDraft)
-            Button(action: sendDraft) {
-                Image(systemName: "arrow.up")
-                    .font(.headline)
-                    .foregroundStyle(.white)
-                    .frame(width: 44, height: 44)
-                    .background(forest, in: Circle())
+        VStack(spacing: 8) {
+            if model.showPCCBadge || model.pccQuotaStatus.isLimitReached || model.pccQuotaStatus.isApproachingLimit {
+                PCCQuotaStatusView(quota: model.pccQuotaStatus) {
+                    model.showPCCQuotaUpgradeOptions()
+                }
+                .padding(.horizontal, 16)
             }
-            .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || model.isSending)
-            .opacity(draft.isEmpty ? 0.5 : 1)
-            .accessibilityLabel("Send message")
+            HStack(spacing: 10) {
+                TextField("Ask NOBS…", text: $draft, axis: .vertical)
+                    .lineLimit(1...4)
+                    .padding(.horizontal, 15)
+                    .frame(minHeight: 46)
+                    .background(Color.nobsComposerFill, in: RoundedRectangle(cornerRadius: NOBSTheme.chipRadius))
+                    .submitLabel(.send)
+                    .onSubmit(sendDraft)
+                Button(action: sendDraft) {
+                    Image(systemName: "arrow.up")
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                        .frame(width: 44, height: 44)
+                        .background(forest, in: Circle())
+                }
+                .disabled(composerSendDisabled)
+                .opacity(composerSendDisabled ? 0.5 : 1)
+                .accessibilityLabel("Send message")
+            }
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
         .background(.ultraThinMaterial)
+    }
+
+    private var composerSendDisabled: Bool {
+        let empty = draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        if empty || model.isSending { return true }
+        if model.pccQuotaStatus.isLimitReached,
+           !model.tankAvailable,
+           model.routingPreferences.tankOfflineBehavior == .useAppleCloud
+        {
+            return true
+        }
+        return false
     }
 
     private var navigationSheet: some View {

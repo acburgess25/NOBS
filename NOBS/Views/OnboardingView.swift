@@ -59,6 +59,7 @@ struct OnboardingView: View {
             .accessibilityHint(index + 1 < pages.count ? "Next introduction screen" : "Start conversational setup")
         }
         .padding(28)
+        .nobsReadableWidth()
         .nobsScreenBackground()
         .accessibilityElement(children: .contain)
     }

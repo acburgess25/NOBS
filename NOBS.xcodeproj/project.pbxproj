@@ -68,7 +68,13 @@
 		I10000000000000000000001 /* ExternalConfigFiles.swift in Sources */ = {isa = PBXBuildFile; fileRef = I20000000000000000000001 /* ExternalConfigFiles.swift */; };
 		I10000000000000000000002 /* ExternalConfigSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = I20000000000000000000002 /* ExternalConfigSync.swift */; };
 		I10000000000000000000003 /* ConfigFolderPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = I20000000000000000000003 /* ConfigFolderPicker.swift */; };
-/* End PBXBuildFile section */
+		J10000000000000000000001 /* PCCFeatureFlags.swift in Sources */ = {isa = PBXBuildFile; fileRef = J20000000000000000000001 /* PCCFeatureFlags.swift */; };
+		J10000000000000000000002 /* RoutingPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = J20000000000000000000002 /* RoutingPreferences.swift */; };
+		J10000000000000000000003 /* ModelRouter.swift in Sources */ = {isa = PBXBuildFile; fileRef = J20000000000000000000003 /* ModelRouter.swift */; };
+		J10000000000000000000004 /* AppleModelProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = J20000000000000000000004 /* AppleModelProvider.swift */; };
+		J10000000000000000000005 /* LocalAssistant.swift in Sources */ = {isa = PBXBuildFile; fileRef = J20000000000000000000005 /* LocalAssistant.swift */; };
+		J10000000000000000000006 /* PCCQuotaStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = J20000000000000000000006 /* PCCQuotaStatusView.swift */; };
+		K10000000000000000000001 /* ModelRouterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = K20000000000000000000001 /* ModelRouterTests.swift */; };
 
 /* Begin PBXContainerItemProxy section */
 		F80000000000000000000001 /* PBXContainerItemProxy */ = {
@@ -77,6 +83,13 @@
 			proxyType = 1;
 			remoteGlobalIDString = F50000000000000000000001;
 			remoteInfo = NOBSWidgets;
+		};
+		K80000000000000000000002 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A80000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A50000000000000000000001;
+			remoteInfo = NOBS;
 		};
 /* End PBXContainerItemProxy section */
 
@@ -155,6 +168,14 @@
 		I20000000000000000000001 /* ExternalConfigFiles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExternalConfigFiles.swift; sourceTree = "<group>"; };
 		I20000000000000000000002 /* ExternalConfigSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExternalConfigSync.swift; sourceTree = "<group>"; };
 		I20000000000000000000003 /* ConfigFolderPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConfigFolderPicker.swift; sourceTree = "<group>"; };
+		J20000000000000000000001 /* PCCFeatureFlags.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PCCFeatureFlags.swift; sourceTree = "<group>"; };
+		J20000000000000000000002 /* RoutingPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutingPreferences.swift; sourceTree = "<group>"; };
+		J20000000000000000000003 /* ModelRouter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelRouter.swift; sourceTree = "<group>"; };
+		J20000000000000000000004 /* AppleModelProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleModelProvider.swift; sourceTree = "<group>"; };
+		J20000000000000000000005 /* LocalAssistant.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalAssistant.swift; sourceTree = "<group>"; };
+		J20000000000000000000006 /* PCCQuotaStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PCCQuotaStatusView.swift; sourceTree = "<group>"; };
+		K20000000000000000000001 /* ModelRouterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelRouterTests.swift; sourceTree = "<group>"; };
+		K20000000000000000000002 /* NOBSTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NOBSTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -181,6 +202,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		K30000000000000000000001 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -190,6 +218,7 @@
 				A40000000000000000000002 /* NOBS */,
 				F40000000000000000000001 /* NOBSWidgets */,
 				DD00000000000000000000001 /* NOBSTankMac */,
+				K40000000000000000000001 /* NOBSTests */,
 				A40000000000000000000003 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -221,6 +250,7 @@
 				A20000000000000000000003 /* NOBS.app */,
 				F20000000000000000000006 /* NOBSWidgets.appex */,
 				DB00000000000000000000007 /* NOBSTank.app */,
+				K20000000000000000000002 /* NOBSTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -256,6 +286,11 @@
 				B20000000000000000000029 /* StoreKitService.swift */,
 				H20000000000000000000002 /* ApprovalActivityManager.swift */,
 				I20000000000000000000002 /* ExternalConfigSync.swift */,
+				J20000000000000000000001 /* PCCFeatureFlags.swift */,
+				J20000000000000000000002 /* RoutingPreferences.swift */,
+				J20000000000000000000003 /* ModelRouter.swift */,
+				J20000000000000000000004 /* AppleModelProvider.swift */,
+				J20000000000000000000005 /* LocalAssistant.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -274,6 +309,7 @@
 				B20000000000000000000030 /* SupportView.swift */,
 				B20000000000000000000031 /* NOBSTheme.swift */,
 				I20000000000000000000003 /* ConfigFolderPicker.swift */,
+				J20000000000000000000006 /* PCCQuotaStatusView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -312,6 +348,14 @@
 				F20000000000000000000005 /* Info.plist */,
 			);
 			path = NOBSWidgets;
+			sourceTree = "<group>";
+		};
+		K40000000000000000000001 /* NOBSTests */ = {
+			isa = PBXGroup;
+			children = (
+				K20000000000000000000001 /* ModelRouterTests.swift */,
+			);
+			path = NOBSTests;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -374,6 +418,23 @@
 			productReference = F20000000000000000000006 /* NOBSWidgets.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		K50000000000000000000001 /* NOBSTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = K90000000000000000000001 /* Build configuration list for PBXNativeTarget "NOBSTests" */;
+			buildPhases = (
+				K60000000000000000000001 /* Sources */,
+				K30000000000000000000001 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				K80000000000000000000001 /* PBXTargetDependency */,
+			);
+			name = NOBSTests;
+			productName = NOBSTests;
+			productReference = K20000000000000000000002 /* NOBSTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -415,6 +476,7 @@
 				A50000000000000000000001 /* NOBS */,
 				F50000000000000000000001 /* NOBSWidgets */,
 				DE00000000000000000000001 /* NOBSTank */,
+				K50000000000000000000001 /* NOBSTests */,
 			);
 		};
 /* End PBXProject section */
@@ -492,6 +554,12 @@
 				I10000000000000000000001 /* ExternalConfigFiles.swift in Sources */,
 				I10000000000000000000002 /* ExternalConfigSync.swift in Sources */,
 				I10000000000000000000003 /* ConfigFolderPicker.swift in Sources */,
+				J10000000000000000000001 /* PCCFeatureFlags.swift in Sources */,
+				J10000000000000000000002 /* RoutingPreferences.swift in Sources */,
+				J10000000000000000000003 /* ModelRouter.swift in Sources */,
+				J10000000000000000000004 /* AppleModelProvider.swift in Sources */,
+				J10000000000000000000005 /* LocalAssistant.swift in Sources */,
+				J10000000000000000000006 /* PCCQuotaStatusView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -523,6 +591,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		K60000000000000000000001 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				K10000000000000000000001 /* ModelRouterTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -530,6 +606,11 @@
 			isa = PBXTargetDependency;
 			target = F50000000000000000000001 /* NOBSWidgets */;
 			targetProxy = F80000000000000000000001 /* PBXContainerItemProxy */;
+		};
+		K80000000000000000000001 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A50000000000000000000001 /* NOBS */;
+			targetProxy = K80000000000000000000002 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -721,6 +802,44 @@
 			};
 			name = Release;
 		};
+		L10000000000000000000001 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = K853LKQLAS;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MARKETING_VERSION = 3.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.nobsdash.nobs.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/NOBS.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/NOBS";
+			};
+			name = Debug;
+		};
+		L10000000000000000000002 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				DEVELOPMENT_TEAM = K853LKQLAS;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				MARKETING_VERSION = 3.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.nobsdash.nobs.tests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 6.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/NOBS.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/NOBS";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -756,6 +875,15 @@
 			buildConfigurations = (
 				CB00000000000000000000001 /* Debug */,
 				CB00000000000000000000002 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		K90000000000000000000001 /* Build configuration list for PBXNativeTarget "NOBSTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				L10000000000000000000001 /* Debug */,
+				L10000000000000000000002 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

@@ -99,10 +99,13 @@ struct TodayView: View {
                 }
                 briefingListSection("Suggested next actions", items: briefing.suggestedNextActions)
                 HStack(spacing: 10) {
-                    Label(briefing.route.rawValue, systemImage: briefing.route == .tank ? "server.rack" : "iphone")
+                    Label(
+                        briefing.route.displayLabel(showPCCBadge: model.showPCCBadge),
+                        systemImage: briefing.route.displaySystemImage(showPCCBadge: model.showPCCBadge)
+                    )
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(accent)
-                        .accessibilityLabel("Processed on \(briefing.route.rawValue)")
+                        .accessibilityLabel("Processed on \(briefing.route.displayLabel(showPCCBadge: model.showPCCBadge))")
                     Spacer()
                     Button("Privacy receipt") { onShowReceipt(briefing.privacyReceipt) }
                         .font(.caption.weight(.semibold))
