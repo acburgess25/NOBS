@@ -1,6 +1,6 @@
 # NOBS Current State
 
-**Last updated:** July 8, 2026 (iOS session handoff merged with App Store beta polish + macOS mobile Tank; iPhone design-system polish + Tank/Local connection status dot)
+**Last updated:** July 9, 2026 (v1.1 PCC routing scaffold: ModelRouter, AppleModelProvider, policy-driven chat; badge gated)
 **Purpose:** Tool-neutral handoff for any contributor entering without prior chat history.
 
 This records implementation state, not product direction. [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md) remains the approved product source of truth. Verify the branch, tests, and live services before treating deployment facts as current.
@@ -25,7 +25,10 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 - Configurable Tank address, KeychainAccess-backed device token storage, and
   shared app-root model ownership so onboarding, sign-in, and privacy flows
   stay in sync.
-- Authenticated Tank chat with visible Local/Tank routing and privacy receipts.
+- Authenticated Tank chat with visible Local/Tank/Apple Cloud routing and privacy receipts via `ModelRouter`.
+- Policy-driven chat routing: Tank when home; conversational Tank-offline preferences (`stay local`, `use apple cloud`, `wait for tank`, `use nobscloud`); Apple Cloud (PCC) and NOBScloud paths behind feature flags.
+- `AppleModelProvider` wraps Foundation Models on-device + `PrivateCloudComputeLanguageModel` (iOS 27+); honesty gate hides Apple Cloud badge until entitlement QA (`PCCFeatureFlags`).
+- PCC quota UX in chat composer and Privacy (`PCCQuotaStatusView`); see `docs/PCC_INTEGRATION.md` and `docs/PCC_ENTITLEMENT_CHECKLIST.md`.
 - Honest local fallback when Tank is unavailable, without permanently marking
   Tank offline on non-connectivity API errors.
 - Today now generates Morning Briefing v2 with structured topline, priorities,

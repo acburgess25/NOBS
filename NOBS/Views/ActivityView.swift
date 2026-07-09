@@ -71,8 +71,8 @@ struct ActivityView: View {
                                     onSelectReceipt(item.receipt)
                                 } label: {
                                     Label(
-                                        item.route.rawValue,
-                                        systemImage: item.route == .tank ? "server.rack" : "iphone"
+                                        item.route.displayLabel(showPCCBadge: model.showPCCBadge),
+                                        systemImage: item.route.displaySystemImage(showPCCBadge: model.showPCCBadge)
                                     )
                                     .font(.caption.weight(.semibold))
                                 }

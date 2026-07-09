@@ -3,8 +3,29 @@ import Foundation
 
 enum ProcessingRoute: String, Codable, Sendable {
     case local = "Local"
+    case pcc = "Apple Cloud"
     case tank = "Tank"
     case cloud = "NOBScloud"
+
+    var systemImage: String {
+        switch self {
+        case .local: "iphone"
+        case .pcc: "lock.icloud"
+        case .tank: "server.rack"
+        case .cloud: "cloud"
+        }
+    }
+
+    /// Badge label respects the honesty gate for PCC.
+    func displayLabel(showPCCBadge: Bool) -> String {
+        if self == .pcc, !showPCCBadge { return ProcessingRoute.local.rawValue }
+        return rawValue
+    }
+
+    func displaySystemImage(showPCCBadge: Bool) -> String {
+        if self == .pcc, !showPCCBadge { return ProcessingRoute.local.systemImage }
+        return systemImage
+    }
 }
 
 struct PrivacyReceipt: Codable, Hashable, Sendable {

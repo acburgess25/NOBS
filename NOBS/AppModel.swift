@@ -47,18 +47,33 @@ final class AppModel: ObservableObject {
     @Published var externalConfigFolderName: String? = ExternalConfigSync.linkedFolderName
     @Published var externalConfigLastSyncAt: Date?
     @Published var externalConfigStatus: String?
+    @Published var routingPreferences: RoutingPreferences = .default
+    @Published var hasNOBScloud = false
+    @Published var pccQuotaStatus: PCCQuotaStatus = .unavailable
+    @Published var lastProcessingRoute: ProcessingRoute = .local
 
     var appleUserID: String? { TankConfiguration.savedAppleUserID }
 
     private let calendar = CalendarService()
     private let tank = TankClient()
     private let profileStore = UserProfileStore()
+    private let routingPreferencesStore = RoutingPreferencesStore()
     private let briefingSnapshotWriter = BriefingSnapshotWriter()
     private let focusContext = FocusContextService()
     private let approvalActivityManager = ApprovalActivityManager()
+    private let modelRouter = ModelRouter()
+    private let appleModelProvider = AppleModelProvider()
     private var refreshTask: Task<Void, Never>?
 
-    var activeRoute: ProcessingRoute { tankAvailable ? .tank : .local }
+    var activeRoute: ProcessingRoute {
+        if tankAvailable { return .tank }
+        if AppleModelProvider.availability.pccAvailable, PCCFeatureFlags.routingEnabled {
+            return .pcc
+        }
+        return .local
+    }
+
+    var showPCCBadge: Bool { PCCFeatureFlags.showBadgeInUI }
 
     var hasCalendarAccess: Bool {
         calendarStatus == .fullAccess || calendarStatus == .authorized
@@ -96,6 +111,8 @@ final class AppModel: ObservableObject {
 
     func start() async {
         profile = profileStore.load()
+        routingPreferences = routingPreferencesStore.load()
+        refreshPCCQuotaStatus()
         if briefing == nil, let cached: DailyBriefing = try? AppGroupStore.readJSON(DailyBriefing.self, from: AppGroupStore.latestBriefingFile) {
             briefing = cached
             clarifyingConflict = cached.clarifyingConflict
@@ -560,31 +577,39 @@ final class AppModel: ObservableObject {
         isSending = true
         defer { isSending = false }
 
-        if tankAvailable {
-            do {
-                let result = try await tank.chat(messages: entries)
-                entries.append(
-                    ConversationEntry(
-                        role: .assistant,
-                        text: formattedAssistantText(result.message),
-                        route: result.route,
-                        receipt: result.receipt
-                    )
-                )
-                logActivity("Tank answered a chat request")
-                return
-            } catch {
-                if shouldMarkTankUnavailable(for: error) {
-                    tankAvailable = false
-                    lastError = "Tank went offline. This request stayed on your iPhone."
-                } else {
-                    lastError = "Tank couldn't answer that request. This request stayed on your iPhone."
-                }
-            }
+        if let preferenceEntry = applyRoutingPreferenceCommand(clean) {
+            entries.append(preferenceEntry)
+            return
         }
 
-        // TODO(feature): Queue outbound messages while Tank is offline and replay them after reconnect.
-        entries.append(localResponse(for: clean))
+        let request = NOBSRequest.chat(clean)
+        let context = buildRoutingContext(for: request)
+        let decision = modelRouter.route(request, context: context)
+
+        if decision.needsUserPrompt, let prompt = decision.promptMessage {
+            entries.append(
+                ConversationEntry(
+                    role: .assistant,
+                    text: formattedAssistantText(prompt),
+                    route: .local,
+                    receipt: .localOnly
+                )
+            )
+            return
+        }
+
+        do {
+            let entry = try await executeRoutingDecision(decision, request: request, fallbackText: clean)
+            entries.append(entry)
+            lastProcessingRoute = entry.route ?? .local
+            logActivity("Answered via \(entry.route?.rawValue ?? "Local")")
+        } catch {
+            if shouldMarkTankUnavailable(for: error) {
+                tankAvailable = false
+                lastError = "Tank went offline. This request stayed on your iPhone."
+            }
+            entries.append(localResponse(for: clean))
+        }
     }
 
     func generateBriefing() async {
@@ -868,6 +893,138 @@ final class AppModel: ObservableObject {
             lastError = "Reminders access is required to sync reminders to Tank."
             return false
         }
+    }
+
+    private func buildRoutingContext(for request: NOBSRequest) -> RoutingContext {
+        refreshPCCQuotaStatus()
+        let availability = AppleModelProvider.availability
+        return RoutingContext(
+            tankAvailable: tankAvailable,
+            localFMAvailable: availability.onDeviceAvailable,
+            pccAvailable: availability.pccAvailable,
+            pccRoutingEnabled: PCCFeatureFlags.routingEnabled,
+            pccQuotaLimitReached: availability.pccQuota.isLimitReached,
+            developerEntitled: PCCFeatureFlags.developerEntitlementConfigured,
+            hasNOBScloud: hasNOBScloud,
+            profile: profile,
+            preferences: routingPreferences
+        )
+    }
+
+    private func executeRoutingDecision(
+        _ decision: RoutingDecision,
+        request: NOBSRequest,
+        fallbackText: String
+    ) async throws -> ConversationEntry {
+        switch decision.route {
+        case .tank:
+            let result = try await tank.chat(messages: entries)
+            return ConversationEntry(
+                role: .assistant,
+                text: formattedAssistantText(result.message),
+                route: result.route,
+                receipt: result.receipt
+            )
+
+        case .pcc:
+            let message = try await appleModelProvider.respond(to: request.text, kind: .pcc)
+            refreshPCCQuotaStatus()
+            return ConversationEntry(
+                role: .assistant,
+                text: formattedAssistantText(message),
+                route: .pcc,
+                receipt: decision.receipt
+            )
+
+        case .cloud:
+            return ConversationEntry(
+                role: .assistant,
+                text: formattedAssistantText(
+                    "NOBScloud routing is coming soon. Your subscription is noted; this request stayed local for now."
+                ),
+                route: .local,
+                receipt: .localOnly
+            )
+
+        case .local:
+            if AppleModelProvider.availability.onDeviceAvailable, request.fitsOnDeviceContext {
+                do {
+                    let message = try await appleModelProvider.respond(to: request.text, kind: .onDevice)
+                    return ConversationEntry(
+                        role: .assistant,
+                        text: formattedAssistantText(message),
+                        route: .local,
+                        receipt: decision.receipt
+                    )
+                } catch {
+                    return localResponse(for: fallbackText)
+                }
+            }
+            return localResponse(for: fallbackText)
+        }
+    }
+
+    private func applyRoutingPreferenceCommand(_ text: String) -> ConversationEntry? {
+        let normalized = text.lowercased()
+        let response: String?
+
+        if normalized.contains("reset routing") {
+            routingPreferences = .default
+            persistRoutingPreferences()
+            return ConversationEntry(
+                role: .assistant,
+                text: formattedAssistantText("Routing preferences reset. I'll ask again when Tank isn't home."),
+                route: .local,
+                receipt: .localOnly
+            )
+        } else if normalized.contains("stay local") || normalized.contains("keep local") || normalized.contains("local only") {
+            routingPreferences.tankOfflineBehavior = .localOnly
+            routingPreferences.allowOneTimeAppleCloud = false
+            routingPreferences.allowOneTimeNOBScloud = false
+            response = "Got it — when Tank isn't home I'll stay on this iPhone."
+        } else if normalized.contains("use apple cloud") || normalized.contains("apple cloud") || normalized.contains("use private cloud") {
+            routingPreferences.tankOfflineBehavior = .useAppleCloud
+            routingPreferences.allowOneTimeAppleCloud = true
+            response = "Saved — I'll use Apple's private cloud when Tank isn't available and your device supports it."
+        } else if normalized.contains("wait for tank") || normalized.contains("queue for tank") {
+            routingPreferences.tankOfflineBehavior = .queueForTank
+            response = "Understood — I'll keep things local and wait for Tank for heavier work."
+        } else if normalized.contains("use nobscloud") || normalized == "nobscloud" {
+            routingPreferences.tankOfflineBehavior = .useNOBScloud
+            routingPreferences.allowOneTimeNOBScloud = true
+            response = "Saved — I'll use NOBScloud when you're subscribed and Tank isn't home."
+        } else {
+            response = nil
+        }
+
+        guard let response else { return nil }
+        persistRoutingPreferences()
+        return ConversationEntry(
+            role: .assistant,
+            text: formattedAssistantText(response),
+            route: .local,
+            receipt: .localOnly
+        )
+    }
+
+    func persistRoutingPreferences() {
+        try? routingPreferencesStore.save(routingPreferences)
+    }
+
+    func refreshPCCQuotaStatus() {
+        pccQuotaStatus = AppleModelProvider.availability.pccQuota
+    }
+
+    func showPCCQuotaUpgradeOptions() {
+        #if canImport(FoundationModels)
+        if #available(iOS 27.0, macOS 27.0, *) {
+            AppleModelProvider.showQuotaIncreaseSuggestion()
+        }
+        #endif
+    }
+
+    func syncStoreEntitlements(hasNOBScloud active: Bool) {
+        hasNOBScloud = active
     }
 
     private func localResponse(for text: String) -> ConversationEntry {

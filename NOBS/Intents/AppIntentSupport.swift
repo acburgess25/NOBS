@@ -82,10 +82,19 @@ enum AppIntentSupport {
         switch route {
         case .local:
             "Processed on this iPhone"
+        case .pcc:
+            "Processed on Apple private cloud"
         case .tank:
             "Refined on Tank"
         case .cloud:
             "Processed on NOBScloud"
         }
+    }
+
+    static func routeLabel(_ route: ProcessingRoute, showPCCBadge: Bool) -> String {
+        if route == .pcc, !showPCCBadge {
+            return routeLabel(.local)
+        }
+        return routeLabel(route)
     }
 }
