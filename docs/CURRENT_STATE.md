@@ -36,6 +36,7 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 - Today can include local reminders (when permission is granted) alongside
   calendar events in briefing context.
 - Activity lists pending Tank changes and provides explicit Approve and Deny actions.
+- A Live Activity (`NOBSWidgets/ApprovalLiveActivity.swift`) shows the latest pending Tank approval on the Lock Screen and Dynamic Island — concise tool name, reason, risk badge, and a "+N more waiting" count. Approve/Deny deep-link into the app (`nobs://approvals?id=…&action=…`) rather than executing from the extension, so every decision still goes through the same atomic, audited `AppModel.decideApproval` path. `ApprovalActivityManager` starts/updates/ends the activity from `AppModel.loadApprovals()`; it reattaches to a still-visible activity on relaunch and requires no new backend API.
 - Activity shows Tank schedules and supports pause/revoke actions, plus sync action receipts with Local/Tank processing labels.
 - Today briefing lists respect `UserProfile.accessibilityPreferences.responseLength`; refresh control and relative timestamp shown when a briefing exists.
 - Onboarding collects response length (brief / standard / detailed) conversationally.

@@ -61,6 +61,10 @@
 		F10000000000000000000006 /* NOBSWidgets.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = F20000000000000000000006 /* NOBSWidgets.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		F10000000000000000000007 /* Color+NOBS.swift in Sources */ = {isa = PBXBuildFile; fileRef = A20000000000000000000008 /* Color+NOBS.swift */; };
 		B10000000000000000000031 /* NOBSTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = B20000000000000000000031 /* NOBSTheme.swift */; };
+		H10000000000000000000001 /* ApprovalActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = H20000000000000000000001 /* ApprovalActivityAttributes.swift */; };
+		H10000000000000000000002 /* ApprovalActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = H20000000000000000000001 /* ApprovalActivityAttributes.swift */; };
+		H10000000000000000000003 /* ApprovalActivityManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = H20000000000000000000002 /* ApprovalActivityManager.swift */; };
+		H10000000000000000000004 /* ApprovalLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = H20000000000000000000003 /* ApprovalLiveActivity.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -118,6 +122,9 @@
 		F20000000000000000000004 /* NOBSWidgets.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = NOBSWidgets.entitlements; sourceTree = "<group>"; };
 		F20000000000000000000005 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		F20000000000000000000006 /* NOBSWidgets.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = NOBSWidgets.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		H20000000000000000000001 /* ApprovalActivityAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApprovalActivityAttributes.swift; sourceTree = "<group>"; };
+		H20000000000000000000002 /* ApprovalActivityManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApprovalActivityManager.swift; sourceTree = "<group>"; };
+		H20000000000000000000003 /* ApprovalLiveActivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApprovalLiveActivity.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXContainerItemProxy section */
@@ -200,6 +207,7 @@
 				F20000000000000000000001 /* NOBSWidgetsBundle.swift */,
 				F20000000000000000000002 /* BriefingWidget.swift */,
 				F20000000000000000000003 /* BriefingSnapshotReader.swift */,
+				H20000000000000000000003 /* ApprovalLiveActivity.swift */,
 				F20000000000000000000004 /* NOBSWidgets.entitlements */,
 				F20000000000000000000005 /* Info.plist */,
 			);
@@ -236,6 +244,7 @@
 				B20000000000000000000018 /* BriefingSnapshot+Briefing.swift */,
 				B20000000000000000000020 /* ClarifyingConflict.swift */,
 				B20000000000000000000028 /* StoreProducts.swift */,
+				H20000000000000000000001 /* ApprovalActivityAttributes.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -254,6 +263,7 @@
 				B20000000000000000000021 /* NotificationScheduler.swift */,
 				B20000000000000000000022 /* NotificationDelegate.swift */,
 				B20000000000000000000029 /* StoreKitService.swift */,
+				H20000000000000000000002 /* ApprovalActivityManager.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -453,6 +463,8 @@
 				F10000000000000000000004 /* AppGroupStore.swift in Sources */,
 				F10000000000000000000005 /* BriefingSnapshot.swift in Sources */,
 				F10000000000000000000007 /* Color+NOBS.swift in Sources */,
+				H10000000000000000000002 /* ApprovalActivityAttributes.swift in Sources */,
+				H10000000000000000000004 /* ApprovalLiveActivity.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -497,6 +509,8 @@
 				B10000000000000000000029 /* StoreKitService.swift in Sources */,
 				B10000000000000000000030 /* SupportView.swift in Sources */,
 				B10000000000000000000031 /* NOBSTheme.swift in Sources */,
+				H10000000000000000000001 /* ApprovalActivityAttributes.swift in Sources */,
+				H10000000000000000000003 /* ApprovalActivityManager.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -120,6 +120,8 @@ Deepen personalization and daily rhythm after Tier 1 is trustworthy on a physica
 
 **Average-user win:** Visible, time-bounded help without notification spam.
 
+**Status:** Approval-queue slice implemented — see `NOBSWidgets/ApprovalLiveActivity.swift` and `NOBS/Services/ApprovalActivityManager.swift`. Day-rescue and research-digest Live Activities remain planned.
+
 ---
 
 ### 7. Adaptive accessibility through conversation

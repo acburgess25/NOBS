@@ -5,6 +5,7 @@ enum DeepLinkDestination: Equatable {
     case chat(prompt: String?)
     case privacy
     case conflict
+    case approvals(id: String?, action: String?)
     case tankPairing(url: URL)
 }
 
@@ -36,6 +37,10 @@ enum DeepLinkRouter {
             return .privacy
         case "conflict":
             return .conflict
+        case "approvals":
+            let id = components?.queryItems?.first(where: { $0.name == "id" })?.value
+            let action = components?.queryItems?.first(where: { $0.name == "action" })?.value
+            return .approvals(id: id, action: action)
         default:
             return nil
         }
