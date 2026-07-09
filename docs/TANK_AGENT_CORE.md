@@ -24,8 +24,61 @@ The first implementation establishes the trust boundary needed for future person
 | `list_project_files` | Read only | (Developer Mode) Lists bounded source and doc files under the configured NOBS project. |
 | `read_project_file` | Read only | (Developer Mode) Reads a bounded UTF-8 source or doc file from the configured project. |
 | `search_project_text` | Read only | (Developer Mode) Searches for literal text fragment in bounded source/doc files. |
+| `list_home_devices` | Read only | Lists Home Assistant entities/state, optionally filtered by domain. |
+| `control_home_device` | Change | Calls a Home Assistant service on a non-secure accessory (light, switch, climate, media_player, etc). Rejects lock/alarm/cover domains. |
+| `control_secure_home_device` | Sensitive | Calls a Home Assistant service on a secure accessory (lock, alarm_control_panel, cover) only. |
+| `list_home_scenes` | Read only | Lists configured Home Assistant `scene.*` entities (whole-home routines such as "Good Night"). |
+| `run_home_scene` | Change | Runs one named scene. Rejects any entity outside the `scene.` domain. |
 
 There is deliberately no general-purpose shell, arbitrary URL fetcher, package installer, credential reader, message sender, deletion tool, or unrestricted filesystem tool.
+
+## Home control from chat
+
+NOBS does not talk to Apple's HomeKit protocol directly from Tank: HomeKit's
+framework is Apple-only and Tank must remain cross-platform (see
+[`AI_WORKFLOW.md`](AI_WORKFLOW.md) §Cross-Platform). Instead, Apple Home
+accessories are bridged into Home Assistant (HA's built-in HomeKit Controller
+integration, or native HA integrations for the same vendor devices), and the
+agent controls everything — HomeKit-originated or not — through the tools
+above. See [`GOOGLE_HOME_INTEGRATION.md`](GOOGLE_HOME_INTEGRATION.md) for the
+full bridge architecture, which applies identically to Apple Home.
+
+`run_home_scene` exists alongside the generic `control_home_device` because a
+scene is the safest, most legible way for the model to request a whole-home
+routine: the tool can only ever target `scene.*` entities (never an arbitrary
+accessory or service), and — like every other `Change`-risk tool — it always
+creates a pending approval rather than running automatically. A scene may
+internally touch a secure accessory (for example "Good Night" locking a
+door); that risk is accepted the same way it is in Apple Home and Home
+Assistant themselves, and is still gated by the same approval the user would
+see for any other change.
+
+## Overnight Tank queue
+
+Deferred, non-urgent work (research, memory consolidation, briefing prep) can
+be queued during the evening and processed later while Tank is idle,
+overnight. This reuses the same tool registry and approval policy as any
+other agent run — a schedule never bypasses consent.
+
+- Storage: `overnight_tasks` table in the agent SQLite database (`app/agent_store.py`).
+- Processing: `app/scheduler.py`'s background loop claims one queued task at a
+  time when both are true: the current time (in `NOBS_TIMEZONE`) falls inside
+  the configured overnight window, and recent CPU load is at or below the
+  configured idle threshold. It then runs the task's objective through
+  `TankAgent`, exactly like `POST /agent/tasks`.
+- Configuration (`app/config.py`, all optional):
+  - `NOBS_TIMEZONE` — IANA timezone for window evaluation (default `UTC`).
+  - `NOBS_OVERNIGHT_QUEUE_ENABLED` — default `true`.
+  - `NOBS_OVERNIGHT_WINDOW_START` / `NOBS_OVERNIGHT_WINDOW_END` — `HH:MM`, local
+    to `NOBS_TIMEZONE`; the window may wrap past midnight (default `23:00`–`06:00`).
+  - `NOBS_OVERNIGHT_IDLE_CPU_PERCENT` — default `40.0`.
+- API (device-token protected):
+  - `POST /overnight/tasks` — enqueue `{objective, context, mode, task_type, priority}`.
+  - `GET /overnight/tasks?task_status=queued` — list, optionally filtered by status.
+  - `GET /overnight/tasks/{id}` — fetch one task.
+  - `POST /overnight/tasks/{id}/cancel` — cancel while still `queued` (409 once started/finished).
+- Task lifecycle: `queued` → `running` → `completed` | `failed`, or `queued` → `cancelled`.
+  Claiming is atomic (`AgentStore.claim_next_overnight_task`) so a task can never run twice.
 
 ## Developer Mode
 

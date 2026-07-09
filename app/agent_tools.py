@@ -261,6 +261,36 @@ class ToolRegistry:
                     handler=self._control_secure_home_device,
                 ),
                 ToolDefinition(
+                    name="list_home_scenes",
+                    description=(
+                        "List configured smart home scenes/routines (e.g. Good Night, Movie Time, "
+                        "Quiet Morning). Scenes bundle multiple accessory changes into one named "
+                        "intent, matching Apple Home/HomeKit scenes bridged through Home Assistant."
+                    ),
+                    risk=ToolRisk.READ_ONLY,
+                    parameters={"type": "object", "properties": {}, "additionalProperties": False},
+                    handler=self._list_home_scenes,
+                ),
+                ToolDefinition(
+                    name="run_home_scene",
+                    description=(
+                        "Run one named smart home scene (e.g. 'Good Night', 'Movie Time'). This is "
+                        "the safe way to trigger a whole-home routine from chat. It can only target "
+                        "scene entities returned by list_home_scenes, never arbitrary devices. "
+                        "This changes local home state and always requires approval before it runs."
+                    ),
+                    risk=ToolRisk.CHANGE,
+                    parameters={
+                        "type": "object",
+                        "required": ["entity_id"],
+                        "properties": {
+                            "entity_id": {"type": "string", "minLength": 1, "maxLength": 100},
+                        },
+                        "additionalProperties": False,
+                    },
+                    handler=self._run_home_scene,
+                ),
+                ToolDefinition(
                     name="propose_idea",
                     description=(
                         "Propose a conceptual recommendation or optimization idea (like a new routine "
@@ -728,6 +758,39 @@ class ToolRegistry:
             return {"status": "success", "result": res}
         except (httpx.HTTPError, ValueError, TypeError) as error:
             return {"error": f"Failed to control secure device: {error}"}
+
+    def _list_home_scenes(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        self._require_argument_keys(arguments, set())
+        if not self.home_assistant or not self.home_assistant.is_configured:
+            return {
+                "error": "Home Assistant integration is not configured. Ask the user to set NOBS_HOMEASSISTANT_URL and NOBS_HOMEASSISTANT_TOKEN in their environment."
+            }
+        try:
+            scenes = self.home_assistant.list_devices("scene")
+            return {"scenes": scenes[:100], "truncated": len(scenes) > 100}
+        except (httpx.HTTPError, ValueError, TypeError) as error:
+            return {"error": f"Failed to list scenes from Home Assistant: {error}"}
+
+    def _run_home_scene(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        self._require_argument_keys(arguments, {"entity_id"})
+        entity_id = str(arguments.get("entity_id", ""))
+        if not entity_id:
+            raise ValueError("entity_id is required")
+        domain = entity_id.split(".")[0] if "." in entity_id else ""
+        if domain != "scene":
+            raise ValueError(
+                "This tool is only permitted to run scene entities (e.g. 'scene.good_night'). "
+                "Use control_home_device or control_secure_home_device for individual accessories."
+            )
+        if not self.home_assistant or not self.home_assistant.is_configured:
+            return {
+                "error": "Home Assistant integration is not configured. Ask the user to set NOBS_HOMEASSISTANT_URL and NOBS_HOMEASSISTANT_TOKEN in their environment."
+            }
+        try:
+            res = self.home_assistant.call_service("scene", "turn_on", {"entity_id": entity_id})
+            return {"status": "success", "result": res}
+        except (httpx.HTTPError, ValueError, TypeError) as error:
+            return {"error": f"Failed to run scene: {error}"}
 
     def _propose_idea(self, arguments: dict[str, Any]) -> dict[str, Any]:
         self._require_argument_keys(arguments, {"title", "description", "proposal_type"})
