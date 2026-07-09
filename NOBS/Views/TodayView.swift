@@ -5,14 +5,12 @@ struct TodayView: View {
     @EnvironmentObject private var model: AppModel
     let onShowReceipt: (PrivacyReceipt) -> Void
     private let accent = Color.nobsAccent
-    private let forest = Color.nobsForest
-    private let surface = Color.nobsSagePale
 
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 18) {
                 Text("A realistic day, not another list.")
-                    .font(.system(size: 30, design: .serif))
+                    .nobsSerifTitle(30)
                 briefingCard
                 switch model.calendarStatus {
                 case .fullAccess, .authorized:
@@ -36,8 +34,7 @@ struct TodayView: View {
                             .buttonStyle(.borderedProminent)
                             .tint(accent)
                     }
-                    .padding(18)
-                    .background(surface, in: RoundedRectangle(cornerRadius: 16))
+                    .nobsSectionCard()
                 }
                 reminderSection
                 if model.shouldShowEveningWrapUp {
@@ -88,9 +85,9 @@ struct TodayView: View {
                         if model.highlightClarifyingQuestion {
                             Text("Notifications are off — answer here when you have a moment.")
                                 .font(.caption.weight(.semibold))
-                                .foregroundStyle(accent)
+                                .foregroundStyle(Color.nobsWarning)
                                 .padding(10)
-                                .background(Color.nobsWarning.opacity(0.12), in: RoundedRectangle(cornerRadius: 10))
+                                .background(Color.nobsWarningWash, in: RoundedRectangle(cornerRadius: 10))
                         }
                         if model.clarifyingConflict != nil {
                             Button("Resolve overlap") {
@@ -128,8 +125,7 @@ struct TodayView: View {
                 .disabled(model.isGeneratingBriefing)
             }
         }
-        .padding(18)
-        .background(surface, in: RoundedRectangle(cornerRadius: 16))
+        .nobsSectionCard()
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Morning briefing")
     }
@@ -163,8 +159,7 @@ struct TodayView: View {
                 .foregroundStyle(.secondary)
                 .lineSpacing(3)
         }
-        .padding(18)
-        .background(surface, in: RoundedRectangle(cornerRadius: 16))
+        .nobsSectionCard()
         .accessibilityElement(children: .contain)
         .accessibilityLabel("Evening wrap-up")
     }
@@ -210,8 +205,7 @@ struct TodayView: View {
                     .tint(accent)
             }
         }
-        .padding(18)
-        .background(surface, in: RoundedRectangle(cornerRadius: 16))
+        .nobsSectionCard()
     }
 
     private func briefingParagraph(_ title: String, text: String) -> some View {

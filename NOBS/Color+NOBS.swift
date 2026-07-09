@@ -1,6 +1,7 @@
 import SwiftUI
 
-// Keep in sync with design/tokens.json and website/src/nobs-tokens.css
+// Keep in sync with design/tokens.json, website/src/nobs-tokens.css,
+// and the NOBS Design System tokens (tokens/colors.css).
 extension Color {
     /// Soft charcoal-green for primary text (#2A3328)
     static let nobsInk = Color(red: 42 / 255, green: 51 / 255, blue: 40 / 255)
@@ -18,6 +19,14 @@ extension Color {
     static let nobsSagePale = Color(red: 234 / 255, green: 238 / 255, blue: 230 / 255)
     /// Subtle section wash (#F2F4F0)
     static let nobsSageMist = Color(red: 242 / 255, green: 244 / 255, blue: 240 / 255)
-    /// Schedule conflict / caution (#C17A3A)
-    static let nobsWarning = Color(red: 193 / 255, green: 122 / 255, blue: 58 / 255)
+    /// Caution / warning ink — schedule conflicts, medium risk (#A8672E). Maps to `--nobs-warning-ink`.
+    static let nobsWarning = Color(red: 168 / 255, green: 103 / 255, blue: 46 / 255)
+    /// Caution callout wash — "notifications off" and similar (#D68A45 at 12%). Maps to `--nobs-warning-bg`.
+    static let nobsWarningWash = Color(red: 214 / 255, green: 138 / 255, blue: 69 / 255).opacity(0.12)
+    /// Pending-approval count badges only (#D64541) — maps to `--nobs-destructive`.
+    static let nobsDestructive = Color(red: 214 / 255, green: 69 / 255, blue: 65 / 255)
+    /// Live "online" status dot — Tank connected (#5C8B48). Maps to `--nobs-online`.
+    static let nobsOnline = Color(red: 92 / 255, green: 139 / 255, blue: 72 / 255)
+    /// Composer / text-input fill — soft neutral tint. Maps to `--nobs-composer-fill`.
+    static let nobsComposerFill = Color.black.opacity(0.05)
 }

@@ -16,7 +16,7 @@ struct ActivityView: View {
                             Image(systemName: "checkmark.shield.fill")
                                 .foregroundStyle(.white)
                                 .frame(width: 32, height: 32)
-                                .background(Color.red, in: RoundedRectangle(cornerRadius: 8))
+                                .background(Color.nobsDestructive, in: RoundedRectangle(cornerRadius: 8))
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("\(model.pendingDecisionCount) item\(model.pendingDecisionCount == 1 ? "" : "s") need your attention")
                                     .font(.subheadline.weight(.semibold))
