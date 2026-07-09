@@ -16,6 +16,12 @@ The NOBS portfolio is deployed to Tank as a static Vite build and published thro
 From the repository root on your workstation:
 
 ```bash
+bash scripts/deploy-nobsdash.sh
+```
+
+Or manually:
+
+```bash
 cd website
 pnpm install
 pnpm run build
@@ -32,8 +38,10 @@ After replacing the static build, restart the origin and verify it locally on Ta
 
 ```bash
 systemctl --user restart nobsdash.service
-curl --fail --silent --show-error http://127.0.0.1:4173/
+curl --fail --silent --show-error http://127.0.0.1:4173/privacy.html
 ```
+
+Public policy URLs after deploy: `https://nobsdash.com/privacy.html` and `https://nobsdash.com/privacy/`.
 
 ## Cloudflare tunnel route
 
