@@ -81,8 +81,7 @@ jobs:
             -destination 'generic/platform=iOS' \
             -archivePath "$archive_path" \
             "${auth[@]}" \
-            CODE_SIGN_STYLE=Manual \
-            CODE_SIGN_IDENTITY="Apple Distribution" \
+            CODE_SIGN_STYLE=Automatic \
             DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM"
           xcodebuild -exportArchive \
             -archivePath "$archive_path" \
