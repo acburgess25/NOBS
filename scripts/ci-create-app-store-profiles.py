@@ -8,6 +8,7 @@ import os
 import plistlib
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 from typing import Any
@@ -117,12 +118,17 @@ def _delete_existing_profiles(client: ASCClient, bundle_identifier: str, profile
 
 
 def _decode_profile(content: bytes) -> dict[str, Any]:
-    result = subprocess.run(
-        ["security", "cms", "-D", "-i", "-"],
-        input=content,
-        capture_output=True,
-        check=True,
-    )
+    with tempfile.NamedTemporaryFile(suffix=".mobileprovision", delete=False) as handle:
+        handle.write(content)
+        temp_path = handle.name
+    try:
+        result = subprocess.run(
+            ["security", "cms", "-D", "-i", temp_path],
+            capture_output=True,
+            check=True,
+        )
+    finally:
+        Path(temp_path).unlink(missing_ok=True)
     return plistlib.loads(result.stdout)
 
 
