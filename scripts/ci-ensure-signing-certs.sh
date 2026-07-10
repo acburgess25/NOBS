@@ -100,12 +100,15 @@ security find-identity -v -p codesigning "$KEYCHAIN"
 
 dist_count="$(identity_count 'Apple Distribution')"
 dev_ready=0
-if has_valid_dev_identity || has_dev_material; then
+if has_valid_dev_identity; then
   dev_ready=1
 fi
 
 if [[ "$dist_count" -lt 1 || "$dev_ready" -lt 1 ]]; then
-  echo "Expected Apple Distribution and Apple Development signing material in $KEYCHAIN" >&2
-  security find-certificate -a "$KEYCHAIN" || true
+  echo "Expected valid Apple Distribution and iPhone Developer identities in $KEYCHAIN" >&2
+  security find-identity -v -p codesigning "$KEYCHAIN" || true
+  if security find-identity -v -p codesigning "$KEYCHAIN" | grep -q 'CSSMERR_TP_CERT_REVOKED'; then
+    echo "The Apple Distribution certificate in DIST_CERT_P12 appears revoked. Regenerate it in Apple Developer and update the GitHub secret." >&2
+  fi
   exit 1
 fi

@@ -35,28 +35,30 @@ def main() -> int:
     token = _token()
     headers = {"Authorization": f"Bearer {token}"}
     base = "https://api.appstoreconnect.apple.com/v1"
+    revoked = 0
 
     with httpx.Client(timeout=30.0) as client:
-        response = client.get(
-            f"{base}/certificates",
-            params={"filter[certificateType]": "DEVELOPMENT"},
-            headers=headers,
-        )
-        response.raise_for_status()
-        certs = response.json().get("data", [])
+        for cert_type in ("IOS_DEVELOPMENT", "DEVELOPMENT", "MAC_APP_DEVELOPMENT"):
+            response = client.get(
+                f"{base}/certificates",
+                params={"filter[certificateType]": cert_type, "limit": 200},
+                headers=headers,
+            )
+            response.raise_for_status()
+            certs = response.json().get("data", [])
 
-        if not certs:
-            print("No Apple Development certificates to revoke.")
-            return 0
+            for cert in certs:
+                cert_id = cert["id"]
+                name = cert.get("attributes", {}).get("displayName", cert_id)
+                delete = client.delete(f"{base}/certificates/{cert_id}", headers=headers)
+                delete.raise_for_status()
+                print(f"Revoked {cert_type} certificate {cert_id} ({name})")
+                revoked += 1
 
-        for cert in certs:
-            cert_id = cert["id"]
-            name = cert.get("attributes", {}).get("displayName", cert_id)
-            delete = client.delete(f"{base}/certificates/{cert_id}", headers=headers)
-            delete.raise_for_status()
-            print(f"Revoked development certificate {cert_id} ({name})")
-
-    print(f"Revoked {len(certs)} development certificate(s).")
+    if revoked == 0:
+        print("No development certificates to revoke.")
+    else:
+        print(f"Revoked {revoked} development certificate(s).")
     return 0
 
 

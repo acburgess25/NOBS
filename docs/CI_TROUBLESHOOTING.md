@@ -69,7 +69,8 @@ No signing certificate "iOS Development" found … private key is not installed 
 
 **If archive still fails:**
 
-1. [Apple Developer](https://developer.apple.com) → Identifiers → confirm App Group + Sign in with Apple on both App IDs.
+1. **Revoked distribution cert** — if logs show `CSSMERR_TP_CERT_REVOKED`, regenerate **Apple Distribution** in [Certificates](https://developer.apple.com/account/resources/certificates/list), export `.p12`, and update GitHub secrets `DIST_CERT_P12` + `DIST_CERT_PASSWORD`.
+2. [Apple Developer](https://developer.apple.com) → Identifiers → confirm App Group + Sign in with Apple on both App IDs.
 2. Regenerate **Apple Distribution** provisioning profiles for app and widget extension.
 3. Ensure CI secrets match: `DIST_CERT_P12`, `DIST_CERT_PASSWORD`, `ASC_API_KEY_*`.
 4. Confirm `fastlane` is installed on the `testflight` runner (`brew install fastlane`).
