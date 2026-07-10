@@ -108,7 +108,8 @@ jobs:
           export ASC_API_KEY_PATH="$HOME/private_keys/AuthKey_${ASC_API_KEY_ID}.p8"
           python3 scripts/validate-asc-api.py
           python3 scripts/ci-enable-bundle-capabilities.py || echo "Capability enablement skipped (check Developer portal)"
-          bash scripts/ci-refresh-provisioning-profiles.sh
+          rm -rf "$HOME/Library/MobileDevice/Provisioning Profiles/"*
+          rm -rf "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles/"* 2>/dev/null || true
 
       - name: Archive & export
         if: ${{ !inputs.refresh_signing_only && !inputs.upload_staged_ipa }}
@@ -132,6 +133,7 @@ jobs:
             -destination 'generic/platform=iOS' \
             -archivePath "$archive_path" \
             "${auth[@]}" \
+            CODE_SIGN_STYLE=Automatic \
             DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM" \
             OTHER_CODE_SIGN_FLAGS="--keychain $CI_KEYCHAIN"
           xcodebuild -exportArchive \
