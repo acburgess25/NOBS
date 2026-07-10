@@ -56,7 +56,7 @@ import_wwdr
 
 if [[ "$(identity_count 'Apple Development')" -lt 1 ]]; then
   echo "Revoking stale Apple Development certificates on the developer account..."
-  fastlane revoke_development_certs
+  python3 scripts/ci-revoke-development-certs.py
 
   echo "Creating Apple Development certificate in CI keychain..."
   set +e

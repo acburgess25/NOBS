@@ -13,7 +13,7 @@ on:
       - "NOBS.xcodeproj/**"
       - "ExportOptions.plist"
       - "scripts/ci-ensure-signing-certs.sh"
-      - "fastlane/**"
+      - "scripts/ci-revoke-development-certs.py"
       - "scripts/stage-testflight-ipa.sh"
       - ".github/workflows/testflight.yml"
   workflow_dispatch:
@@ -64,6 +64,16 @@ jobs:
             printf '%s' "$ASC_API_KEY_CONTENT" > "$key"
           else
             printf '%s' "$ASC_API_KEY_CONTENT" | base64 --decode > "$key"
+          fi
+
+      - name: Bootstrap signing tools
+        run: |
+          set -euo pipefail
+          python3 -m pip install --user PyJWT cryptography httpx
+          mkdir -p "$HOME/.local/share/fastlane/4.0.0"
+          if [[ ! -f "$HOME/.local/share/fastlane/4.0.0/.bootstrapped" ]]; then
+            cp -R /opt/homebrew/Cellar/fastlane/2.237.0/libexec/gems/* "$HOME/.local/share/fastlane/4.0.0/"
+            touch "$HOME/.local/share/fastlane/4.0.0/.bootstrapped"
           fi
 
       - name: Ensure development and distribution certificates
