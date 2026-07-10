@@ -12,11 +12,6 @@ on:
       - "NOBSWidgets/**"
       - "NOBS.xcodeproj/**"
       - "ExportOptions.plist"
-      - "scripts/ci-ensure-signing-certs.sh"
-      - "scripts/ci-prepare-keychain.sh"
-      - "scripts/ci-revoke-development-certs.py"
-      - "scripts/stage-testflight-ipa.sh"
-      - ".github/workflows/testflight.yml"
   workflow_dispatch:
     inputs:
       refresh_signing_only:
@@ -25,6 +20,10 @@ on:
         default: false
       cleanup_apple_account:
         description: Remove non-NOBS certs, profiles, bundle IDs (destructive)
+        type: boolean
+        default: false
+      upload_staged_ipa:
+        description: Upload ~/nobs-build/NOBS.ipa only (skip build/signing)
         type: boolean
         default: false
 
@@ -45,8 +44,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        if: ${{ !inputs.upload_staged_ipa }}
 
       - name: Create CI keychain
+        if: ${{ !inputs.upload_staged_ipa }}
         run: |
           set -euo pipefail
           keychain="$RUNNER_TEMP/ci-signing.keychain-db"
@@ -66,6 +67,7 @@ jobs:
           fi
 
       - name: Bootstrap signing tools
+        if: ${{ !inputs.upload_staged_ipa }}
         run: |
           set -euo pipefail
           python3 -m pip install --user PyJWT cryptography httpx
@@ -87,6 +89,7 @@ jobs:
           python3 scripts/ci-enable-bundle-capabilities.py || echo "Capability enablement skipped (check Developer portal)"
 
       - name: Provision signing certificates via API
+        if: ${{ !inputs.upload_staged_ipa }}
         env:
           ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
           ASC_API_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
@@ -96,6 +99,7 @@ jobs:
           bash scripts/ci-ensure-signing-certs.sh "$CI_KEYCHAIN" "$CI_KEYCHAIN_PASSWORD"
 
       - name: Refresh provisioning profiles
+        if: ${{ !inputs.upload_staged_ipa }}
         env:
           ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
           ASC_API_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
@@ -107,7 +111,7 @@ jobs:
           bash scripts/ci-refresh-provisioning-profiles.sh
 
       - name: Archive & export
-        if: ${{ !inputs.refresh_signing_only }}
+        if: ${{ !inputs.refresh_signing_only && !inputs.upload_staged_ipa }}
         run: |
           set -euo pipefail
           security unlock-keychain -p "$CI_KEYCHAIN_PASSWORD" "$CI_KEYCHAIN"
@@ -141,9 +145,16 @@ jobs:
       - name: Upload to TestFlight
         if: ${{ !inputs.refresh_signing_only }}
         run: |
+          set -euo pipefail
+          if [ "${{ inputs.upload_staged_ipa }}" = "true" ]; then
+            ipa="$HOME/nobs-build/NOBS.ipa"
+          else
+            ipa="$EXPORT_DIR/NOBS.ipa"
+          fi
+          test -f "$ipa"
           xcrun altool --upload-app \
             --type ios \
-            --file "$EXPORT_DIR/NOBS.ipa" \
+            --file "$ipa" \
             --apiKey ${{ secrets.ASC_API_KEY_ID }} \
             --apiIssuer ${{ secrets.ASC_API_ISSUER_ID }}
 
