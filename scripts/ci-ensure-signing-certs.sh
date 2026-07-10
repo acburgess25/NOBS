@@ -91,8 +91,6 @@ security list-keychains -d user -s "$KEYCHAIN" login.keychain-db
 import_wwdr
 
 if ! has_valid_dev_identity; then
-  echo "Revoking stale development certificates on the developer account..."
-  python3 scripts/ci-revoke-development-certs.py
   echo "Creating iPhone Developer certificate via API..."
   run_fastlane_cert true || true
 fi

@@ -4,8 +4,15 @@
 <dict>
 	<key>method</key>
 	<string>app-store-connect</string>
+	<key>provisioningProfiles</key>
+	<dict>
+		<key>com.nobsdash.nobs</key>
+		<string>com.nobsdash.nobs AppStore</string>
+		<key>com.nobsdash.nobs.widgets</key>
+		<string>com.nobsdash.nobs.widgets AppStore</string>
+	</dict>
 	<key>signingStyle</key>
-	<string>automatic</string>
+	<string>manual</string>
 	<key>teamID</key>
 	<string>K853LKQLAS</string>
 	<key>uploadSymbols</key>
