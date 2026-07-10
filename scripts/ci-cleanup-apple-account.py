@@ -14,7 +14,6 @@ import httpx
 import jwt
 
 BASE = "https://api.appstoreconnect.apple.com/v1"
-KEEP_BUNDLE_PREFIXES = ("com.nobsdash.",)
 KEEP_APP_GROUPS = {"group.com.nobsdash.nobs"}
 KEEP_BUNDLE_IDS = {"com.nobsdash.nobs", "com.nobsdash.nobs.widgets"}
 
@@ -90,7 +89,7 @@ class ASCClient:
 
 
 def _keep_bundle(identifier: str) -> bool:
-    return any(identifier.startswith(prefix) for prefix in KEEP_BUNDLE_PREFIXES)
+    return identifier in KEEP_BUNDLE_IDS
 
 
 def list_account(client: ASCClient) -> None:

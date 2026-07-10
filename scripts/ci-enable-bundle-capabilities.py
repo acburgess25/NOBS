@@ -140,7 +140,14 @@ def _ensure_bundle_id(client: httpx.Client, identifier: str, name: str) -> str:
 
 
 def _has_capability(client: httpx.Client, bundle_id: str, capability_type: str) -> bool:
-    response = _request(client, "GET", f"/bundleIds/{bundle_id}/bundleIdCapabilities", params={"limit": 200})
+    response = _request(
+        client,
+        "GET",
+        "/bundleIdCapabilities",
+        params={"filter[bundleId]": bundle_id, "limit": 200},
+    )
+    if response.status_code in {400, 404}:
+        return False
     response.raise_for_status()
     return any(
         item.get("attributes", {}).get("capabilityType") == capability_type
