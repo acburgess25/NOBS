@@ -47,6 +47,9 @@ jobs:
           security import "$RUNNER_TEMP/dist.p12" -k "$keychain" -P "$P12_PASSWORD" -A \
             -T /usr/bin/codesign -T /usr/bin/security -T /usr/bin/xcodebuild
           security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$P12_PASSWORD" "$keychain"
+          curl -fsSL -o "$RUNNER_TEMP/AppleWWDRCAG4.cer" https://www.apple.com/certificateauthority/AppleWWDRCAG4.cer
+          security import "$RUNNER_TEMP/AppleWWDRCAG4.cer" -k "$keychain" -A \
+            -T /usr/bin/codesign -T /usr/bin/security -T /usr/bin/xcodebuild || true
 
       - name: Install App Store Connect API key
         env:

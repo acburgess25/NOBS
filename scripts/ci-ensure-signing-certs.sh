@@ -22,6 +22,18 @@ if ! command -v fastlane >/dev/null; then
   exit 1
 fi
 
+import_wwdr() {
+  local wwdr="${RUNNER_TEMP:-/tmp}/AppleWWDRCAG4.cer"
+  curl -fsSL -o "$wwdr" https://www.apple.com/certificateauthority/AppleWWDRCAG4.cer
+  security import "$wwdr" -k "$KEYCHAIN" -A \
+    -T /usr/bin/codesign -T /usr/bin/security -T /usr/bin/xcodebuild || true
+}
+
+identity_count() {
+  local label="$1"
+  security find-identity -v -p codesigning "$KEYCHAIN" | grep -c "$label" || true
+}
+
 api_json="${RUNNER_TEMP:-/tmp}/asc-api-key.json"
 python3 - <<PY
 import json
@@ -40,21 +52,32 @@ PY
 security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
 security set-keychain-settings -lut 21600 "$KEYCHAIN"
 security list-keychains -d user -s "$KEYCHAIN"
+import_wwdr
 
-echo "Creating Apple Development certificate in CI keychain (revokes orphaned portal cert if needed)..."
-fastlane run cert \
-  development:true \
-  force:true \
-  generate_apple_certs:true \
-  keychain_path:"$KEYCHAIN" \
-  keychain_password:"$KEYCHAIN_PASSWORD" \
-  api_key_path:"$api_json"
+if [[ "$(identity_count 'Apple Development')" -lt 1 ]]; then
+  echo "Creating Apple Development certificate in CI keychain..."
+  set +e
+  fastlane run cert \
+    development:true \
+    force:true \
+    generate_apple_certs:true \
+    keychain_path:"$KEYCHAIN" \
+    keychain_password:"$KEYCHAIN_PASSWORD" \
+    api_key_path:"$api_json"
+  fastlane_status=$?
+  set -e
+  security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN" || true
+  if [[ "$(identity_count 'Apple Development')" -lt 1 && "$fastlane_status" -ne 0 ]]; then
+    echo "fastlane cert failed and no Apple Development identity is available in $KEYCHAIN" >&2
+    exit 1
+  fi
+fi
 
 echo "Code signing identities in CI keychain:"
 security find-identity -v -p codesigning "$KEYCHAIN"
 
-dist_count="$(security find-identity -v -p codesigning "$KEYCHAIN" | grep -c 'Apple Distribution' || true)"
-dev_count="$(security find-identity -v -p codesigning "$KEYCHAIN" | grep -c 'Apple Development' || true)"
+dist_count="$(identity_count 'Apple Distribution')"
+dev_count="$(identity_count 'Apple Development')"
 
 if [[ "$dist_count" -lt 1 || "$dev_count" -lt 1 ]]; then
   echo "Expected both Apple Distribution and Apple Development identities in $KEYCHAIN" >&2
