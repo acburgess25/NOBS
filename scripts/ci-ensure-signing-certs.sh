@@ -38,7 +38,9 @@ import_wwdr() {
 
 has_dev_material() {
   security find-certificate -a -c "Apple Development" "$KEYCHAIN" >/dev/null 2>&1 \
-    || security find-certificate -a -c "Apple Development: Alexander Burgess" "$KEYCHAIN" >/dev/null 2>&1
+    || security find-certificate -a -c "Apple Development: Alexander Burgess" "$KEYCHAIN" >/dev/null 2>&1 \
+    || security find-certificate -a -c "iPhone Developer" "$KEYCHAIN" >/dev/null 2>&1 \
+    || security find-certificate -a -c "iOS Development" "$KEYCHAIN" >/dev/null 2>&1
 }
 
 identity_count() {
@@ -66,7 +68,11 @@ security set-keychain-settings -lut 21600 "$KEYCHAIN"
 security list-keychains -d user -s "$KEYCHAIN"
 import_wwdr
 
-if [[ "$(identity_count 'Apple Development')" -lt 1 ]] && ! has_dev_material; then
+has_valid_dev_identity() {
+  [[ "$(identity_count 'iPhone Developer')" -ge 1 || "$(identity_count 'Apple Development')" -ge 1 ]]
+}
+
+if ! has_valid_dev_identity; then
   echo "Revoking stale Apple Development certificates on the developer account..."
   python3 scripts/ci-revoke-development-certs.py
 
@@ -75,7 +81,7 @@ if [[ "$(identity_count 'Apple Development')" -lt 1 ]] && ! has_dev_material; th
   fastlane run cert \
     development:true \
     force:true \
-    generate_apple_certs:true \
+    generate_apple_certs:false \
     keychain_path:"$KEYCHAIN" \
     keychain_password:"$KEYCHAIN_PASSWORD" \
     api_key_path:"$api_json"
@@ -83,7 +89,7 @@ if [[ "$(identity_count 'Apple Development')" -lt 1 ]] && ! has_dev_material; th
   set -e
   import_wwdr
   security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN" || true
-  if [[ "$(identity_count 'Apple Development')" -lt 1 && ! has_dev_material ]]; then
+  if ! has_valid_dev_identity && ! has_dev_material; then
     echo "fastlane cert failed and no Apple Development certificate is available in $KEYCHAIN" >&2
     exit 1
   fi
@@ -93,9 +99,8 @@ echo "Code signing identities in CI keychain:"
 security find-identity -v -p codesigning "$KEYCHAIN"
 
 dist_count="$(identity_count 'Apple Distribution')"
-dev_count="$(identity_count 'Apple Development')"
 dev_ready=0
-if [[ "$dev_count" -ge 1 ]] || has_dev_material; then
+if has_valid_dev_identity || has_dev_material; then
   dev_ready=1
 fi
 
