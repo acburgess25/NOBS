@@ -99,7 +99,11 @@ fi
 
 if ! has_valid_dist_identity; then
   echo "Creating Apple Distribution certificate via API..."
-  run_fastlane_cert false || true
+  if ! run_fastlane_cert false; then
+    echo "Distribution cert creation failed; revoking existing distribution certificates..."
+    python3 scripts/ci-revoke-distribution-certs.py
+    run_fastlane_cert false || true
+  fi
 fi
 
 echo "Code signing identities in CI keychain:"
@@ -111,5 +115,6 @@ if ! has_valid_dev_identity; then
 fi
 
 if ! has_valid_dist_identity; then
-  echo "No valid Apple Distribution identity in $KEYCHAIN (export may still use cloud signing)" >&2
+  echo "No valid Apple Distribution identity in $KEYCHAIN" >&2
+  exit 1
 fi

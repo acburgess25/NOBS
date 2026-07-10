@@ -31,10 +31,19 @@ if [[ -n "${CI_KEYCHAIN:-}" ]]; then
 fi
 
 for app_id in com.nobsdash.nobs com.nobsdash.nobs.widgets; do
-  echo "Refreshing provisioning profile for ${app_id}..."
+  echo "Refreshing App Store provisioning profile for ${app_id}..."
   fastlane run sigh \
     app_identifier:"${app_id}" \
     api_key_path:"${api_json}" \
+    force:true \
+    skip_install:false \
+    include_all_certificates:true
+
+  echo "Refreshing development provisioning profile for ${app_id}..."
+  fastlane run sigh \
+    app_identifier:"${app_id}" \
+    api_key_path:"${api_json}" \
+    development:true \
     force:true \
     skip_install:false \
     include_all_certificates:true
