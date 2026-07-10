@@ -88,6 +88,7 @@ jobs:
           set -euo pipefail
           export ASC_API_KEY_PATH="$HOME/private_keys/AuthKey_${ASC_API_KEY_ID}.p8"
           python3 scripts/validate-asc-api.py
+          python3 scripts/ci-enable-bundle-capabilities.py
           bash scripts/ci-refresh-provisioning-profiles.sh
 
       - name: Archive & export

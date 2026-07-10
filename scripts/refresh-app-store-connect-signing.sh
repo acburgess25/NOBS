@@ -32,6 +32,9 @@ python3 scripts/ci-revoke-development-certs.py
 echo "==> Creating development + distribution certificates..."
 bash scripts/ci-ensure-signing-certs.sh "$KEYCHAIN" "$PASSWORD"
 
+echo "==> Enabling required bundle capabilities (App Groups, Sign in with Apple)..."
+python3 scripts/ci-enable-bundle-capabilities.py
+
 echo "==> Refreshing provisioning profiles..."
 bash scripts/ci-refresh-provisioning-profiles.sh
 
