@@ -23,6 +23,10 @@ on:
         description: Only refresh App Store Connect signing (skip archive/upload)
         type: boolean
         default: false
+      cleanup_apple_account:
+        description: Remove non-NOBS certs, profiles, bundle IDs (destructive)
+        type: boolean
+        default: false
 
 concurrency:
   group: testflight
@@ -70,6 +74,17 @@ jobs:
             cp -R /opt/homebrew/Cellar/fastlane/2.237.0/libexec/gems/* "$HOME/.local/share/fastlane/4.0.0/"
             touch "$HOME/.local/share/fastlane/4.0.0/.bootstrapped"
           fi
+
+      - name: Clean up non-NOBS Apple Developer assets
+        if: ${{ inputs.cleanup_apple_account }}
+        env:
+          ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+          ASC_API_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
+        run: |
+          set -euo pipefail
+          export ASC_API_KEY_PATH="$HOME/private_keys/AuthKey_${ASC_API_KEY_ID}.p8"
+          python3 scripts/ci-cleanup-apple-account.py --execute
+          python3 scripts/ci-enable-bundle-capabilities.py
 
       - name: Provision signing certificates via API
         env:
