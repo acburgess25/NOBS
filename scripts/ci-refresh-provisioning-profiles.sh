@@ -30,7 +30,6 @@ for app_id in com.nobsdash.nobs com.nobsdash.nobs.widgets; do
     app_identifier:"${app_id}" \
     api_key_path:"${api_json}" \
     force:true \
-    readonly:false \
     skip_install:false \
     development:true
 done
