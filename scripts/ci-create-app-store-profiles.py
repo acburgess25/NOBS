@@ -168,7 +168,7 @@ def _create_profile(
         if not app_groups:
             raise RuntimeError(
                 f"Profile {profile_name} is missing App Groups entitlements; "
-                "check Developer portal bundle capabilities"
+                "assign group.com.nobsdash.nobs to com.nobsdash.nobs.widgets in Developer portal"
             )
         print(f"  App Groups: {', '.join(app_groups)}")
     return content

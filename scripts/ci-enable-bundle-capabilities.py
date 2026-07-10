@@ -208,6 +208,44 @@ def _enable_capability(
     response.raise_for_status()
 
 
+def _app_group_resource_id(client: httpx.Client, identifier: str) -> str | None:
+    for params in (
+        {"filter[identifier]": identifier, "limit": 1},
+        {"limit": 200},
+    ):
+        response = _request(client, "GET", "/appGroups", params=params)
+        if response.status_code == 404:
+            return None
+        response.raise_for_status()
+        for item in response.json().get("data", []):
+            if item.get("attributes", {}).get("identifier") == identifier:
+                return item["id"]
+    return None
+
+
+def _link_app_group_to_bundle(client: httpx.Client, bundle_id: str, app_group_id: str) -> None:
+    body = {
+        "data": {
+            "type": "bundleIdAppGroups",
+            "relationships": {
+                "bundleId": {"data": {"type": "bundleIds", "id": bundle_id}},
+                "appGroup": {"data": {"type": "appGroups", "id": app_group_id}},
+            },
+        }
+    }
+    response = _request(client, "POST", "/bundleIdAppGroups", json=body)
+    if response.status_code in {201, 409}:
+        print(f"Linked {APP_GROUP} to bundle {bundle_id}")
+        return
+    if response.status_code in {400, 403, 404}:
+        print(
+            f"Warning: could not link {APP_GROUP} to bundle {bundle_id} "
+            f"({response.status_code}); assign the App Group in Developer portal"
+        )
+        return
+    response.raise_for_status()
+
+
 def main() -> int:
     with httpx.Client(timeout=30.0) as client:
         _ensure_app_group(client)
@@ -222,10 +260,18 @@ def main() -> int:
         ]
 
         _enable_capability(client, app_id, "APPLE_ID_AUTH")
-        _delete_capability(client, app_id, "APP_GROUPS")
         _enable_capability(client, app_id, "APP_GROUPS", app_group_settings)
-        _delete_capability(client, widget_id, "APP_GROUPS")
         _enable_capability(client, widget_id, "APP_GROUPS", app_group_settings)
+
+        app_group_id = _app_group_resource_id(client, APP_GROUP)
+        if app_group_id:
+            _link_app_group_to_bundle(client, app_id, app_group_id)
+            _link_app_group_to_bundle(client, widget_id, app_group_id)
+        else:
+            print(
+                f"App Group {APP_GROUP} resource ID not found via API; "
+                "create it under Identifiers → App Groups and assign it to both bundle IDs"
+            )
 
     print("Bundle capabilities are configured for NOBS.")
     return 0
