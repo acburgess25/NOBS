@@ -12,6 +12,9 @@ on:
       - "NOBSWidgets/**"
       - "NOBS.xcodeproj/**"
       - "ExportOptions.plist"
+      - "scripts/ci-ensure-signing-certs.sh"
+      - "scripts/ci-revoke-development-certs.rb"
+      - "scripts/stage-testflight-ipa.sh"
       - ".github/workflows/testflight.yml"
   workflow_dispatch:
 
