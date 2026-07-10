@@ -108,10 +108,12 @@ stop_local_tank() {
     return
   fi
 
-  local label="gui/$(id -u)/com.nobs.tank"
+  local domain="gui/$(id -u)"
+  local label="${domain}/com.nobs.tank"
+  local plist="$HOME/Library/LaunchAgents/com.nobs.tank.plist"
   if launchctl print "$label" >/dev/null 2>&1; then
     log "Stopping com.nobs.tank LaunchAgent"
-    run launchctl bootout "$label" 2>/dev/null || run launchctl stop "$label" 2>/dev/null || true
+    run launchctl bootout "$domain" "$plist" 2>/dev/null || run launchctl stop "$label" 2>/dev/null || true
     sleep 2
     return
   fi
@@ -132,11 +134,12 @@ start_local_tank() {
     return
   fi
 
-  local label="gui/$(id -u)/com.nobs.tank"
+  local domain="gui/$(id -u)"
+  local label="${domain}/com.nobs.tank"
   local plist="$HOME/Library/LaunchAgents/com.nobs.tank.plist"
   if [[ -f "$plist" ]]; then
     log "Starting com.nobs.tank LaunchAgent"
-    run launchctl bootstrap "$label" "$plist" 2>/dev/null || true
+    run launchctl bootstrap "$domain" "$plist" 2>/dev/null || true
     run launchctl kickstart -k "$label" 2>/dev/null || true
     if [[ "$DRY_RUN" -eq 0 ]] && curl -fsS -m 3 "http://127.0.0.1:$TANK_PORT/health" >/dev/null 2>&1; then
       return

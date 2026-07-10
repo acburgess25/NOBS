@@ -73,9 +73,42 @@ Includes `data/`, `nobs.db`, `.env` (as `dotenv.backup`), and `host-config/nobs-
 
 Default URLs: Simulator `http://127.0.0.1:8000`; physical device use LAN IP (`tank.local` mDNS is unreliable).
 
+## macOS LaunchAgent (local Tank)
+
+On macOS, Tank should run from the authoritative checkout at
+`/Users/ab/Documents/NOBS/NOBS-old` (this repo). An older iCloud-synced copy may
+still exist at `/Users/ab/Documents/Documents - Unknown/NOBS`; use only one
+checkout as `TANK_ROOT` so data, `.env`, and the LaunchAgent stay aligned.
+
+Install or refresh the LaunchAgent after clone, venv changes, or a path move:
+
+```bash
+cd /Users/ab/Documents/NOBS/NOBS-old
+bash scripts/install-tank-launchagent.sh
+```
+
+Preview without changes:
+
+```bash
+bash scripts/install-tank-launchagent.sh --dry-run
+```
+
+Point at a different checkout:
+
+```bash
+TANK_ROOT=/path/to/checkout bash scripts/install-tank-launchagent.sh
+```
+
+The script creates `$TANK_ROOT/.venv` when missing (via `python3 scripts/dev.py
+setup`), ensures `uvicorn` is installed, writes
+`~/Library/LaunchAgents/com.nobs.tank.plist` with the correct
+`WorkingDirectory` and venv python, then loads and health-checks the service.
+
+Manual foreground run (no LaunchAgent): `python3 scripts/dev.py run`.
+
 ## Service detection
 
-The script stops and restarts Tank using the first match:
+The reset script stops and restarts Tank using the first match:
 
 1. `systemctl --user nobs-api` (Linux homelab)
 2. macOS LaunchAgent `com.nobs.tank`
