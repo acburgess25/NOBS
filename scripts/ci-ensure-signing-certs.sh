@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Ensure CI keychain has Apple Development + Distribution identities for archive.
-# Requires fastlane, App Store Connect API key env vars, and imported distribution .p12.
+# Ensure CI keychain has Development + Distribution identities via App Store Connect API.
+# Requires fastlane, ASC API key env vars, and an ephemeral keychain (no manual .p12 export).
 set -euo pipefail
 
 KEYCHAIN="${1:?keychain path}"
@@ -18,7 +18,7 @@ if [[ ! -f "$API_KEY_PATH" ]]; then
 fi
 
 if ! command -v fastlane >/dev/null; then
-  echo "fastlane is required for CI development certificate provisioning" >&2
+  echo "fastlane is required for CI certificate provisioning" >&2
   exit 1
 fi
 
@@ -36,16 +36,38 @@ import_wwdr() {
   done
 }
 
-has_dev_material() {
-  security find-certificate -a -c "Apple Development" "$KEYCHAIN" >/dev/null 2>&1 \
-    || security find-certificate -a -c "Apple Development: Alexander Burgess" "$KEYCHAIN" >/dev/null 2>&1 \
-    || security find-certificate -a -c "iPhone Developer" "$KEYCHAIN" >/dev/null 2>&1 \
-    || security find-certificate -a -c "iOS Development" "$KEYCHAIN" >/dev/null 2>&1
-}
-
 identity_count() {
   local label="$1"
-  security find-identity -v -p codesigning "$KEYCHAIN" | grep -c "$label" || true
+  security find-identity -v -p codesigning "$KEYCHAIN" | grep "$label" | grep -cv 'REVOKED' || true
+}
+
+has_valid_dev_identity() {
+  [[ "$(identity_count 'iPhone Developer')" -ge 1 || "$(identity_count 'Apple Development')" -ge 1 ]]
+}
+
+has_valid_dist_identity() {
+  [[ "$(identity_count 'Apple Distribution')" -ge 1 || "$(identity_count 'iPhone Distribution')" -ge 1 ]]
+}
+
+run_fastlane_cert() {
+  local development="$1"
+  local apple_certs="true"
+  if [[ "$development" == "true" ]]; then
+    apple_certs="false"
+  fi
+  set +e
+  fastlane run cert \
+    "development:${development}" \
+    force:true \
+    "generate_apple_certs:${apple_certs}" \
+    keychain_path:"$KEYCHAIN" \
+    keychain_password:"$KEYCHAIN_PASSWORD" \
+    api_key_path:"$api_json"
+  local status=$?
+  set -e
+  import_wwdr
+  security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN" || true
+  return "$status"
 }
 
 api_json="${RUNNER_TEMP:-/tmp}/asc-api-key.json"
@@ -68,47 +90,26 @@ security set-keychain-settings -lut 21600 "$KEYCHAIN"
 security list-keychains -d user -s "$KEYCHAIN"
 import_wwdr
 
-has_valid_dev_identity() {
-  [[ "$(identity_count 'iPhone Developer')" -ge 1 || "$(identity_count 'Apple Development')" -ge 1 ]]
-}
-
 if ! has_valid_dev_identity; then
-  echo "Revoking stale Apple Development certificates on the developer account..."
+  echo "Revoking stale development certificates on the developer account..."
   python3 scripts/ci-revoke-development-certs.py
+  echo "Creating iPhone Developer certificate via API..."
+  run_fastlane_cert true || true
+fi
 
-  echo "Creating Apple Development certificate in CI keychain..."
-  set +e
-  fastlane run cert \
-    development:true \
-    force:true \
-    generate_apple_certs:false \
-    keychain_path:"$KEYCHAIN" \
-    keychain_password:"$KEYCHAIN_PASSWORD" \
-    api_key_path:"$api_json"
-  fastlane_status=$?
-  set -e
-  import_wwdr
-  security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN" || true
-  if ! has_valid_dev_identity && ! has_dev_material; then
-    echo "fastlane cert failed and no Apple Development certificate is available in $KEYCHAIN" >&2
-    exit 1
-  fi
+if ! has_valid_dist_identity; then
+  echo "Creating Apple Distribution certificate via API..."
+  run_fastlane_cert false || true
 fi
 
 echo "Code signing identities in CI keychain:"
 security find-identity -v -p codesigning "$KEYCHAIN"
 
-dist_count="$(identity_count 'Apple Distribution')"
-dev_ready=0
-if has_valid_dev_identity; then
-  dev_ready=1
+if ! has_valid_dev_identity; then
+  echo "No valid iPhone Developer / Apple Development identity in $KEYCHAIN" >&2
+  exit 1
 fi
 
-if [[ "$dist_count" -lt 1 || "$dev_ready" -lt 1 ]]; then
-  echo "Expected valid Apple Distribution and iPhone Developer identities in $KEYCHAIN" >&2
-  security find-identity -v -p codesigning "$KEYCHAIN" || true
-  if security find-identity -v -p codesigning "$KEYCHAIN" | grep -q 'CSSMERR_TP_CERT_REVOKED'; then
-    echo "The Apple Distribution certificate in DIST_CERT_P12 appears revoked. Regenerate it in Apple Developer and update the GitHub secret." >&2
-  fi
-  exit 1
+if ! has_valid_dist_identity; then
+  echo "No valid Apple Distribution identity in $KEYCHAIN (export may still use cloud signing)" >&2
 fi

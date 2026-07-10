@@ -56,26 +56,20 @@ Quick reference for red checks on NOBS pull requests and `main`.
 No signing certificate "iOS Development" found … private key is not installed in your keychain.
 ```
 
-**What this means:**
-
-- The self-hosted Mac `testflight` runner imports an Apple Distribution `.p12`, but `xcodebuild archive` with automatic signing also needs an **Apple Development** certificate whose private key is in the CI keychain.
-- A stale Development certificate may exist on the Apple Developer account for this Mac without the matching private key.
-
 **What the workflow does now:**
 
-1. Import distribution `.p12` into an ephemeral CI keychain.
-2. Run [`scripts/ci-ensure-signing-certs.sh`](../scripts/ci-ensure-signing-certs.sh) (fastlane `cert`) to create/revoke the Development certificate via the App Store Connect API key.
-3. Archive with `CODE_SIGN_IDENTITY` set to the imported Apple Distribution identity.
+1. Create an ephemeral CI keychain — **no `DIST_CERT_P12` secret**.
+2. Provision iPhone Developer + Apple Distribution certificates via App Store Connect API ([`ci-ensure-signing-certs.sh`](../scripts/ci-ensure-signing-certs.sh)).
+3. Archive/export with automatic signing and `-allowProvisioningUpdates`.
+
+**Required secrets:** `ASC_API_KEY_ID`, `ASC_API_ISSUER_ID`, `ASC_API_KEY_CONTENT` only.
 
 **If archive still fails:**
 
-1. **Revoked distribution cert** — if logs show `CSSMERR_TP_CERT_REVOKED`, regenerate **Apple Distribution** in [Certificates](https://developer.apple.com/account/resources/certificates/list), export `.p12`, and update GitHub secrets `DIST_CERT_P12` + `DIST_CERT_PASSWORD`.
-2. [Apple Developer](https://developer.apple.com) → Identifiers → confirm App Group + Sign in with Apple on both App IDs.
-2. Regenerate **Apple Distribution** provisioning profiles for app and widget extension.
-3. Ensure CI secrets match: `DIST_CERT_P12`, `DIST_CERT_PASSWORD`, `ASC_API_KEY_*`.
-4. Confirm `fastlane` is installed on the `testflight` runner (`brew install fastlane`).
-5. Re-run TestFlight workflow or push to `main` with an iOS path change.
-6. Local alternative: `./scripts/stage-testflight-ipa.sh` on a signed Mac.
+1. Confirm the three ASC API secrets are set and the key has **Developer** access in App Store Connect.
+2. Confirm `fastlane` is on the `testflight` runner (`brew install fastlane`).
+3. [Apple Developer](https://developer.apple.com) → Identifiers → App Group + Sign in with Apple on both App IDs.
+4. Re-run TestFlight workflow from Actions.
 
 **Older error (July 7, 2026):**
 
