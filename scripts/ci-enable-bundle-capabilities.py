@@ -45,11 +45,42 @@ def _request(
     json: dict[str, Any] | None = None,
 ) -> httpx.Response:
     headers = {"Authorization": f"Bearer {_token()}"}
-    response = client.request(method, f"{BASE}{path}", params=params, json=json, headers=headers)
-    return response
+    return client.request(method, f"{BASE}{path}", params=params, json=json, headers=headers)
 
 
-def _bundle_id(client: httpx.Client, identifier: str) -> str:
+def _ensure_app_group(client: httpx.Client) -> None:
+    response = _request(
+        client,
+        "GET",
+        "/appGroups",
+        params={"filter[identifier]": APP_GROUP, "limit": 1},
+    )
+    response.raise_for_status()
+    if response.json().get("data"):
+        print(f"App Group {APP_GROUP} already exists")
+        return
+
+    create = _request(
+        client,
+        "POST",
+        "/appGroups",
+        json={
+            "data": {
+                "type": "appGroups",
+                "attributes": {
+                    "identifier": APP_GROUP,
+                    "name": "NOBS Shared",
+                },
+            }
+        },
+    )
+    if create.status_code in {201, 409}:
+        print(f"Created App Group {APP_GROUP}")
+        return
+    create.raise_for_status()
+
+
+def _ensure_bundle_id(client: httpx.Client, identifier: str, name: str) -> str:
     response = _request(
         client,
         "GET",
@@ -58,9 +89,42 @@ def _bundle_id(client: httpx.Client, identifier: str) -> str:
     )
     response.raise_for_status()
     data = response.json().get("data", [])
-    if not data:
-        raise RuntimeError(f"Bundle ID not found in App Store Connect: {identifier}")
-    return data[0]["id"]
+    if data:
+        return data[0]["id"]
+
+    create = _request(
+        client,
+        "POST",
+        "/bundleIds",
+        json={
+            "data": {
+                "type": "bundleIds",
+                "attributes": {
+                    "identifier": identifier,
+                    "name": name,
+                    "platform": "IOS",
+                },
+            }
+        },
+    )
+    if create.status_code in {201, 409}:
+        if create.status_code == 201:
+            print(f"Registered bundle ID {identifier}")
+            return create.json()["data"]["id"]
+        # 409: created concurrently; fetch again
+        retry = _request(
+            client,
+            "GET",
+            "/bundleIds",
+            params={"filter[identifier]": identifier, "limit": 1},
+        )
+        retry.raise_for_status()
+        data = retry.json().get("data", [])
+        if data:
+            return data[0]["id"]
+
+    create.raise_for_status()
+    raise RuntimeError(f"Could not register bundle ID {identifier}")
 
 
 def _has_capability(client: httpx.Client, bundle_id: str, capability_type: str) -> bool:
@@ -103,8 +167,9 @@ def _enable_capability(
 
 def main() -> int:
     with httpx.Client(timeout=30.0) as client:
-        app_id = _bundle_id(client, APP_BUNDLE)
-        widget_id = _bundle_id(client, WIDGET_BUNDLE)
+        _ensure_app_group(client)
+        app_id = _ensure_bundle_id(client, APP_BUNDLE, "NOBS")
+        widget_id = _ensure_bundle_id(client, WIDGET_BUNDLE, "NOBS Widgets")
 
         app_group_settings = [
             {
