@@ -43,4 +43,3 @@ refresh_profile() {
 }
 
 refresh_profile com.nobsdash.nobs "com.nobsdash.nobs AppStore"
-refresh_profile com.nobsdash.nobs.widgets "com.nobsdash.nobs.widgets AppStore"

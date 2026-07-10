@@ -8,8 +8,6 @@
 	<dict>
 		<key>com.nobsdash.nobs</key>
 		<string>com.nobsdash.nobs AppStore</string>
-		<key>com.nobsdash.nobs.widgets</key>
-		<string>com.nobsdash.nobs.widgets AppStore</string>
 	</dict>
 	<key>signingStyle</key>
 	<string>manual</string>
