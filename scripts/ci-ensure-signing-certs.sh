@@ -8,6 +8,9 @@ KEYCHAIN_PASSWORD="${2:?keychain password}"
 API_KEY_ID="${ASC_API_KEY_ID:?ASC_API_KEY_ID}"
 API_KEY_ISSUER_ID="${ASC_API_ISSUER_ID:?ASC_API_ISSUER_ID}"
 API_KEY_PATH="${ASC_API_KEY_PATH:-$HOME/private_keys/AuthKey_${API_KEY_ID}.p8}"
+case "$API_KEY_PATH" in
+  "~/"*) API_KEY_PATH="$HOME/${API_KEY_PATH#~/}" ;;
+esac
 
 if [[ ! -f "$API_KEY_PATH" ]]; then
   echo "App Store Connect API key not found at $API_KEY_PATH" >&2

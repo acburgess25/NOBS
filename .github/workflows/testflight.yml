@@ -65,9 +65,9 @@ jobs:
           P12_PASSWORD: ${{ secrets.DIST_CERT_PASSWORD }}
           ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
           ASC_API_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
-          ASC_API_KEY_PATH: ~/private_keys/AuthKey_${{ secrets.ASC_API_KEY_ID }}.p8
         run: |
           set -euo pipefail
+          export ASC_API_KEY_PATH="$HOME/private_keys/AuthKey_${ASC_API_KEY_ID}.p8"
           keychain="$RUNNER_TEMP/ci-signing.keychain-db"
           bash scripts/ci-ensure-signing-certs.sh "$keychain" "$P12_PASSWORD"
 
