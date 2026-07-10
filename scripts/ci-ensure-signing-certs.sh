@@ -58,7 +58,7 @@ run_fastlane_cert() {
   set +e
   fastlane run cert \
     "development:${development}" \
-    force:true \
+    force:false \
     "generate_apple_certs:${apple_certs}" \
     keychain_path:"$KEYCHAIN" \
     keychain_password:"$KEYCHAIN_PASSWORD" \
@@ -87,7 +87,7 @@ PY
 
 security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
 security set-keychain-settings -lut 21600 "$KEYCHAIN"
-security list-keychains -d user -s "$KEYCHAIN"
+security list-keychains -d user -s "$KEYCHAIN" login.keychain-db
 import_wwdr
 
 if ! has_valid_dev_identity; then

@@ -1,14 +1,17 @@
 #!/usr/bin/env bash
-# Create an ephemeral CI keychain with Apple intermediate certificates.
+# Create or reuse the persistent CI keychain with Apple intermediate certificates.
 set -euo pipefail
 
 KEYCHAIN="${1:?keychain path}"
 KEYCHAIN_PASSWORD="${2:?keychain password}"
 
-security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+if [[ ! -f "$KEYCHAIN" ]]; then
+  security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+fi
+
 security set-keychain-settings -lut 21600 "$KEYCHAIN"
 security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
-security list-keychains -d user -s "$KEYCHAIN"
+security list-keychains -d user -s "$KEYCHAIN" login.keychain-db
 
 for cert_url in \
   "https://www.apple.com/appleca/AppleIncRootCertificate.cer" \
