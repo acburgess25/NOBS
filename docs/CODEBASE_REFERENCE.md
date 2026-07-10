@@ -187,6 +187,7 @@ Default Tank URLs: Simulator `http://127.0.0.1:8000`; physical device `http://ta
 | `app/agent_store.py` | Approval persistence | Approval lifecycle |
 | `app/config.py` | Env-backed settings | New configuration keys |
 | `scripts/dev.py` | Backend setup/test/lint/run | Dev workflow |
+| `scripts/reset-tank-fresh.sh` | Wipe Tank client state + re-pair | Fresh install / QA reset |
 | `scripts/build-ios-simulator.sh` | Unsigned simulator build | iOS compile check |
 | `scripts/test-ios.sh` | NOBSTests on simulator | Swift routing tests |
 | `scripts/stage-testflight-ipa.sh` | Local archive → `~/nobs-build/NOBS.ipa` | Home TestFlight prep |
@@ -398,6 +399,16 @@ All backend settings use prefix `NOBS_` (see `.env.example` and `app/config.py`)
 | `NOBS_WORKPLACE_*` | Live workplace dashboard + browser allowlist |
 
 CI-only (not in `.env.example`): `ASC_API_KEY_ID`, `ASC_API_ISSUER_ID`, `ASC_API_KEY_CONTENT`, `CI_KEYCHAIN_PASSWORD`, `DEVELOPER_DIR`, `DEVELOPMENT_TEAM`.
+
+### Tank fresh start
+
+Reset Tank to a first-time client (no pairing, sessions, or cached briefings):
+
+```bash
+bash scripts/reset-tank-fresh.sh
+```
+
+Backs up to `data/backups/pre-reset-<timestamp>/`, wipes client state under `data/`, clears `NOBS_DEVICE_TOKEN`, re-inits the agent DB schema, and restarts the service. Homelab: `bash scripts/reset-tank-fresh.sh --remote`. Full wipe/preserve list: [`TANK_FRESH_START.md`](TANK_FRESH_START.md).
 
 ---
 
