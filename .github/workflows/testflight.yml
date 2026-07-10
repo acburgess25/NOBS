@@ -93,11 +93,6 @@ jobs:
           keychain="$RUNNER_TEMP/ci-signing.keychain-db"
           security unlock-keychain -p "${{ secrets.DIST_CERT_PASSWORD }}" "$keychain"
           security list-keychains -d user -s "$keychain"
-          dist_identity="$(security find-identity -v -p codesigning "$keychain" | sed -n 's/.*"\(Apple Distribution.*\)".*/\1/p' | head -1)"
-          if [[ -z "$dist_identity" ]]; then
-            echo "No Apple Distribution identity found in CI keychain" >&2
-            exit 1
-          fi
           rm -rf "$HOME/Library/Developer/Xcode/DerivedData"/NOBS-*
           export_dir="${RUNNER_TEMP:-/tmp}/nobs-export"
           archive_path="${RUNNER_TEMP:-/tmp}/NOBS.xcarchive"
@@ -115,7 +110,6 @@ jobs:
             -archivePath "$archive_path" \
             "${auth[@]}" \
             CODE_SIGN_STYLE=Automatic \
-            CODE_SIGN_IDENTITY="$dist_identity" \
             DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM"
           xcodebuild -exportArchive \
             -archivePath "$archive_path" \
