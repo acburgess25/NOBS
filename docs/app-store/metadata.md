@@ -52,7 +52,7 @@ https://nobsdash.com
 ## Copyright
 © 2026 Alexander Burgess
 
-## Version release notes (3.0 beta 1 example)
+## Version release notes (4.0 beta 1 example)
 - First public TestFlight beta
 - Morning briefing v2, evening wrap-up, widget, Siri shortcuts
 - Conversational onboarding with response-length preference

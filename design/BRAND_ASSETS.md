@@ -47,7 +47,7 @@ Trend: 2026 digital-naturalism — muted layers, low saturation, forest anchor o
 - **Tagline:** Your technology. Finally working for you.
 - **Name:** NOBS — friendly face, “No BS” attitude
 - **Bundle ID:** `com.nobsdash.nobs`
-- **Marketing version:** 3.0
+- **Marketing version:** 4.0
 
 ---
 
@@ -82,7 +82,7 @@ Use official marks per each vendor’s brand guidelines. The HTML board loads ne
 
 ### Current build
 
-- **Version:** 3.0 (11)
+- **Version:** 4.0 (1)
 - **Team:** K853LKQLAS
 - **Distribution profile:** NOBS App Store CI
 
