@@ -24,11 +24,19 @@ PY
 rm -rf "$HOME/Library/MobileDevice/Provisioning Profiles/"*
 rm -rf "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles/"* 2>/dev/null || true
 
+keychain_args=()
+if [[ -n "${CI_KEYCHAIN:-}" ]]; then
+  security unlock-keychain -p "${CI_KEYCHAIN_PASSWORD:?CI_KEYCHAIN_PASSWORD}" "$CI_KEYCHAIN"
+  security list-keychains -d user -s "$CI_KEYCHAIN"
+  keychain_args+=(keychain_path:"$CI_KEYCHAIN")
+fi
+
 for app_id in com.nobsdash.nobs com.nobsdash.nobs.widgets; do
   echo "Refreshing provisioning profile for ${app_id}..."
   fastlane run sigh \
     app_identifier:"${app_id}" \
     api_key_path:"${api_json}" \
     force:true \
-    skip_install:false
+    skip_install:false \
+    "${keychain_args[@]}"
 done
