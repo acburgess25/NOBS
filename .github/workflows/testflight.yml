@@ -132,7 +132,6 @@ jobs:
             -destination 'generic/platform=iOS' \
             -archivePath "$archive_path" \
             "${auth[@]}" \
-            CODE_SIGN_STYLE=Automatic \
             DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM" \
             OTHER_CODE_SIGN_FLAGS="--keychain $CI_KEYCHAIN"
           xcodebuild -exportArchive \
