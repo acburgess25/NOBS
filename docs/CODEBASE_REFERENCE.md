@@ -393,6 +393,7 @@ All backend settings use prefix `NOBS_` (see `.env.example` and `app/config.py`)
 | `NOBS_WEATHER_LATITUDE` / `LONGITUDE` | Weather tool location |
 | `NOBS_NEWS_FEED_URLS` | Comma-separated RSS feeds |
 | `NOBS_WEB_SEARCH_MAX_RESULTS` | Web search cap |
+| `NOBS_DREAM_TEAM_*` | Dream Team Sandbox (local Ollama, max agents/iterations) |
 
 CI-only (not in `.env.example`): `ASC_API_KEY_ID`, `ASC_API_ISSUER_ID`, `ASC_API_KEY_CONTENT`, `CI_KEYCHAIN_PASSWORD`, `DEVELOPER_DIR`, `DEVELOPMENT_TEAM`.
 
@@ -417,6 +418,15 @@ CI-only (not in `.env.example`): `ASC_API_KEY_ID`, `ASC_API_ISSUER_ID`, `ASC_API
 | POST/GET | `/overnight/tasks` | Device token | Overnight queue |
 | POST | `/sync/calendar`, `/sync/reminders` | Device token | iOS sync |
 | GET | `/dashboard`, `/dashboard/status` | Public / token | Connected-screen UI |
+| POST | `/dream-team/sessions` | Device token | Start dream team sandbox session |
+| POST | `/dream-team/sessions/{id}/run` | Device token | Draft/test/refine locally via Ollama |
+| GET | `/dream-team/proposals` | Device token | Pending team proposals for review |
+| POST | `/dream-team/proposals/{id}/decide` | Device token | Approve/reject proposed team |
+| GET | `/dream-team/policy` | Device token | Local-first processing metadata |
+
+### Dream Team Sandbox (v1)
+
+Tank-side module that drafts agent personas, sandbox-tests them with **read-only local tools only**, scores with heuristics (no extra LLM calls), refines low-scoring drafts (max 2 iterations), and proposes a team for user approval. All inference uses local Ollama (`qwen3:8b` by default); no cloud/PCC/external APIs in the refinement loop. Approved members are stored as JSON manifests under `data/dream-team/active/`. Deploy: `bash scripts/deploy-dream-team.sh`.
 
 Full agent policy: [`TANK_AGENT_CORE.md`](TANK_AGENT_CORE.md).
 

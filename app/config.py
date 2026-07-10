@@ -52,6 +52,16 @@ class Settings(BaseSettings):
     # so overnight work yields to anything the user is actively doing.
     overnight_idle_cpu_percent: float = Field(default=40.0, ge=0, le=100)
 
+    # Dream Team Sandbox — local Ollama only; no cloud/external APIs in refinement loop
+    dream_team_enabled: bool = True
+    dream_team_model: str | None = None  # defaults to ollama_model (e.g. qwen3:8b)
+    dream_team_max_agents: int = Field(default=3, ge=1, le=5)
+    dream_team_max_iterations: int = Field(default=2, ge=1, le=3)
+    dream_team_sandbox_max_steps: int = Field(default=2, ge=1, le=4)
+    dream_team_score_threshold: float = Field(default=0.65, ge=0.0, le=1.0)
+    dream_team_sandbox_path: Path = Path("data/dream-team-sandbox")
+    dream_team_active_path: Path = Path("data/dream-team/active")
+
 
 @lru_cache
 def get_settings() -> Settings:

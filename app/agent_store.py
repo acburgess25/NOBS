@@ -111,6 +111,49 @@ class AgentStore:
                     started_at TEXT,
                     completed_at TEXT
                 );
+                CREATE TABLE IF NOT EXISTS dream_team_sessions (
+                    id TEXT PRIMARY KEY,
+                    objective TEXT NOT NULL,
+                    context TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    config_json TEXT NOT NULL,
+                    result_summary TEXT,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS dream_team_drafts (
+                    id TEXT PRIMARY KEY,
+                    session_id TEXT NOT NULL,
+                    name TEXT NOT NULL,
+                    role TEXT NOT NULL,
+                    persona_json TEXT NOT NULL,
+                    score REAL,
+                    iteration INTEGER NOT NULL DEFAULT 0,
+                    status TEXT NOT NULL,
+                    test_result_json TEXT,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS dream_team_iterations (
+                    id TEXT PRIMARY KEY,
+                    draft_id TEXT NOT NULL,
+                    iteration INTEGER NOT NULL,
+                    changes_json TEXT NOT NULL,
+                    score REAL,
+                    notes TEXT,
+                    created_at TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS dream_team_proposals (
+                    id TEXT PRIMARY KEY,
+                    session_id TEXT NOT NULL,
+                    title TEXT NOT NULL,
+                    summary TEXT NOT NULL,
+                    members_json TEXT NOT NULL,
+                    metadata_json TEXT NOT NULL,
+                    status TEXT NOT NULL,
+                    created_at TEXT NOT NULL,
+                    decided_at TEXT
+                );
                 """
             )
         return self._connection
@@ -669,4 +712,326 @@ class AgentStore:
             "created_at": row["created_at"],
             "started_at": row["started_at"],
             "completed_at": row["completed_at"],
+        }
+
+    # ------------------------------------------------------------------
+    # Dream Team Sandbox (local-first agent persona refinement)
+    # ------------------------------------------------------------------
+
+    def create_dream_team_session(
+        self,
+        objective: str,
+        context: str,
+        config: dict[str, Any],
+    ) -> dict[str, Any]:
+        session_id = str(uuid4())
+        now = _now()
+        with self._lock:
+            connection = self._connect()
+            connection.execute(
+                "INSERT INTO dream_team_sessions VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    session_id,
+                    objective,
+                    context,
+                    "queued",
+                    json.dumps(config),
+                    None,
+                    now,
+                    now,
+                ),
+            )
+            connection.commit()
+        return self.get_dream_team_session(session_id)
+
+    def get_dream_team_session(
+        self, session_id: str, *, include_details: bool = False
+    ) -> dict[str, Any]:
+        with self._lock:
+            row = (
+                self._connect()
+                .execute("SELECT * FROM dream_team_sessions WHERE id = ?", (session_id,))
+                .fetchone()
+            )
+        if row is None:
+            raise KeyError(session_id)
+        session = self._dream_team_session_dict(row)
+        if include_details:
+            session["drafts"] = self.list_dream_team_drafts(session_id)
+            session["proposals"] = self.list_dream_team_proposals(session_id=session_id)
+        return session
+
+    def list_dream_team_sessions(self, status: str | None = None) -> list[dict[str, Any]]:
+        with self._lock:
+            connection = self._connect()
+            if status is None:
+                rows = connection.execute(
+                    "SELECT * FROM dream_team_sessions ORDER BY created_at DESC"
+                ).fetchall()
+            else:
+                rows = connection.execute(
+                    "SELECT * FROM dream_team_sessions WHERE status = ? ORDER BY created_at DESC",
+                    (status,),
+                ).fetchall()
+        return [self._dream_team_session_dict(row) for row in rows]
+
+    def update_dream_team_session(
+        self,
+        session_id: str,
+        status: str,
+        result_summary: str | None = None,
+    ) -> dict[str, Any]:
+        with self._lock:
+            connection = self._connect()
+            connection.execute(
+                """
+                UPDATE dream_team_sessions
+                SET status = ?, result_summary = COALESCE(?, result_summary), updated_at = ?
+                WHERE id = ?
+                """,
+                (status, result_summary, _now(), session_id),
+            )
+            connection.commit()
+        return self.get_dream_team_session(session_id)
+
+    def create_dream_team_draft(
+        self,
+        session_id: str,
+        name: str,
+        role: str,
+        persona: dict[str, Any],
+    ) -> dict[str, Any]:
+        draft_id = str(uuid4())
+        now = _now()
+        with self._lock:
+            connection = self._connect()
+            connection.execute(
+                "INSERT INTO dream_team_drafts VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    draft_id,
+                    session_id,
+                    name,
+                    role,
+                    json.dumps(persona),
+                    None,
+                    0,
+                    "draft",
+                    None,
+                    now,
+                    now,
+                ),
+            )
+            connection.commit()
+        return self.get_dream_team_draft(draft_id)
+
+    def get_dream_team_draft(self, draft_id: str) -> dict[str, Any]:
+        with self._lock:
+            row = (
+                self._connect()
+                .execute("SELECT * FROM dream_team_drafts WHERE id = ?", (draft_id,))
+                .fetchone()
+            )
+        if row is None:
+            raise KeyError(draft_id)
+        return self._dream_team_draft_dict(row)
+
+    def list_dream_team_drafts(self, session_id: str) -> list[dict[str, Any]]:
+        with self._lock:
+            rows = (
+                self._connect()
+                .execute(
+                    "SELECT * FROM dream_team_drafts WHERE session_id = ? ORDER BY created_at ASC",
+                    (session_id,),
+                )
+                .fetchall()
+            )
+        return [self._dream_team_draft_dict(row) for row in rows]
+
+    def update_dream_team_draft(
+        self,
+        draft_id: str,
+        *,
+        persona: dict[str, Any] | None = None,
+        score: float | None = None,
+        status: str | None = None,
+        iteration: int | None = None,
+        test_result: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        fields: list[str] = ["updated_at = ?"]
+        values: list[Any] = [_now()]
+        if persona is not None:
+            fields.append("persona_json = ?")
+            values.append(json.dumps(persona))
+        if score is not None:
+            fields.append("score = ?")
+            values.append(score)
+        if status is not None:
+            fields.append("status = ?")
+            values.append(status)
+        if iteration is not None:
+            fields.append("iteration = ?")
+            values.append(iteration)
+        if test_result is not None:
+            fields.append("test_result_json = ?")
+            values.append(json.dumps(test_result))
+        values.append(draft_id)
+        with self._lock:
+            connection = self._connect()
+            connection.execute(
+                f"UPDATE dream_team_drafts SET {', '.join(fields)} WHERE id = ?",
+                values,
+            )
+            connection.commit()
+        return self.get_dream_team_draft(draft_id)
+
+    def record_dream_team_iteration(
+        self,
+        draft_id: str,
+        iteration: int,
+        changes: dict[str, Any],
+        score: float | None,
+        notes: str,
+    ) -> dict[str, Any]:
+        iteration_id = str(uuid4())
+        with self._lock:
+            connection = self._connect()
+            connection.execute(
+                "INSERT INTO dream_team_iterations VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (
+                    iteration_id,
+                    draft_id,
+                    iteration,
+                    json.dumps(changes),
+                    score,
+                    notes,
+                    _now(),
+                ),
+            )
+            connection.commit()
+        return {
+            "id": iteration_id,
+            "draft_id": draft_id,
+            "iteration": iteration,
+            "changes": changes,
+            "score": score,
+            "notes": notes,
+        }
+
+    def create_dream_team_proposal(
+        self,
+        session_id: str,
+        title: str,
+        summary: str,
+        members: list[dict[str, Any]],
+        metadata: dict[str, Any],
+    ) -> dict[str, Any]:
+        proposal_id = str(uuid4())
+        created_at = _now()
+        with self._lock:
+            connection = self._connect()
+            connection.execute(
+                "INSERT INTO dream_team_proposals VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    proposal_id,
+                    session_id,
+                    title,
+                    summary,
+                    json.dumps(members),
+                    json.dumps(metadata),
+                    "pending",
+                    created_at,
+                    None,
+                ),
+            )
+            connection.commit()
+        return self.get_dream_team_proposal(proposal_id)
+
+    def get_dream_team_proposal(self, proposal_id: str) -> dict[str, Any]:
+        with self._lock:
+            row = (
+                self._connect()
+                .execute("SELECT * FROM dream_team_proposals WHERE id = ?", (proposal_id,))
+                .fetchone()
+            )
+        if row is None:
+            raise KeyError(proposal_id)
+        return self._dream_team_proposal_dict(row)
+
+    def list_dream_team_proposals(
+        self, status: str | None = None, session_id: str | None = None
+    ) -> list[dict[str, Any]]:
+        query = "SELECT * FROM dream_team_proposals WHERE 1=1"
+        params: list[Any] = []
+        if status is not None:
+            query += " AND status = ?"
+            params.append(status)
+        if session_id is not None:
+            query += " AND session_id = ?"
+            params.append(session_id)
+        query += " ORDER BY created_at DESC"
+        with self._lock:
+            rows = self._connect().execute(query, params).fetchall()
+        return [self._dream_team_proposal_dict(row) for row in rows]
+
+    def decide_dream_team_proposal(self, proposal_id: str, decision: str) -> dict[str, Any]:
+        if decision not in {"approved", "rejected"}:
+            raise ValueError("Decision must be approved or rejected")
+        with self._lock:
+            connection = self._connect()
+            cursor = connection.execute(
+                """
+                UPDATE dream_team_proposals
+                SET status = ?, decided_at = ?
+                WHERE id = ? AND status = 'pending'
+                """,
+                (decision, _now(), proposal_id),
+            )
+            connection.commit()
+        if cursor.rowcount != 1:
+            raise ValueError("Proposal is missing or already decided")
+        return self.get_dream_team_proposal(proposal_id)
+
+    @staticmethod
+    def _dream_team_session_dict(row: sqlite3.Row) -> dict[str, Any]:
+        return {
+            "id": row["id"],
+            "objective": row["objective"],
+            "context": row["context"],
+            "status": row["status"],
+            "config": json.loads(row["config_json"]),
+            "result_summary": row["result_summary"],
+            "created_at": row["created_at"],
+            "updated_at": row["updated_at"],
+        }
+
+    @staticmethod
+    def _dream_team_draft_dict(row: sqlite3.Row) -> dict[str, Any]:
+        return {
+            "id": row["id"],
+            "session_id": row["session_id"],
+            "name": row["name"],
+            "role": row["role"],
+            "persona": json.loads(row["persona_json"]),
+            "score": row["score"],
+            "iteration": row["iteration"],
+            "status": row["status"],
+            "test_result": json.loads(row["test_result_json"])
+            if row["test_result_json"]
+            else None,
+            "created_at": row["created_at"],
+            "updated_at": row["updated_at"],
+        }
+
+    @staticmethod
+    def _dream_team_proposal_dict(row: sqlite3.Row) -> dict[str, Any]:
+        return {
+            "id": row["id"],
+            "session_id": row["session_id"],
+            "title": row["title"],
+            "summary": row["summary"],
+            "members": json.loads(row["members_json"]),
+            "metadata": json.loads(row["metadata_json"]),
+            "status": row["status"],
+            "created_at": row["created_at"],
+            "decided_at": row["decided_at"],
         }

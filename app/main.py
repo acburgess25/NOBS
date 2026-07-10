@@ -26,6 +26,7 @@ from app.agent_store import AgentStore
 from app.agent_tools import ToolRegistry
 from app.config import Settings, get_settings
 from app.dashboard import build_dashboard_status
+from app.dream_team import DreamTeamModelError, DreamTeamSandbox, LocalFirstPolicy
 from app.home_assistant import HomeAssistantClient
 from app.scheduler import _BRIEFING_SYSTEM_PROMPT, run_scheduler
 
@@ -176,6 +177,60 @@ class AppleAuthRequest(BaseModel):
 
 class AppleAuthResponse(BaseModel):
     device_token: str
+
+
+class DreamTeamSessionCreateRequest(BaseModel):
+    objective: str = Field(min_length=1, max_length=2000)
+    context: Literal["personal", "business", "shared"] = "personal"
+
+
+class DreamTeamDraftView(BaseModel):
+    id: str
+    session_id: str
+    name: str
+    role: str
+    persona: dict[str, Any]
+    score: float | None
+    iteration: int
+    status: str
+    test_result: dict[str, Any] | None
+    created_at: str
+    updated_at: str
+
+
+class DreamTeamProposalView(BaseModel):
+    id: str
+    session_id: str
+    title: str
+    summary: str
+    members: list[dict[str, Any]]
+    metadata: dict[str, Any]
+    status: str
+    created_at: str
+    decided_at: str | None
+
+
+class DreamTeamSessionView(BaseModel):
+    id: str
+    objective: str
+    context: str
+    status: str
+    config: dict[str, Any]
+    result_summary: str | None
+    created_at: str
+    updated_at: str
+    drafts: list[DreamTeamDraftView] | None = None
+    proposals: list[DreamTeamProposalView] | None = None
+
+
+class DreamTeamProposalDecision(BaseModel):
+    decision: Literal["approve", "reject"]
+
+
+class DreamTeamApproveResponse(BaseModel):
+    proposal: DreamTeamProposalView
+    active_manifests: int
+    local_first_policy: dict[str, Any]
 
 
 @asynccontextmanager
@@ -691,6 +746,168 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         reminders = [item.model_dump(mode="json") for item in request.reminders]
         app.state.agent_store.sync_reminders(reminders)
         return {"status": "ok"}
+
+    def _dream_team_sandbox() -> DreamTeamSandbox:
+        return DreamTeamSandbox(
+            settings=settings,
+            store=app.state.agent_store,
+            tools=app.state.agent_tools,
+            transport=getattr(app.state, "ollama_transport", None),
+        )
+
+    @app.post(
+        "/dream-team/sessions",
+        response_model=DreamTeamSessionView,
+        tags=["dream-team"],
+        dependencies=[Depends(require_device_token)],
+    )
+    async def create_dream_team_session(
+        request: DreamTeamSessionCreateRequest,
+    ) -> DreamTeamSessionView:
+        if not settings.dream_team_enabled:
+            raise HTTPException(status_code=503, detail="Dream Team Sandbox is disabled")
+        policy = LocalFirstPolicy()
+        session = app.state.agent_store.create_dream_team_session(
+            objective=request.objective,
+            context=request.context,
+            config={
+                "local_first_policy": policy.as_dict(),
+                "model": settings.dream_team_model or settings.ollama_model,
+                "max_agents": settings.dream_team_max_agents,
+                "max_iterations": settings.dream_team_max_iterations,
+            },
+        )
+        return DreamTeamSessionView.model_validate(session)
+
+    @app.get(
+        "/dream-team/sessions",
+        response_model=list[DreamTeamSessionView],
+        tags=["dream-team"],
+        dependencies=[Depends(require_device_token)],
+    )
+    async def list_dream_team_sessions(
+        session_status: str | None = None,
+    ) -> list[DreamTeamSessionView]:
+        return [
+            DreamTeamSessionView.model_validate(item)
+            for item in app.state.agent_store.list_dream_team_sessions(session_status)
+        ]
+
+    @app.get(
+        "/dream-team/sessions/{session_id}",
+        response_model=DreamTeamSessionView,
+        tags=["dream-team"],
+        dependencies=[Depends(require_device_token)],
+    )
+    async def get_dream_team_session(session_id: str) -> DreamTeamSessionView:
+        try:
+            session = app.state.agent_store.get_dream_team_session(
+                session_id, include_details=True
+            )
+        except KeyError as error:
+            raise HTTPException(status_code=404, detail="Session not found") from error
+        return DreamTeamSessionView.model_validate(session)
+
+    @app.post(
+        "/dream-team/sessions/{session_id}/run",
+        response_model=DreamTeamSessionView,
+        tags=["dream-team"],
+        dependencies=[Depends(require_device_token)],
+    )
+    async def run_dream_team_session(session_id: str) -> DreamTeamSessionView:
+        if not settings.dream_team_enabled:
+            raise HTTPException(status_code=503, detail="Dream Team Sandbox is disabled")
+        sandbox = _dream_team_sandbox()
+        try:
+            session = await sandbox.run_session(session_id)
+        except KeyError as error:
+            raise HTTPException(status_code=404, detail="Session not found") from error
+        except ValueError as error:
+            raise HTTPException(status_code=409, detail=str(error)) from error
+        except DreamTeamModelError as error:
+            raise HTTPException(
+                status_code=503,
+                detail="Local Ollama could not complete dream team refinement",
+            ) from error
+        return DreamTeamSessionView.model_validate(session)
+
+    @app.get(
+        "/dream-team/proposals",
+        response_model=list[DreamTeamProposalView],
+        tags=["dream-team"],
+        dependencies=[Depends(require_device_token)],
+    )
+    async def list_dream_team_proposals(
+        proposal_status: str | None = "pending",
+    ) -> list[DreamTeamProposalView]:
+        return [
+            DreamTeamProposalView.model_validate(item)
+            for item in app.state.agent_store.list_dream_team_proposals(proposal_status)
+        ]
+
+    @app.get(
+        "/dream-team/proposals/{proposal_id}",
+        response_model=DreamTeamProposalView,
+        tags=["dream-team"],
+        dependencies=[Depends(require_device_token)],
+    )
+    async def get_dream_team_proposal(proposal_id: str) -> DreamTeamProposalView:
+        try:
+            proposal = app.state.agent_store.get_dream_team_proposal(proposal_id)
+        except KeyError as error:
+            raise HTTPException(status_code=404, detail="Proposal not found") from error
+        return DreamTeamProposalView.model_validate(proposal)
+
+    @app.post(
+        "/dream-team/proposals/{proposal_id}/decide",
+        tags=["dream-team"],
+        dependencies=[Depends(require_device_token)],
+    )
+    async def decide_dream_team_proposal(
+        proposal_id: str,
+        decision: DreamTeamProposalDecision,
+    ) -> DreamTeamProposalView | DreamTeamApproveResponse:
+        sandbox = _dream_team_sandbox()
+        try:
+            if decision.decision == "approve":
+                result = sandbox.approve_proposal(proposal_id)
+                return DreamTeamApproveResponse(
+                    proposal=DreamTeamProposalView.model_validate(result["proposal"]),
+                    active_manifests=result["active_manifests"],
+                    local_first_policy=LocalFirstPolicy().as_dict(),
+                )
+            result = sandbox.reject_proposal(proposal_id)
+            return DreamTeamProposalView.model_validate(result)
+        except KeyError as error:
+            raise HTTPException(status_code=404, detail="Proposal not found") from error
+        except ValueError as error:
+            raise HTTPException(status_code=409, detail=str(error)) from error
+
+    @app.get(
+        "/dream-team/policy",
+        tags=["dream-team"],
+        dependencies=[Depends(require_device_token)],
+    )
+    async def dream_team_policy() -> dict[str, Any]:
+        """Documents local-first processing for dream team refinement."""
+        policy = LocalFirstPolicy()
+        return {
+            **policy.as_dict(),
+            "model": settings.dream_team_model or settings.ollama_model,
+            "max_agents": settings.dream_team_max_agents,
+            "max_iterations": settings.dream_team_max_iterations,
+            "sandbox_max_steps": settings.dream_team_sandbox_max_steps,
+            "external_tools_excluded_from_sandbox": sorted(
+                {
+                    "web_search",
+                    "read_url",
+                    "lookup_wikipedia",
+                    "read_news_feeds",
+                    "get_weather",
+                }
+            ),
+            "would_use_cloud_quota": False,
+        }
 
     return app
 
