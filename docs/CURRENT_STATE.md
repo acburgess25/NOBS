@@ -1,5 +1,7 @@
 # NOBS Current State
 
+For full codebase reference see [`CODEBASE_REFERENCE.md`](CODEBASE_REFERENCE.md).
+
 **Last updated:** July 9, 2026 (v1.1 PCC routing scaffold: ModelRouter, AppleModelProvider, policy-driven chat; badge gated)
 **Purpose:** Tool-neutral handoff for any contributor entering without prior chat history.
 

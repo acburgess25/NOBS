@@ -101,6 +101,7 @@ The device must be able to reach Tank on the private network. Local HTTP is perm
 
 ## Product and contributor truth
 
+- [Canonical codebase reference](docs/CODEBASE_REFERENCE.md) — onboarding and architecture for humans and agents
 - [Approved product decisions](docs/PRODUCT_DECISIONS.md)
 - [Shared agent and contributor workflow](docs/AI_WORKFLOW.md)
 - [Current implementation state and next handoff](docs/CURRENT_STATE.md)
