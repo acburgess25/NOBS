@@ -80,6 +80,14 @@ class ASCClient:
             query = None
         return items
 
+    def try_paginate(self, path: str, *, params: dict[str, Any] | None = None) -> list[dict[str, Any]] | None:
+        try:
+            return self.paginate(path, params=params)
+        except httpx.HTTPStatusError as exc:
+            if exc.response.status_code == 404:
+                return None
+            raise
+
 
 def _keep_bundle(identifier: str) -> bool:
     return any(identifier.startswith(prefix) for prefix in KEEP_BUNDLE_PREFIXES)
@@ -87,10 +95,11 @@ def _keep_bundle(identifier: str) -> bool:
 
 def list_account(client: ASCClient) -> None:
     bundles = client.paginate("/bundleIds")
-    groups = client.paginate("/appGroups")
     certs = client.paginate("/certificates")
     profiles = client.paginate("/profiles")
     apps = client.paginate("/apps")
+    pass_types = client.try_paginate("/passTypeIds")
+    merchants = client.try_paginate("/merchantIds")
 
     print("== Bundle IDs ==")
     for item in bundles:
@@ -99,10 +108,24 @@ def list_account(client: ASCClient) -> None:
         print(f"  [{mark}] {ident} ({item['id']})")
 
     print("== App Groups ==")
-    for item in groups:
-        ident = item.get("attributes", {}).get("identifier", "?")
-        mark = "KEEP" if ident in KEEP_APP_GROUPS else "DELETE"
-        print(f"  [{mark}] {ident} ({item['id']})")
+    print(
+        "  [MANUAL] App Groups are not exposed via App Store Connect API. "
+        "Remove non-NOBS groups at "
+        "https://developer.apple.com/account/resources/identifiers/list/applicationGroup"
+    )
+
+    if pass_types is not None:
+        print("== Pass Type IDs ==")
+        for item in pass_types:
+            ident = item.get("attributes", {}).get("identifier", "?")
+            mark = "KEEP" if _keep_bundle(ident) else "DELETE"
+            print(f"  [{mark}] {ident} ({item['id']})")
+
+    if merchants is not None:
+        print("== Merchant IDs ==")
+        for item in merchants:
+            ident = item.get("attributes", {}).get("identifier", "?")
+            print(f"  [DELETE] {ident} ({item['id']})")
 
     print("== Certificates ==")
     for item in certs:
@@ -129,7 +152,8 @@ def cleanup(client: ASCClient, execute: bool) -> None:
     deleted_profiles = 0
     revoked_certs = 0
     deleted_bundles = 0
-    deleted_groups = 0
+    deleted_pass_types = 0
+    deleted_merchants = 0
 
     for item in client.paginate("/profiles"):
         profile_id = item["id"]
@@ -166,43 +190,49 @@ def cleanup(client: ASCClient, execute: bool) -> None:
         else:
             print(f"[dry-run] delete bundle ID: {ident}")
 
-    for item in client.paginate("/appGroups"):
-        ident = item.get("attributes", {}).get("identifier", "")
-        if ident in KEEP_APP_GROUPS:
-            print(f"Keeping app group: {ident}")
-            continue
-        if execute:
-            status = client.delete(f"/appGroups/{item['id']}")
-            if status in {204, 200}:
-                print(f"Deleted app group: {ident}")
-                deleted_groups += 1
-        else:
-            print(f"[dry-run] delete app group: {ident}")
+    pass_types = client.try_paginate("/passTypeIds")
+    if pass_types:
+        for item in pass_types:
+            ident = item.get("attributes", {}).get("identifier", "")
+            if _keep_bundle(ident):
+                print(f"Keeping pass type ID: {ident}")
+                continue
+            if execute:
+                status = client.delete(f"/passTypeIds/{item['id']}")
+                if status in {204, 200}:
+                    print(f"Deleted pass type ID: {ident}")
+                    deleted_pass_types += 1
+            else:
+                print(f"[dry-run] delete pass type ID: {ident}")
+
+    merchants = client.try_paginate("/merchantIds")
+    if merchants:
+        for item in merchants:
+            ident = item.get("attributes", {}).get("identifier", "")
+            if execute:
+                status = client.delete(f"/merchantIds/{item['id']}")
+                if status in {204, 200}:
+                    print(f"Deleted merchant ID: {ident}")
+                    deleted_merchants += 1
+            else:
+                print(f"[dry-run] delete merchant ID: {ident}")
 
     print(
         f"\nSummary: profiles={deleted_profiles}, certs={revoked_certs}, "
-        f"bundles={deleted_bundles}, groups={deleted_groups}"
+        f"bundles={deleted_bundles}, pass_types={deleted_pass_types}, merchants={deleted_merchants}"
+    )
+    print(
+        "App Groups: remove manually at "
+        "https://developer.apple.com/account/resources/identifiers/list/applicationGroup "
+        f"(keep {', '.join(sorted(KEEP_APP_GROUPS))})"
     )
 
 
 def ensure_nobs_resources(client: ASCClient, execute: bool) -> None:
-    """Re-create NOBS app group and bundle IDs if missing."""
+    """Re-create NOBS bundle IDs if missing."""
     if not execute:
-        print("[dry-run] ensure NOBS app group and bundle IDs")
+        print("[dry-run] ensure NOBS bundle IDs")
         return
-
-    groups = client.paginate("/appGroups", params={"filter[identifier]": "group.com.nobsdash.nobs"})
-    if not groups:
-        client.post(
-            "/appGroups",
-            {
-                "data": {
-                    "type": "appGroups",
-                    "attributes": {"identifier": "group.com.nobsdash.nobs", "name": "NOBS Shared"},
-                }
-            },
-        )
-        print("Created app group group.com.nobsdash.nobs")
 
     for ident, name in (("com.nobsdash.nobs", "NOBS"), ("com.nobsdash.nobs.widgets", "NOBS Widgets")):
         bundles = client.paginate("/bundleIds", params={"filter[identifier]": ident})

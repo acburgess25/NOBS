@@ -55,6 +55,12 @@ def _ensure_app_group(client: httpx.Client) -> None:
         "/appGroups",
         params={"filter[identifier]": APP_GROUP, "limit": 1},
     )
+    if response.status_code == 404:
+        print(
+            f"App Group {APP_GROUP} cannot be checked via API; ensure it exists in the "
+            "Developer portal under Identifiers → App Groups"
+        )
+        return
     response.raise_for_status()
     if response.json().get("data"):
         print(f"App Group {APP_GROUP} already exists")
@@ -74,6 +80,12 @@ def _ensure_app_group(client: httpx.Client) -> None:
             }
         },
     )
+    if create.status_code == 404:
+        print(
+            f"App Group {APP_GROUP} must be created manually in the Developer portal "
+            "(Identifiers → App Groups)"
+        )
+        return
     if create.status_code in {201, 409}:
         print(f"Created App Group {APP_GROUP}")
         return
