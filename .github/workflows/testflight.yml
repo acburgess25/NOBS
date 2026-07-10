@@ -18,6 +18,11 @@ on:
       - "scripts/stage-testflight-ipa.sh"
       - ".github/workflows/testflight.yml"
   workflow_dispatch:
+    inputs:
+      refresh_signing_only:
+        description: Only refresh App Store Connect signing (skip archive/upload)
+        type: boolean
+        default: false
 
 concurrency:
   group: testflight
@@ -82,9 +87,11 @@ jobs:
         run: |
           set -euo pipefail
           export ASC_API_KEY_PATH="$HOME/private_keys/AuthKey_${ASC_API_KEY_ID}.p8"
+          python3 scripts/validate-asc-api.py
           bash scripts/ci-refresh-provisioning-profiles.sh
 
       - name: Archive & export
+        if: ${{ !inputs.refresh_signing_only }}
         run: |
           set -euo pipefail
           security unlock-keychain -p "$CI_KEYCHAIN_PASSWORD" "$CI_KEYCHAIN"
@@ -116,6 +123,7 @@ jobs:
           echo "EXPORT_DIR=$export_dir" >> "$GITHUB_ENV"
 
       - name: Upload to TestFlight
+        if: ${{ !inputs.refresh_signing_only }}
         run: |
           xcrun altool --upload-app \
             --type ios \
