@@ -55,6 +55,10 @@ security list-keychains -d user -s "$KEYCHAIN"
 import_wwdr
 
 if [[ "$(identity_count 'Apple Development')" -lt 1 ]]; then
+  echo "Revoking stale Apple Development certificates on the developer account..."
+  export FASTLANE_BIN="$(command -v fastlane)"
+  ruby scripts/ci-revoke-development-certs.rb
+
   echo "Creating Apple Development certificate in CI keychain..."
   set +e
   fastlane run cert \
