@@ -62,6 +62,14 @@ class Settings(BaseSettings):
     dream_team_sandbox_path: Path = Path("data/dream-team-sandbox")
     dream_team_active_path: Path = Path("data/dream-team/active")
 
+    # Live workplace dashboard — animated floor + filtered browser sandbox
+    workplace_enabled: bool = True
+    workplace_browser_allowed_domains: str = (
+        "wikipedia.org,www.wikipedia.org,en.wikipedia.org,docs.python.org,developer.mozilla.org"
+    )
+    browser_sandbox_screenshot_path: Path = Path("data/workplace/screenshots")
+    browser_sandbox_session_ttl_seconds: int = Field(default=1800, ge=60, le=7200)
+
 
 @lru_cache
 def get_settings() -> Settings:

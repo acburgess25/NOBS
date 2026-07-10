@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#101510" />
+    <meta name="color-scheme" content="dark" />
+    <title>NOBS Workplace</title>
+    <link rel="stylesheet" href="/workplace/assets/workplace.css" />
+  </head>
+  <body>
+    <main class="workplace" aria-live="polite">
+      <header class="topbar">
+        <div>
+          <p class="kicker">NOBS live workplace</p>
+          <h1><span id="display-name">Tank</span> dream team floor</h1>
+          <p id="privacy-copy" class="privacy-copy">Room-safe animated view.</p>
+        </div>
+        <div class="session-pill" id="session-pill" hidden>
+          <span class="dot"></span>
+          <span id="session-label">Dream team running</span>
+        </div>
+      </header>
+
+      <section class="floor" aria-label="Animated workplace floor">
+        <div class="floor-grid" id="floor-grid"></div>
+        <div class="agents-layer" id="agents-layer"></div>
+      </section>
+
+      <section class="sandbox-panel" aria-labelledby="sandbox-heading">
+        <div class="panel-heading">
+          <div>
+            <p class="section-label">Browser sandbox</p>
+            <h2 id="sandbox-heading">Filtered monitors</h2>
+          </div>
+          <p id="sandbox-meta" class="privacy-copy">Allowlisted domains only.</p>
+        </div>
+        <div class="screen-grid" id="screen-grid"></div>
+      </section>
+    </main>
+    <script src="/workplace/assets/workplace.js" defer></script>
+  </body>
+</html>

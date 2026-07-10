@@ -1,0 +1,185 @@
+:root {
+  color-scheme: dark;
+  --canvas: #101510;
+  --surface: rgba(23, 29, 23, 0.82);
+  --ink: #edf0e8;
+  --muted: #aab4a8;
+  --sage: #a8c58f;
+  --line: rgba(227, 236, 220, 0.13);
+  --shadow: 0 24px 70px rgba(0, 0, 0, 0.35);
+}
+
+* { box-sizing: border-box; }
+html, body { min-height: 100%; margin: 0; }
+body {
+  background: radial-gradient(circle at top, #1a241a 0%, var(--canvas) 55%);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.workplace {
+  width: min(100%, 1400px);
+  margin: 0 auto;
+  padding: clamp(20px, 3vw, 40px);
+  display: grid;
+  gap: 24px;
+}
+
+.topbar, .panel-heading { display: flex; justify-content: space-between; gap: 20px; align-items: flex-start; }
+.kicker, .section-label {
+  margin: 0 0 8px;
+  color: var(--sage);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+h1, h2 { margin: 0; font-family: Georgia, "Times New Roman", serif; font-weight: 400; }
+h1 { font-size: clamp(32px, 4vw, 52px); }
+h2 { font-size: clamp(22px, 2.4vw, 32px); }
+.privacy-copy { margin: 8px 0 0; color: var(--muted); font-size: 14px; }
+
+.session-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  font-size: 13px;
+}
+.session-pill .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--sage);
+  animation: pulse 1.6s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 0.45; transform: scale(0.9); }
+  50% { opacity: 1; transform: scale(1.1); }
+}
+
+.floor {
+  position: relative;
+  min-height: 420px;
+  border-radius: 28px;
+  background: linear-gradient(180deg, rgba(28, 38, 28, 0.95), rgba(16, 21, 16, 0.98));
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.floor-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(168, 197, 143, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(168, 197, 143, 0.08) 1px, transparent 1px);
+  background-size: 48px 48px;
+}
+
+.station {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  pointer-events: none;
+}
+.station-label {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.desk {
+  width: 72px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(168, 197, 143, 0.18);
+  border: 1px solid rgba(168, 197, 143, 0.28);
+}
+.monitor {
+  width: 88px;
+  height: 54px;
+  border-radius: 8px;
+  background: #0b100b;
+  border: 2px solid rgba(168, 197, 143, 0.22);
+  box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.45);
+}
+.monitor.active {
+  border-color: var(--sage);
+  box-shadow: 0 0 18px rgba(168, 197, 143, 0.35), inset 0 0 18px rgba(126, 182, 255, 0.15);
+}
+
+.agents-layer {
+  position: absolute;
+  inset: 0;
+}
+
+.agent {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  transition: left 1.2s cubic-bezier(0.22, 1, 0.36, 1), top 1.2s cubic-bezier(0.22, 1, 0.36, 1);
+  z-index: 2;
+}
+.agent-bubble {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 28px;
+  border: 3px solid rgba(255, 255, 255, 0.18);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.28);
+  animation: bob 2.4s ease-in-out infinite;
+}
+.agent-name {
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.45);
+  font-size: 12px;
+  white-space: nowrap;
+}
+@keyframes bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+.sandbox-panel {
+  padding: 20px 22px 24px;
+  border-radius: 24px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+}
+.screen-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+.screen-card {
+  border-radius: 16px;
+  overflow: hidden;
+  background: #0d120d;
+  border: 1px solid var(--line);
+}
+.screen-card header {
+  padding: 10px 12px;
+  font-size: 12px;
+  color: var(--muted);
+  border-bottom: 1px solid var(--line);
+}
+.screen-card img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  background: #0f1410;
+}
+.screen-card.empty img {
+  opacity: 0.35;
+}

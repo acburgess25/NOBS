@@ -14,9 +14,10 @@ REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 echo "==> Checking Tank connectivity"
 ssh -o ConnectTimeout=8 -o BatchMode=yes "$TANK_HOST" 'echo "connected to $(hostname)"'
 
-echo "==> Syncing app/, dashboard/, pyproject.toml"
+echo "==> Syncing app/, dashboard/, workplace/, pyproject.toml"
 rsync -az --delete "$REPO_ROOT/app/" "$TANK_HOST:~/nobs/app/"
 rsync -az --delete "$REPO_ROOT/dashboard/" "$TANK_HOST:~/nobs/dashboard/"
+rsync -az --delete "$REPO_ROOT/workplace/" "$TANK_HOST:~/nobs/workplace/"
 rsync -az "$REPO_ROOT/pyproject.toml" "$TANK_HOST:~/nobs/pyproject.toml"
 
 echo "==> Installing dependencies in Tank venv"

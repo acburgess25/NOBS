@@ -35,6 +35,7 @@ NOBS/
 ├── design/                  # Approved visual references and brand assets
 ├── website/                 # Vite/React public site (nobsdash.com)
 ├── dashboard/               # Static assets for Tank connected-screen dashboard
+├── workplace/               # Live animated dream-team workplace UI
 ├── ExportOptions.plist      # App Store Connect export (automatic signing)
 ├── pyproject.toml           # Python package (nobs-tank-api 0.1.0)
 ├── .env.example             # Backend env template (never commit .env)
@@ -394,6 +395,7 @@ All backend settings use prefix `NOBS_` (see `.env.example` and `app/config.py`)
 | `NOBS_NEWS_FEED_URLS` | Comma-separated RSS feeds |
 | `NOBS_WEB_SEARCH_MAX_RESULTS` | Web search cap |
 | `NOBS_DREAM_TEAM_*` | Dream Team Sandbox (local Ollama, max agents/iterations) |
+| `NOBS_WORKPLACE_*` | Live workplace dashboard + browser allowlist |
 
 CI-only (not in `.env.example`): `ASC_API_KEY_ID`, `ASC_API_ISSUER_ID`, `ASC_API_KEY_CONTENT`, `CI_KEYCHAIN_PASSWORD`, `DEVELOPER_DIR`, `DEVELOPMENT_TEAM`.
 
@@ -418,6 +420,9 @@ CI-only (not in `.env.example`): `ASC_API_KEY_ID`, `ASC_API_ISSUER_ID`, `ASC_API
 | POST/GET | `/overnight/tasks` | Device token | Overnight queue |
 | POST | `/sync/calendar`, `/sync/reminders` | Device token | iOS sync |
 | GET | `/dashboard`, `/dashboard/status` | Public / token | Connected-screen UI |
+| GET | `/workplace`, `/workplace/status` | Public | Animated dream-team floor + monitor state |
+| POST | `/workplace/browser/sessions` | Device token | Start filtered browser sandbox session |
+| GET | `/workplace/browser/sessions/{id}/screenshot` | Public | SVG screenshot poll for monitor tile |
 | POST | `/dream-team/sessions` | Device token | Start dream team sandbox session |
 | POST | `/dream-team/sessions/{id}/run` | Device token | Draft/test/refine locally via Ollama |
 | GET | `/dream-team/proposals` | Device token | Pending team proposals for review |
@@ -427,6 +432,10 @@ CI-only (not in `.env.example`): `ASC_API_KEY_ID`, `ASC_API_ISSUER_ID`, `ASC_API
 ### Dream Team Sandbox (v1)
 
 Tank-side module that drafts agent personas, sandbox-tests them with **read-only local tools only**, scores with heuristics (no extra LLM calls), refines low-scoring drafts (max 2 iterations), and proposes a team for user approval. All inference uses local Ollama (`qwen3:8b` by default); no cloud/PCC/external APIs in the refinement loop. Approved members are stored as JSON manifests under `data/dream-team/active/`. Deploy: `bash scripts/deploy-dream-team.sh`.
+
+### Live workplace dashboard (v1)
+
+`app/workplace.py` + `workplace/` static UI show running dream-team drafts and approved agents on an animated floor (distinct colors/icons, CSS movement between lobby/desks/monitors). Browser use goes through a **filtered allowlist sandbox** (`NOBS_WORKPLACE_BROWSER_ALLOWED_DOMAINS`); v1 uses SVG screenshot polling, not video. Open `http://<tank>:8000/workplace` on the LAN. Dream-team session state is read from `/dream-team/*` store tables and `data/dream-team/active/` manifests — no changes to the sandbox refinement loop.
 
 Full agent policy: [`TANK_AGENT_CORE.md`](TANK_AGENT_CORE.md).
 

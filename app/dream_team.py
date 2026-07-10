@@ -32,6 +32,9 @@ SANDBOX_READ_ONLY_TOOLS = frozenset(
     }
 )
 
+# Monitored browser sandbox — allowlisted URLs only; lights up workplace monitors.
+WORKPLACE_COMPUTER_TOOLS = frozenset({"use_computer"})
+
 # Tools that hit external services — excluded from sandbox refinement.
 EXTERNAL_API_TOOLS = frozenset(
     {
@@ -79,11 +82,13 @@ class DreamTeamSandbox:
         store: AgentStore,
         tools: ToolRegistry,
         transport: httpx.AsyncBaseTransport | None = None,
+        browser_sandbox: Any | None = None,
     ) -> None:
         self.settings = settings
         self.store = store
         self.tools = tools
         self.transport = transport
+        self.browser_sandbox = browser_sandbox
         self.policy = LocalFirstPolicy()
         self.sandbox_root = settings.dream_team_sandbox_path
         self.active_root = settings.dream_team_active_path
@@ -278,10 +283,12 @@ class DreamTeamSandbox:
                         args = json.loads(args)
                     except json.JSONDecodeError:
                         args = {}
-                if name not in SANDBOX_READ_ONLY_TOOLS:
+                if name not in SANDBOX_READ_ONLY_TOOLS and name not in WORKPLACE_COMPUTER_TOOLS:
                     result: dict[str, Any] = {
                         "error": f"Tool {name} is not available in sandbox",
                     }
+                elif name == "use_computer":
+                    result = self._use_computer_tool(draft, args if isinstance(args, dict) else {})
                 else:
                     try:
                         result = self.tools.execute(name, args if isinstance(args, dict) else {})
@@ -408,14 +415,56 @@ class DreamTeamSandbox:
             score -= 0.1
         return round(min(max(score, 0.0), 1.0), 3)
 
+    def _use_computer_tool(self, draft: dict[str, Any], args: dict[str, Any]) -> dict[str, Any]:
+        if self.browser_sandbox is None:
+            return {"error": "Workplace browser sandbox is not available"}
+        url = str(args.get("url", "")).strip()
+        if not url:
+            return {"error": "url is required"}
+        from app.workplace import BrowserSandboxError
+
+        agent_id = _slugify(draft["name"])
+        try:
+            session = self.browser_sandbox.create_session(agent_id, url)
+        except BrowserSandboxError as error:
+            return {"error": str(error)}
+        return {
+            "session_id": session["id"],
+            "url": session["url"],
+            "screenshot_url": f"/workplace/browser/sessions/{session['id']}/screenshot",
+            "message": "Computer session started on workplace monitor",
+        }
+
     def _sandbox_tool_schemas(self, draft: dict[str, Any]) -> list[dict[str, Any]]:
         suggested = set(draft.get("persona", {}).get("suggested_tools") or [])
         allowed = suggested & SANDBOX_READ_ONLY_TOOLS or SANDBOX_READ_ONLY_TOOLS
-        return [
+        schemas = [
             self.tools.get(name).ollama_schema()
             for name in sorted(allowed)
             if self.tools.get(name) is not None
         ]
+        if self.browser_sandbox is not None:
+            schemas.append(
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "use_computer",
+                        "description": (
+                            "Open an allowlisted URL in the monitored workplace browser. "
+                            "Shown live on the Tank workplace dashboard."
+                        ),
+                        "parameters": {
+                            "type": "object",
+                            "required": ["url"],
+                            "properties": {
+                                "url": {"type": "string", "maxLength": 2000},
+                            },
+                            "additionalProperties": False,
+                        },
+                    },
+                }
+            )
+        return schemas
 
     def _ensure_sandbox_dir(self, session_id: str) -> Path:
         path = (self.sandbox_root / session_id).resolve()

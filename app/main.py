@@ -10,7 +10,7 @@ from typing import Any, AsyncIterator, Literal
 
 import httpx
 from fastapi import Depends, FastAPI, Header, HTTPException, status
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -27,6 +27,12 @@ from app.agent_tools import ToolRegistry
 from app.config import Settings, get_settings
 from app.dashboard import build_dashboard_status
 from app.dream_team import DreamTeamModelError, DreamTeamSandbox, LocalFirstPolicy
+from app.workplace import (
+    BrowserSandbox,
+    BrowserSandboxError,
+    build_workplace_status,
+    parse_allowed_domains,
+)
 from app.home_assistant import HomeAssistantClient
 from app.scheduler import _BRIEFING_SYSTEM_PROMPT, run_scheduler
 
@@ -233,6 +239,11 @@ class DreamTeamApproveResponse(BaseModel):
     local_first_policy: dict[str, Any]
 
 
+class WorkplaceBrowserSessionRequest(BaseModel):
+    agent_id: str = Field(min_length=1, max_length=120)
+    url: str = Field(min_length=1, max_length=2000)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
@@ -269,10 +280,22 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.state.process_started_at = time.time()
     dashboard_directory = Path(__file__).resolve().parents[1] / "dashboard"
+    workplace_directory = Path(__file__).resolve().parents[1] / "workplace"
     app.mount(
         "/dashboard/assets",
         StaticFiles(directory=dashboard_directory),
         name="dashboard-assets",
+    )
+    app.mount(
+        "/workplace/assets",
+        StaticFiles(directory=workplace_directory),
+        name="workplace-assets",
+    )
+    app.state.workplace_browser = BrowserSandbox(
+        allowed_domains=parse_allowed_domains(settings.workplace_browser_allowed_domains),
+        transport=getattr(app.state, "ollama_transport", None),
+        screenshot_dir=settings.browser_sandbox_screenshot_path,
+        session_ttl_seconds=settings.browser_sandbox_session_ttl_seconds,
     )
 
     @app.get("/health", tags=["operations"])
@@ -300,6 +323,33 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             getattr(app.state, "ollama_transport", None),
             resolve_device_token(store),
         )
+
+    @app.get("/workplace", include_in_schema=False)
+    async def workplace_redirect() -> RedirectResponse:
+        return RedirectResponse(url="/workplace/assets/index.html")
+
+    @app.get("/workplace/status", tags=["operations"])
+    async def workplace_status() -> dict[str, Any]:
+        if not settings.workplace_enabled:
+            raise HTTPException(status_code=503, detail="Workplace dashboard is disabled")
+        store: AgentStore = app.state.agent_store
+        browser: BrowserSandbox = app.state.workplace_browser
+        return build_workplace_status(settings, store, browser)
+
+    @app.get(
+        "/workplace/browser/sessions/{session_id}/screenshot",
+        tags=["workplace"],
+    )
+    async def workplace_browser_screenshot(session_id: str) -> Response:
+        if not settings.workplace_enabled:
+            raise HTTPException(status_code=503, detail="Workplace dashboard is disabled")
+        browser: BrowserSandbox = app.state.workplace_browser
+        try:
+            await browser.refresh_session(session_id)
+            svg = browser.screenshot_svg(session_id)
+        except KeyError as error:
+            raise HTTPException(status_code=404, detail="Browser session not found") from error
+        return Response(content=svg, media_type="image/svg+xml")
 
     def resolve_device_token(store: AgentStore) -> str | None:
         configured_token = settings.device_token
@@ -338,6 +388,24 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     async def ready() -> dict[str, str]:
         return {"status": "ready"}
+
+    @app.post(
+        "/workplace/browser/sessions",
+        tags=["workplace"],
+        dependencies=[Depends(require_device_token)],
+    )
+    async def create_workplace_browser_session(
+        request: WorkplaceBrowserSessionRequest,
+    ) -> dict[str, Any]:
+        if not settings.workplace_enabled:
+            raise HTTPException(status_code=503, detail="Workplace dashboard is disabled")
+        browser: BrowserSandbox = app.state.workplace_browser
+        try:
+            session = browser.create_session(request.agent_id, request.url)
+            session = await browser.refresh_session(session["id"])
+        except BrowserSandboxError as error:
+            raise HTTPException(status_code=400, detail=str(error)) from error
+        return session
 
     @app.post(
         "/auth/apple",
@@ -753,6 +821,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             store=app.state.agent_store,
             tools=app.state.agent_tools,
             transport=getattr(app.state, "ollama_transport", None),
+            browser_sandbox=app.state.workplace_browser,
         )
 
     @app.post(
