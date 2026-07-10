@@ -118,9 +118,12 @@ jobs:
           security unlock-keychain -p "$CI_KEYCHAIN_PASSWORD" "$CI_KEYCHAIN"
           security list-keychains -d user -s "$CI_KEYCHAIN" login.keychain-db
           rm -rf "$HOME/Library/Developer/Xcode/DerivedData"/NOBS-*
-          find "$HOME/Library/MobileDevice/Provisioning Profiles" -name '*.mobileprovision' -print0 2>/dev/null \
-            | xargs -0 grep -l 'com.nobsdash.nobs.widgets' 2>/dev/null \
-            | xargs -r rm -f
+          find "$HOME/Library/MobileDevice/Provisioning Profiles" -name '*.mobileprovision' 2>/dev/null \
+            | while IFS= read -r profile; do
+                if grep -q 'com.nobsdash.nobs.widgets' "$profile" 2>/dev/null; then
+                  rm -f "$profile"
+                fi
+              done
           export_dir="${RUNNER_TEMP:-/tmp}/nobs-export"
           archive_path="${RUNNER_TEMP:-/tmp}/NOBS.xcarchive"
           auth=(
