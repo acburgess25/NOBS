@@ -23,10 +23,22 @@ if ! command -v fastlane >/dev/null; then
 fi
 
 import_wwdr() {
-  local wwdr="${RUNNER_TEMP:-/tmp}/AppleWWDRCAG4.cer"
-  curl -fsSL -o "$wwdr" https://www.apple.com/certificateauthority/AppleWWDRCAG4.cer
-  security import "$wwdr" -k "$KEYCHAIN" -A \
-    -T /usr/bin/codesign -T /usr/bin/security -T /usr/bin/xcodebuild || true
+  local cert_url name
+  for cert_url in \
+    "https://www.apple.com/appleca/AppleIncRootCertificate.cer" \
+    "https://www.apple.com/certificateauthority/AppleWWDRCAG3.cer" \
+    "https://www.apple.com/certificateauthority/AppleWWDRCAG4.cer"
+  do
+    name="$(basename "$cert_url")"
+    curl -fsSL -o "${RUNNER_TEMP:-/tmp}/${name}" "$cert_url"
+    security import "${RUNNER_TEMP:-/tmp}/${name}" -k "$KEYCHAIN" -A \
+      -T /usr/bin/codesign -T /usr/bin/security -T /usr/bin/xcodebuild || true
+  done
+}
+
+has_dev_material() {
+  security find-certificate -a -c "Apple Development" "$KEYCHAIN" >/dev/null 2>&1 \
+    || security find-certificate -a -c "Apple Development: Alexander Burgess" "$KEYCHAIN" >/dev/null 2>&1
 }
 
 identity_count() {
@@ -54,7 +66,7 @@ security set-keychain-settings -lut 21600 "$KEYCHAIN"
 security list-keychains -d user -s "$KEYCHAIN"
 import_wwdr
 
-if [[ "$(identity_count 'Apple Development')" -lt 1 ]]; then
+if [[ "$(identity_count 'Apple Development')" -lt 1 ]] && ! has_dev_material; then
   echo "Revoking stale Apple Development certificates on the developer account..."
   python3 scripts/ci-revoke-development-certs.py
 
@@ -69,9 +81,10 @@ if [[ "$(identity_count 'Apple Development')" -lt 1 ]]; then
     api_key_path:"$api_json"
   fastlane_status=$?
   set -e
+  import_wwdr
   security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN" || true
-  if [[ "$(identity_count 'Apple Development')" -lt 1 && "$fastlane_status" -ne 0 ]]; then
-    echo "fastlane cert failed and no Apple Development identity is available in $KEYCHAIN" >&2
+  if [[ "$(identity_count 'Apple Development')" -lt 1 && ! has_dev_material ]]; then
+    echo "fastlane cert failed and no Apple Development certificate is available in $KEYCHAIN" >&2
     exit 1
   fi
 fi
@@ -81,8 +94,13 @@ security find-identity -v -p codesigning "$KEYCHAIN"
 
 dist_count="$(identity_count 'Apple Distribution')"
 dev_count="$(identity_count 'Apple Development')"
+dev_ready=0
+if [[ "$dev_count" -ge 1 ]] || has_dev_material; then
+  dev_ready=1
+fi
 
-if [[ "$dist_count" -lt 1 || "$dev_count" -lt 1 ]]; then
-  echo "Expected both Apple Distribution and Apple Development identities in $KEYCHAIN" >&2
+if [[ "$dist_count" -lt 1 || "$dev_ready" -lt 1 ]]; then
+  echo "Expected Apple Distribution and Apple Development signing material in $KEYCHAIN" >&2
+  security find-certificate -a "$KEYCHAIN" || true
   exit 1
 fi
