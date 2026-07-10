@@ -234,6 +234,31 @@ wipe_client_state() {
   done
 }
 
+copy_client_state_to_backup() {
+  local root="$1"
+  local backup_dir="$2"
+  local rel src dest dest_parent
+
+  for rel in "${CLIENT_DATA_PATHS[@]}"; do
+    src="$root/$rel"
+    [[ -e "$src" ]] || continue
+    dest="$backup_dir/$rel"
+    dest_parent="$(dirname "$dest")"
+    run mkdir -p "$dest_parent"
+    run cp -a "$src" "$dest"
+  done
+
+  if [[ -f "$root/.env" ]]; then
+    run cp -a "$root/.env" "$backup_dir/dotenv.backup"
+  fi
+
+  local api_env="$HOME/.config/nobs/nobs-api.env"
+  if [[ -f "$api_env" ]]; then
+    run mkdir -p "$backup_dir/host-config"
+    run cp -a "$api_env" "$backup_dir/host-config/nobs-api.env"
+  fi
+}
+
 backup_client_state() {
   local root="$1"
   local stamp backup_dir
@@ -242,26 +267,13 @@ backup_client_state() {
 
   log "Backing up client state to data/backups/pre-reset-$stamp/" >&2
   if [[ "$DRY_RUN" -eq 1 ]]; then
-    printf '[dry-run] mkdir %s and copy data/, nobs.db, .env\n' "$backup_dir" >&2
+    printf '[dry-run] mkdir %s and copy client db, workspaces, screenshots, nobs.db, .env\n' "$backup_dir" >&2
     printf '%s' "$backup_dir"
     return
   fi
 
   run mkdir -p "$backup_dir"
-  if [[ -d "$root/data" ]]; then
-    run cp -a "$root/data" "$backup_dir/"
-  fi
-  if [[ -f "$root/nobs.db" ]]; then
-    run cp -a "$root/nobs.db" "$backup_dir/"
-  fi
-  if [[ -f "$root/.env" ]]; then
-    run cp -a "$root/.env" "$backup_dir/dotenv.backup"
-  fi
-  local api_env="$HOME/.config/nobs/nobs-api.env"
-  if [[ -f "$api_env" ]]; then
-    run mkdir -p "$backup_dir/host-config"
-    run cp -a "$api_env" "$backup_dir/host-config/nobs-api.env"
-  fi
+  copy_client_state_to_backup "$root" "$backup_dir"
   printf '%s' "$backup_dir"
 }
 
@@ -354,12 +366,41 @@ ROOT="${TANK_ROOT:-$HOME/nobs}"
 STAMP="$(date +%Y%m%d-%H%M%S)"
 BACKUP="$ROOT/data/backups/pre-reset-$STAMP"
 
+CLIENT_DATA_PATHS=(
+  "data/nobs-agent.db"
+  "data/nobs-agent.db-shm"
+  "data/nobs-agent.db-wal"
+  "data/agent-workspace"
+  "data/dream-team-sandbox"
+  "data/dream-team/active"
+  "data/workplace/screenshots"
+  "nobs.db"
+)
+
+copy_client_state_to_backup() {
+  local root="$1"
+  local backup_dir="$2"
+  local rel src dest dest_parent
+
+  for rel in "${CLIENT_DATA_PATHS[@]}"; do
+    src="$root/$rel"
+    [[ -e "$src" ]] || continue
+    dest="$backup_dir/$rel"
+    dest_parent="$(dirname "$dest")"
+    mkdir -p "$dest_parent"
+    cp -a "$src" "$dest"
+  done
+
+  [[ -f "$root/.env" ]] && cp -a "$root/.env" "$backup_dir/dotenv.backup"
+  if [[ -f "$HOME/.config/nobs/nobs-api.env" ]]; then
+    mkdir -p "$backup_dir/host-config"
+    cp -a "$HOME/.config/nobs/nobs-api.env" "$backup_dir/host-config/nobs-api.env"
+  fi
+}
+
 systemctl --user stop nobs-api || true
 mkdir -p "$BACKUP"
-[[ -d "$ROOT/data" ]] && cp -a "$ROOT/data" "$BACKUP/"
-[[ -f "$ROOT/nobs.db" ]] && cp -a "$ROOT/nobs.db" "$BACKUP/"
-[[ -f "$ROOT/.env" ]] && cp -a "$ROOT/.env" "$BACKUP/dotenv.backup"
-[[ -f "$HOME/.config/nobs/nobs-api.env" ]] && mkdir -p "$BACKUP/host-config" && cp -a "$HOME/.config/nobs/nobs-api.env" "$BACKUP/host-config/"
+copy_client_state_to_backup "$ROOT" "$BACKUP"
 
 rm -f "$ROOT/data/nobs-agent.db" "$ROOT/data/nobs-agent.db-shm" "$ROOT/data/nobs-agent.db-wal" "$ROOT/nobs.db"
 rm -rf "$ROOT/data/agent-workspace" "$ROOT/data/dream-team-sandbox" "$ROOT/data/dream-team/active" "$ROOT/data/workplace/screenshots"
