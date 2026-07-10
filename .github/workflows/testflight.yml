@@ -60,11 +60,28 @@ jobs:
             printf '%s' "$ASC_API_KEY_CONTENT" | base64 --decode > "$key"
           fi
 
+      - name: Ensure development and distribution certificates
+        env:
+          P12_PASSWORD: ${{ secrets.DIST_CERT_PASSWORD }}
+          ASC_API_KEY_ID: ${{ secrets.ASC_API_KEY_ID }}
+          ASC_API_ISSUER_ID: ${{ secrets.ASC_API_ISSUER_ID }}
+          ASC_API_KEY_PATH: ~/private_keys/AuthKey_${{ secrets.ASC_API_KEY_ID }}.p8
+        run: |
+          set -euo pipefail
+          keychain="$RUNNER_TEMP/ci-signing.keychain-db"
+          bash scripts/ci-ensure-signing-certs.sh "$keychain" "$P12_PASSWORD"
+
       - name: Archive & export
         run: |
           set -euo pipefail
           keychain="$RUNNER_TEMP/ci-signing.keychain-db"
           security unlock-keychain -p "${{ secrets.DIST_CERT_PASSWORD }}" "$keychain"
+          security list-keychains -d user -s "$keychain"
+          dist_identity="$(security find-identity -v -p codesigning "$keychain" | sed -n 's/.*"\(Apple Distribution.*\)".*/\1/p' | head -1)"
+          if [[ -z "$dist_identity" ]]; then
+            echo "No Apple Distribution identity found in CI keychain" >&2
+            exit 1
+          fi
           rm -rf "$HOME/Library/Developer/Xcode/DerivedData"/NOBS-*
           export_dir="${RUNNER_TEMP:-/tmp}/nobs-export"
           archive_path="${RUNNER_TEMP:-/tmp}/NOBS.xcarchive"
@@ -82,6 +99,7 @@ jobs:
             -archivePath "$archive_path" \
             "${auth[@]}" \
             CODE_SIGN_STYLE=Automatic \
+            CODE_SIGN_IDENTITY="$dist_identity" \
             DEVELOPMENT_TEAM="$DEVELOPMENT_TEAM"
           xcodebuild -exportArchive \
             -archivePath "$archive_path" \

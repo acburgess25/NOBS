@@ -9,7 +9,7 @@ final class ModelRouterTests: XCTestCase {
             .chat("What's on my calendar?"),
             context: baseContext(tankAvailable: true)
         )
-        XCTAssertEqual(decision.route, .tank)
+        XCTAssertEqual(decision.route, ProcessingRoute.tank)
         XCTAssertEqual(decision.reason, .preferredPrivateCompute)
     }
 
@@ -21,7 +21,7 @@ final class ModelRouterTests: XCTestCase {
                 preferences: RoutingPreferences(tankOfflineBehavior: .localOnly)
             )
         )
-        XCTAssertEqual(decision.route, .local)
+        XCTAssertEqual(decision.route, ProcessingRoute.local)
         XCTAssertEqual(decision.reason, .tankOfflinePreference)
     }
 
@@ -45,7 +45,7 @@ final class ModelRouterTests: XCTestCase {
                 preferences: RoutingPreferences(tankOfflineBehavior: .useAppleCloud)
             )
         )
-        XCTAssertEqual(decision.route, .pcc)
+        XCTAssertEqual(decision.route, ProcessingRoute.pcc)
     }
 
     func testPCCFallsBackWhenQuotaReached() {
@@ -55,12 +55,12 @@ final class ModelRouterTests: XCTestCase {
                 tankAvailable: false,
                 pccAvailable: true,
                 pccRoutingEnabled: true,
-                developerEntitled: true,
                 pccQuotaLimitReached: true,
+                developerEntitled: true,
                 preferences: RoutingPreferences(tankOfflineBehavior: .useAppleCloud)
             )
         )
-        XCTAssertEqual(decision.route, .local)
+        XCTAssertEqual(decision.route, ProcessingRoute.local)
     }
 
     func testCloudRouteRequiresSubscriptionAndPolicy() {
@@ -73,7 +73,7 @@ final class ModelRouterTests: XCTestCase {
                 preferences: RoutingPreferences(tankOfflineBehavior: .useNOBScloud)
             )
         )
-        XCTAssertEqual(decision.route, .cloud)
+        XCTAssertEqual(decision.route, ProcessingRoute.cloud)
     }
 
     func testDoesNotClaimPCCWhenUnavailable() {
@@ -87,7 +87,7 @@ final class ModelRouterTests: XCTestCase {
                 preferences: RoutingPreferences(tankOfflineBehavior: .useAppleCloud)
             )
         )
-        XCTAssertNotEqual(decision.route, .pcc)
+        XCTAssertNotEqual(decision.route, ProcessingRoute.pcc)
     }
 
     private func baseContext(

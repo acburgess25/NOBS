@@ -486,7 +486,10 @@ class ToolRegistry:
         mem = psutil.virtual_memory()
         disk_root = Path("/") if Path("/").exists() else Path.cwd()
         disk = psutil.disk_usage(str(disk_root))
-        load_avg = psutil.getloadavg() if hasattr(psutil, "getloadavg") else (None, None, None)
+        try:
+            load_avg = psutil.getloadavg() if hasattr(psutil, "getloadavg") else (None, None, None)
+        except OSError:
+            load_avg = (None, None, None)
 
         result: dict[str, Any] = {
             "hostname": platform.node(),

@@ -14,7 +14,8 @@ Quick reference for red checks on NOBS pull requests and `main`.
 | **Python 3.12 on Mac runner** | Backend CI | Same | Yes |
 | **docs-only-auto-approve** | Auto-approve safe PRs | Stale run on `ubuntu-latest`, or tank runner offline | Re-run after tank workflow on `main`; not an app bug |
 | **NOBS \| Default \| Build - iOS** | Xcode Cloud (App Store Connect) | Compile or signing on Apple’s builders | Maybe — check ASC build logs |
-| **TestFlight** | `.github/workflows/testflight.yml` | Distribution provisioning profiles | **Home** — Apple Developer portal |
+| **TestFlight** | `.github/workflows/testflight.yml` | Development cert missing on CI keychain; distribution profiles | **Home** — runner + Apple Developer portal |
+| **NOBSTests** | Backend CI `ios-macos` job | Swift compile or routing fixture drift | Yes — `bash scripts/test-ios.sh` |
 
 ---
 
@@ -49,30 +50,39 @@ Quick reference for red checks on NOBS pull requests and `main`.
 
 ## TestFlight (main push — Archive failed)
 
-**Latest known error on `main` (July 7, 2026):**
+**Latest known error on `main` (July 2026):**
 
 ```text
-"NOBSWidgets" requires a provisioning profile with the App Groups feature.
-"NOBS" requires a provisioning profile with the App Groups and Sign In with Apple features.
+No signing certificate "iOS Development" found … private key is not installed in your keychain.
 ```
 
 **What this means:**
 
-- The self-hosted Mac `testflight` runner built the project but **distribution profiles** are missing capabilities:
-  - App Group: `group.com.nobsdash.nobs` (app + widget)
-  - Sign in with Apple (app only)
-- Team: `K853LKQLAS`
-- Bundle IDs: `com.nobsdash.nobs`, `com.nobsdash.nobs.widgets`
+- The self-hosted Mac `testflight` runner imports an Apple Distribution `.p12`, but `xcodebuild archive` with automatic signing also needs an **Apple Development** certificate whose private key is in the CI keychain.
+- A stale Development certificate may exist on the Apple Developer account for this Mac without the matching private key.
 
-**What to do (home / Apple Developer):**
+**What the workflow does now:**
 
-1. [Apple Developer](https://developer.apple.com) → Identifiers → confirm App Group + capabilities on both App IDs.
+1. Import distribution `.p12` into an ephemeral CI keychain.
+2. Run [`scripts/ci-ensure-signing-certs.sh`](../scripts/ci-ensure-signing-certs.sh) (fastlane `cert`) to create/revoke the Development certificate via the App Store Connect API key.
+3. Archive with `CODE_SIGN_IDENTITY` set to the imported Apple Distribution identity.
+
+**If archive still fails:**
+
+1. [Apple Developer](https://developer.apple.com) → Identifiers → confirm App Group + Sign in with Apple on both App IDs.
 2. Regenerate **Apple Distribution** provisioning profiles for app and widget extension.
-3. Ensure CI secrets still match: `DIST_CERT_P12`, `DIST_CERT_PASSWORD`, `ASC_API_KEY_*`.
-4. Re-run TestFlight workflow or push to `main` with an iOS path change.
-5. Local alternative: `./scripts/stage-testflight-ipa.sh` on a signed Mac.
+3. Ensure CI secrets match: `DIST_CERT_P12`, `DIST_CERT_PASSWORD`, `ASC_API_KEY_*`.
+4. Confirm `fastlane` is installed on the `testflight` runner (`brew install fastlane`).
+5. Re-run TestFlight workflow or push to `main` with an iOS path change.
+6. Local alternative: `./scripts/stage-testflight-ipa.sh` on a signed Mac.
 
-This is the same class of issue as physical iPhone signing — not fixable from cloud agents without your certificates.
+**Older error (July 7, 2026):**
+
+```text
+"NOBSWidgets" requires a provisioning profile with the App Groups feature.
+```
+
+Team: `K853LKQLAS` — Bundle IDs: `com.nobsdash.nobs`, `com.nobsdash.nobs.widgets`
 
 ---
 
@@ -99,6 +109,7 @@ This is the same class of issue as physical iPhone signing — not fixable from 
 ```bash
 python3 scripts/dev.py setup
 python3 scripts/dev.py check
+bash scripts/test-ios.sh
 ```
 
 Fix any failing tests or lint before pushing.
