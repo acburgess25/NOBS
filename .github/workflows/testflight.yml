@@ -93,6 +93,7 @@ jobs:
           keychain="$RUNNER_TEMP/ci-signing.keychain-db"
           security unlock-keychain -p "${{ secrets.DIST_CERT_PASSWORD }}" "$keychain"
           security list-keychains -d user -s "$keychain"
+          rm -rf "$HOME/Library/MobileDevice/Provisioning Profiles/"*
           rm -rf "$HOME/Library/Developer/Xcode/DerivedData"/NOBS-*
           export_dir="${RUNNER_TEMP:-/tmp}/nobs-export"
           archive_path="${RUNNER_TEMP:-/tmp}/NOBS.xcarchive"
