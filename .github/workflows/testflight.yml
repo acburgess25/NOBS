@@ -84,7 +84,7 @@ jobs:
           set -euo pipefail
           export ASC_API_KEY_PATH="$HOME/private_keys/AuthKey_${ASC_API_KEY_ID}.p8"
           python3 scripts/ci-cleanup-apple-account.py --execute
-          python3 scripts/ci-enable-bundle-capabilities.py
+          python3 scripts/ci-enable-bundle-capabilities.py || echo "Capability enablement skipped (check Developer portal)"
 
       - name: Provision signing certificates via API
         env:

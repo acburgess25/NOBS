@@ -146,7 +146,7 @@ def _has_capability(client: httpx.Client, bundle_id: str, capability_type: str) 
         "/bundleIdCapabilities",
         params={"filter[bundleId]": bundle_id, "limit": 200},
     )
-    if response.status_code in {400, 404}:
+    if response.status_code in {400, 403, 404}:
         return False
     response.raise_for_status()
     return any(
@@ -180,6 +180,12 @@ def _enable_capability(
     response = _request(client, "POST", "/bundleIdCapabilities", json=body)
     if response.status_code in {201, 409}:
         print(f"Enabled {capability_type} for bundle {bundle_id}")
+        return
+    if response.status_code in {400, 403, 404}:
+        print(
+            f"Warning: could not enable {capability_type} for bundle {bundle_id} "
+            f"({response.status_code}); verify in Developer portal"
+        )
         return
     response.raise_for_status()
 
