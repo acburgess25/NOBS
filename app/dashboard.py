@@ -14,6 +14,7 @@ from app.agent_store import AgentStore
 from app.agent_tools import ToolRegistry
 from app.config import Settings
 from app.networking import local_lan_ip
+from app.tank_optimizer import TankOptimizer
 
 
 async def build_dashboard_status(
@@ -23,6 +24,7 @@ async def build_dashboard_status(
     process_started_at: float,
     transport: httpx.AsyncBaseTransport | None = None,
     device_token: str | None = None,
+    optimizer: TankOptimizer | None = None,
 ) -> dict[str, Any]:
     system = _system_status(settings.agent_workspace_path, process_started_at)
     ollama = await _ollama_status(settings, transport)
@@ -80,6 +82,19 @@ async def build_dashboard_status(
 
     gpu_status = _gpu_status()
     pairing = _pairing_payload(device_token)
+    optimizer_status = optimizer.status() if optimizer is not None else None
+    if optimizer_status and optimizer_status.get("current_job"):
+        attention.insert(
+            0,
+            {
+                "level": "clear",
+                "title": "Tank optimizer is working",
+                "detail": (
+                    f"Background {optimizer_status.get('current_kind', 'job')}: "
+                    f"{optimizer_status['current_job']}"
+                ),
+            },
+        )
     return {
         "generated_at": datetime.now(UTC).isoformat(),
         "display_name": settings.dashboard_name,
@@ -94,6 +109,7 @@ async def build_dashboard_status(
         "privacy": "Room-safe summary only. No conversations or private event details are shown.",
         "gpu": gpu_status,
         "pairing": pairing,
+        "optimizer": optimizer_status,
     }
 
 

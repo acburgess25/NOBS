@@ -70,6 +70,17 @@ class Settings(BaseSettings):
     browser_sandbox_screenshot_path: Path = Path("data/workplace/screenshots")
     browser_sandbox_session_ttl_seconds: int = Field(default=1800, ge=60, le=7200)
 
+    # Background Tank optimizer — useful local work when not serving user requests
+    optimizer_enabled: bool = True
+    # light | normal | heavy — scales idle/heavy intervals (heavy = more frequent jobs)
+    optimizer_intensity: str = Field(default="normal", pattern="^(light|normal|heavy)$")
+    optimizer_min_idle_seconds: int = Field(default=90, ge=15, le=3600)
+    optimizer_heavy_interval_minutes: int = Field(default=20, ge=5, le=240)
+    optimizer_light_interval_seconds: int = Field(default=45, ge=10, le=600)
+    optimizer_max_concurrent: int = Field(default=1, ge=1, le=3)
+    optimizer_idle_cpu_percent: float = Field(default=50.0, ge=0, le=100)
+    optimizer_dream_team_batch_size: int = Field(default=3, ge=1, le=5)
+
 
 @lru_cache
 def get_settings() -> Settings:

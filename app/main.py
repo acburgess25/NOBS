@@ -9,7 +9,7 @@ import time
 from typing import Any, AsyncIterator, Literal
 
 import httpx
-from fastapi import Depends, FastAPI, Header, HTTPException, status
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, status
 from fastapi.responses import RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -35,6 +35,12 @@ from app.workplace import (
 )
 from app.home_assistant import HomeAssistantClient
 from app.scheduler import _BRIEFING_SYSTEM_PROMPT, run_scheduler
+from app.tank_optimizer import (
+    TankOptimizer,
+    _ALL_JOB_TYPES,
+    _HEAVY_JOB_TYPES,
+    run_optimizer_loop,
+)
 
 
 class ChatMessage(BaseModel):
@@ -247,7 +253,18 @@ class WorkplaceBrowserSessionRequest(BaseModel):
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
-    task = asyncio.create_task(
+    optimizer: TankOptimizer = app.state.optimizer
+
+    def dream_team_factory() -> DreamTeamSandbox:
+        return DreamTeamSandbox(
+            settings=settings,
+            store=app.state.agent_store,
+            tools=app.state.agent_tools,
+            transport=getattr(app.state, "ollama_transport", None),
+            browser_sandbox=app.state.workplace_browser,
+        )
+
+    scheduler_task = asyncio.create_task(
         run_scheduler(
             settings,
             app.state.agent_store,
@@ -255,8 +272,19 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
             getattr(app.state, "ollama_transport", None),
         )
     )
+    optimizer_task = asyncio.create_task(
+        run_optimizer_loop(
+            optimizer,
+            settings,
+            app.state.agent_store,
+            app.state.agent_tools,
+            getattr(app.state, "ollama_transport", None),
+            dream_team_factory,
+        )
+    )
     yield
-    task.cancel()
+    scheduler_task.cancel()
+    optimizer_task.cancel()
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -267,6 +295,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         lifespan=lifespan,
     )
     app.state.agent_store = AgentStore(settings.agent_database_path)
+    app.state.optimizer = TankOptimizer(settings)
     app.state.home_assistant = HomeAssistantClient(
         settings.homeassistant_url,
         settings.homeassistant_token,
@@ -298,6 +327,13 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         session_ttl_seconds=settings.browser_sandbox_session_ttl_seconds,
     )
 
+    @app.middleware("http")
+    async def optimizer_activity_middleware(request, call_next):
+        optimizer: TankOptimizer | None = getattr(app.state, "optimizer", None)
+        if optimizer is not None:
+            optimizer.record_api_activity(request.url.path)
+        return await call_next(request)
+
     @app.get("/health", tags=["operations"])
     async def health() -> dict[str, str]:
         return {
@@ -322,7 +358,17 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             app.state.process_started_at,
             getattr(app.state, "ollama_transport", None),
             resolve_device_token(store),
+            getattr(app.state, "optimizer", None),
         )
+
+    @app.get("/tank/optimizer", include_in_schema=False)
+    async def tank_optimizer_redirect() -> RedirectResponse:
+        return RedirectResponse(url="/optimizer/status")
+
+    @app.get("/optimizer/status", tags=["operations"])
+    async def optimizer_status() -> dict[str, Any]:
+        optimizer: TankOptimizer = app.state.optimizer
+        return optimizer.status()
 
     @app.get("/workplace", include_in_schema=False)
     async def workplace_redirect() -> RedirectResponse:
@@ -380,6 +426,42 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 detail="Invalid device token",
                 headers={"WWW-Authenticate": "Bearer"},
             )
+
+    @app.post("/optimizer/run-now", tags=["operations"], dependencies=[Depends(require_device_token)])
+    async def optimizer_run_now(
+        job_type: str | None = Query(default=None),
+    ) -> dict[str, Any]:
+        from app.tank_optimizer import OptimizerJobKind
+
+        optimizer: TankOptimizer = app.state.optimizer
+        if not settings.optimizer_enabled:
+            raise HTTPException(status_code=503, detail="Tank optimizer is disabled")
+        if optimizer._current_job is not None:
+            raise HTTPException(status_code=409, detail="Optimizer is already running a job")
+        selected = job_type or _HEAVY_JOB_TYPES[optimizer._heavy_rotation % len(_HEAVY_JOB_TYPES)]
+        if selected not in _ALL_JOB_TYPES:
+            raise HTTPException(status_code=400, detail=f"Unknown job type: {selected}")
+        kind = (
+            OptimizerJobKind.heavy
+            if selected in _HEAVY_JOB_TYPES
+            else OptimizerJobKind.light
+        )
+        result = await optimizer._execute_job(
+            selected,
+            kind,
+            settings,
+            app.state.agent_store,
+            app.state.agent_tools,
+            getattr(app.state, "ollama_transport", None),
+            lambda: DreamTeamSandbox(
+                settings=settings,
+                store=app.state.agent_store,
+                tools=app.state.agent_tools,
+                transport=getattr(app.state, "ollama_transport", None),
+                browser_sandbox=app.state.workplace_browser,
+            ),
+        )
+        return result.__dict__
 
     @app.get(
         "/ready",

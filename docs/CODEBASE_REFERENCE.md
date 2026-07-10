@@ -150,6 +150,7 @@ Chat is the home surface. Contextual views (Today, Memory, Home, Activity, Priva
 | `app/agent_tools.py` | Allowlisted tool registry (read-only vs approval-gated) |
 | `app/agent_store.py` | SQLite approvals, proposals, audit |
 | `app/scheduler.py` | Recurring schedules, overnight queue, proactive jobs |
+| `app/tank_optimizer.py` | Background idle optimizer (dream team, briefing index, model warm-up) |
 | `app/dashboard.py` | Connected-screen status JSON |
 | `app/home_assistant.py` | Home Assistant REST bridge for smart-home tools |
 
@@ -397,6 +398,14 @@ All backend settings use prefix `NOBS_` (see `.env.example` and `app/config.py`)
 | `NOBS_WEB_SEARCH_MAX_RESULTS` | Web search cap |
 | `NOBS_DREAM_TEAM_*` | Dream Team Sandbox (local Ollama, max agents/iterations) |
 | `NOBS_WORKPLACE_*` | Live workplace dashboard + browser allowlist |
+| `NOBS_OPTIMIZER_ENABLED` | Background optimizer on/off (default `true`) |
+| `NOBS_OPTIMIZER_INTENSITY` | `light` / `normal` / `heavy` — job frequency scale |
+| `NOBS_OPTIMIZER_MIN_IDLE_SECONDS` | Quiet API + low CPU before heavy jobs (default `90`) |
+| `NOBS_OPTIMIZER_HEAVY_INTERVAL_MINUTES` | Heavy job cadence when idle (default `20`) |
+| `NOBS_OPTIMIZER_LIGHT_INTERVAL_SECONDS` | Light job cadence between heavy bursts (default `45`) |
+| `NOBS_OPTIMIZER_MAX_CONCURRENT` | Max parallel background jobs (default `1`) |
+| `NOBS_OPTIMIZER_IDLE_CPU_PERCENT` | CPU ceiling to treat Tank as idle (default `50`) |
+| `NOBS_OPTIMIZER_DREAM_TEAM_BATCH_SIZE` | Max manifests scored per light pass (default `3`) |
 
 CI-only (not in `.env.example`): `ASC_API_KEY_ID`, `ASC_API_ISSUER_ID`, `ASC_API_KEY_CONTENT`, `CI_KEYCHAIN_PASSWORD`, `DEVELOPER_DIR`, `DEVELOPMENT_TEAM`.
 
@@ -439,6 +448,23 @@ Backs up to `data/backups/pre-reset-<timestamp>/`, wipes client state under `dat
 | GET | `/dream-team/proposals` | Device token | Pending team proposals for review |
 | POST | `/dream-team/proposals/{id}/decide` | Device token | Approve/reject proposed team |
 | GET | `/dream-team/policy` | Device token | Local-first processing metadata |
+| GET | `/optimizer/status`, `/tank/optimizer` | Public | Background optimizer state |
+| POST | `/optimizer/run-now` | Device token | Force one optimizer job now |
+
+### Tank background optimizer (v1)
+
+`app/tank_optimizer.py` keeps Tank working on useful **local-first** jobs when user-facing API traffic is quiet. Idle detection combines (1) no recent authenticated/user routes (`/chat`, `/agent`, `/briefing`, etc.) for `NOBS_OPTIMIZER_MIN_IDLE_SECONDS`, and (2) CPU at or below `NOBS_OPTIMIZER_IDLE_CPU_PERCENT`. Light jobs run continuously between heavy bursts; heavy jobs rotate every `NOBS_OPTIMIZER_HEAVY_INTERVAL_MINUTES` when idle.
+
+| Kind | Job | What it does |
+|------|-----|----------------|
+| Light | `briefing_index_light` | Refresh calendar/reminder index metadata in agent KV |
+| Light | `model_ping` | Ollama `/api/tags` health check |
+| Light | `dream_team_scoring` | Heuristic scores for approved manifests in `data/dream-team/active/` |
+| Heavy | `briefing_index_refresh` | Regenerate briefing from synced calendar/reminder data |
+| Heavy | `dream_team_batch` | One local dream-team refinement session (background) |
+| Heavy | `model_warmup` | Warm chat model + JSON self-test |
+
+Status appears on `GET /dashboard/status` under `optimizer` and directly at `GET /optimizer/status`. User traffic always wins — the loop skips work when not idle or when `optimizer_max_concurrent` slots are full.
 
 ### Dream Team Sandbox (v1)
 
