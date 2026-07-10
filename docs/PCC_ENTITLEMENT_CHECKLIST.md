@@ -11,7 +11,11 @@ Complete these steps in App Store Connect and the Apple Developer portal before 
 
 ## Xcode project
 
-- [`NOBS/NOBS.entitlements`](../NOBS/NOBS.entitlements) includes `com.apple.developer.private-cloud-compute` (requires portal approval to sign successfully).
+- [`NOBS/NOBS.entitlements`](../NOBS/NOBS.entitlements) omits `com.apple.developer.private-cloud-compute` until Apple assigns it — otherwise TestFlight archive fails with “entitlement not found.” Re-add the key after portal approval:
+  ```xml
+  <key>com.apple.developer.private-cloud-compute</key>
+  <true/>
+  ```
 - Set `NOBSPCCRoutingEnabled` to `YES` in the NOBS target Info.plist only after TestFlight validation on a physical Apple Intelligence device.
 - Set `NOBSPCCEntitlementConfigured` to `YES` when the portal entitlement is active.
 

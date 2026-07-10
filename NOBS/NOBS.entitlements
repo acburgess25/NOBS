@@ -10,7 +10,5 @@
 	<array>
 		<string>group.com.nobsdash.nobs</string>
 	</array>
-	<key>com.apple.developer.private-cloud-compute</key>
-	<true/>
 </dict>
 </plist>
