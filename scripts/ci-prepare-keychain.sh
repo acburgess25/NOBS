@@ -9,8 +9,8 @@ if [[ ! -f "$KEYCHAIN" ]]; then
   security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
 fi
 
-security set-keychain-settings -lut 21600 "$KEYCHAIN"
 security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN"
+security set-keychain-settings -lut 21600 -u "$KEYCHAIN" || true
 security list-keychains -d user -s "$KEYCHAIN" login.keychain-db
 
 for cert_url in \
