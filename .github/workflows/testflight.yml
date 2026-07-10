@@ -118,6 +118,8 @@ jobs:
           security unlock-keychain -p "$CI_KEYCHAIN_PASSWORD" "$CI_KEYCHAIN"
           security list-keychains -d user -s "$CI_KEYCHAIN"
           rm -rf "$HOME/Library/Developer/Xcode/DerivedData"/NOBS-*
+          rm -rf "$HOME/Library/MobileDevice/Provisioning Profiles/"*
+          rm -rf "$HOME/Library/Developer/Xcode/UserData/Provisioning Profiles/"* 2>/dev/null || true
           export_dir="${RUNNER_TEMP:-/tmp}/nobs-export"
           archive_path="${RUNNER_TEMP:-/tmp}/NOBS.xcarchive"
           auth=(
