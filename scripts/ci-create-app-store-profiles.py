@@ -6,6 +6,7 @@ from __future__ import annotations
 import base64
 import os
 import plistlib
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -115,6 +116,16 @@ def _delete_existing_profiles(client: ASCClient, bundle_identifier: str, profile
             print(f"Deleted existing profile {profile_name} ({profile_id})")
 
 
+def _decode_profile(content: bytes) -> dict[str, Any]:
+    result = subprocess.run(
+        ["security", "cms", "-D", "-i", "-"],
+        input=content,
+        capture_output=True,
+        check=True,
+    )
+    return plistlib.loads(result.stdout)
+
+
 def _create_profile(
     client: ASCClient,
     *,
@@ -143,7 +154,7 @@ def _create_profile(
     if not content_b64:
         raise RuntimeError(f"Profile {profile_name} has no downloadable content")
     content = base64.b64decode(content_b64)
-    plist_data = plistlib.loads(content)
+    plist_data = _decode_profile(content)
     entitlements = plist_data.get("Entitlements", {})
     app_groups = entitlements.get("com.apple.security.application-groups", [])
     print(f"Created profile {profile_name} (UUID {plist_data.get('UUID', '?')})")
@@ -158,7 +169,7 @@ def _create_profile(
 
 
 def _install_profile(content: bytes) -> None:
-    plist_data = plistlib.loads(content)
+    plist_data = _decode_profile(content)
     profile_uuid = plist_data["UUID"]
     install_dir = Path.home() / "Library/MobileDevice/Provisioning Profiles"
     install_dir.mkdir(parents=True, exist_ok=True)
