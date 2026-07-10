@@ -28,7 +28,6 @@ keychain_args=()
 if [[ -n "${CI_KEYCHAIN:-}" ]]; then
   security unlock-keychain -p "${CI_KEYCHAIN_PASSWORD:?CI_KEYCHAIN_PASSWORD}" "$CI_KEYCHAIN"
   security list-keychains -d user -s "$CI_KEYCHAIN"
-  keychain_args+=(keychain_path:"$CI_KEYCHAIN")
 fi
 
 for app_id in com.nobsdash.nobs com.nobsdash.nobs.widgets; do
@@ -38,5 +37,5 @@ for app_id in com.nobsdash.nobs com.nobsdash.nobs.widgets; do
     api_key_path:"${api_json}" \
     force:true \
     skip_install:false \
-    "${keychain_args[@]}"
+    include_all_certificates:true
 done
