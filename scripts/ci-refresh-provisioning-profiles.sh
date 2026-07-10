@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Download fresh development provisioning profiles that include the CI certificate.
+# Download fresh App Store provisioning profiles for NOBS targets.
 set -euo pipefail
 
 API_KEY_ID="${ASC_API_KEY_ID:?ASC_API_KEY_ID}"
@@ -31,5 +31,6 @@ for app_id in com.nobsdash.nobs com.nobsdash.nobs.widgets; do
     api_key_path:"${api_json}" \
     force:true \
     skip_install:false \
-    development:true
+    development:false \
+    adhoc:false
 done
