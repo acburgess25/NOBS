@@ -56,7 +56,10 @@ import_wwdr
 
 if [[ "$(identity_count 'Apple Development')" -lt 1 ]]; then
   echo "Revoking stale Apple Development certificates on the developer account..."
-  export FASTLANE_BIN="$(command -v fastlane)"
+  fastlane_cellar="$(dirname "$(dirname "$(command -v fastlane)")")"
+  PATH="/opt/homebrew/opt/ruby/bin:$PATH"
+  GEM_HOME="${FASTLANE_GEM_HOME:-${HOME}/.local/share/fastlane/4.0.0}"
+  GEM_PATH="${GEM_HOME}:${fastlane_cellar}/libexec"
   ruby scripts/ci-revoke-development-certs.rb
 
   echo "Creating Apple Development certificate in CI keychain..."
