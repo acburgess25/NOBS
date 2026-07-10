@@ -30,20 +30,12 @@ if [[ -n "${CI_KEYCHAIN:-}" ]]; then
   security list-keychains -d user -s "$CI_KEYCHAIN"
 fi
 
-ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-
-refresh_profile() {
-  local app_id="$1"
-  local entitlements="$2"
+for app_id in com.nobsdash.nobs com.nobsdash.nobs.widgets; do
   echo "Refreshing App Store provisioning profile for ${app_id}..."
   fastlane run sigh \
     app_identifier:"${app_id}" \
     api_key_path:"${api_json}" \
     force:true \
     skip_install:false \
-    include_all_certificates:true \
-    entitlements:"${entitlements}"
-}
-
-refresh_profile com.nobsdash.nobs "${ROOT}/NOBS/NOBS.entitlements"
-refresh_profile com.nobsdash.nobs.widgets "${ROOT}/NOBSWidgets/NOBSWidgets.entitlements"
+    include_all_certificates:true
+done

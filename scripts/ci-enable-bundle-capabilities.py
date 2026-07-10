@@ -155,6 +155,24 @@ def _has_capability(client: httpx.Client, bundle_id: str, capability_type: str) 
     )
 
 
+def _delete_capability(client: httpx.Client, bundle_id: str, capability_type: str) -> None:
+    response = _request(
+        client,
+        "GET",
+        "/bundleIdCapabilities",
+        params={"filter[bundleId]": bundle_id, "limit": 200},
+    )
+    if response.status_code in {400, 403, 404}:
+        return
+    response.raise_for_status()
+    for item in response.json().get("data", []):
+        if item.get("attributes", {}).get("capabilityType") != capability_type:
+            continue
+        delete = _request(client, "DELETE", f"/bundleIdCapabilities/{item['id']}")
+        if delete.status_code in {204, 404}:
+            print(f"Removed {capability_type} from bundle {bundle_id}")
+
+
 def _enable_capability(
     client: httpx.Client,
     bundle_id: str,
@@ -204,7 +222,9 @@ def main() -> int:
         ]
 
         _enable_capability(client, app_id, "APPLE_ID_AUTH")
+        _delete_capability(client, app_id, "APP_GROUPS")
         _enable_capability(client, app_id, "APP_GROUPS", app_group_settings)
+        _delete_capability(client, widget_id, "APP_GROUPS")
         _enable_capability(client, widget_id, "APP_GROUPS", app_group_settings)
 
     print("Bundle capabilities are configured for NOBS.")
