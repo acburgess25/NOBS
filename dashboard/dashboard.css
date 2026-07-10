@@ -28,7 +28,7 @@ button { font: inherit; }
   margin: 0 auto;
   padding: clamp(24px, 3vw, 48px);
   display: grid;
-  grid-template-rows: auto auto auto 1fr auto;
+  grid-template-rows: auto auto auto auto 1fr auto;
   gap: clamp(14px, 1.5vw, 24px);
   transition: transform 1.5s ease;
 }
@@ -73,6 +73,26 @@ h2 { margin-bottom: 0; font-size: clamp(25px, 2.2vw, 40px); }
 .attention-panel[data-level="urgent"] { border-color: var(--urgent); }
 .attention-panel[data-level="urgent"] .section-label { color: var(--urgent); }
 .attention-panel > p { margin: 0; max-width: 720px; color: var(--muted); font-size: clamp(16px, 1.4vw, 22px); line-height: 1.55; }
+.feature-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 18px; }
+.feature-card {
+  display: grid;
+  gap: 10px;
+  padding: clamp(22px, 2vw, 32px);
+  background: var(--surface-strong);
+  border: 1px solid var(--line);
+  border-radius: 22px;
+  text-decoration: none;
+  color: inherit;
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(20px);
+  transition: border-color 180ms ease, transform 180ms ease;
+  animation: dashboard-reveal 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.feature-card:hover { border-color: var(--sage); transform: translateY(-2px); }
+.feature-card--workplace { animation-delay: 0.02s; border-color: rgba(168, 197, 143, 0.35); }
+.feature-card--dream { animation-delay: 0.04s; }
+.feature-copy { margin: 0; color: var(--muted); font-size: 15px; line-height: 1.5; }
+.feature-cta { margin-top: 6px; color: var(--sage); font-size: 13px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
 .metric-grid { display: grid; grid-template-columns: 1.25fr repeat(4, 1fr); gap: 18px; }
 .metric-card, .activity-panel, .workspace-panel {
   background: var(--surface);
@@ -109,6 +129,8 @@ h2 { margin-bottom: 0; font-size: clamp(25px, 2.2vw, 40px); }
 .workspace-list div { display: flex; justify-content: space-between; padding: 17px 0; border-bottom: 1px solid var(--line); }
 .workspace-list div:last-child { border-bottom: 0; }
 footer { gap: 24px; color: var(--muted); font-size: 12px; }
+footer a { color: var(--sage); text-decoration: none; }
+footer a:hover { text-decoration: underline; }
 footer span:first-child { color: var(--sage); font-weight: 700; }
 
 @media (max-width: 1000px) {

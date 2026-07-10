@@ -2,7 +2,32 @@
 
 Reset Tank to the state a **first-time client** would see: no paired devices, no dream-team history, no workplace browser sessions, no briefing cache, and no agent approvals.
 
-## One command
+## Production Tank (Ubuntu homelab)
+
+The real Tank runs on the **Ubuntu homelab machine**, not your Mac. Deploy and reset there:
+
+```bash
+cd /Users/ab/Documents/NOBS/NOBS-old
+bash scripts/deploy-tank.sh              # sync code + restart nobs-api on Ubuntu
+bash scripts/reset-tank-fresh.sh --remote # wipe client state on Ubuntu (backs up first)
+```
+
+SSH host auto-detection: `tank-lan` (LAN `192.168.0.59`) then `tank` (Tailscale). Override with `TANK_HOST=tank-lan`.
+
+| URL | What you see |
+|-----|----------------|
+| `http://192.168.0.59:8000/dashboard` | Main dashboard with **Dream team workplace** + **Dream Team sandbox** cards |
+| `http://192.168.0.59:8000/workplace` | Animated live workplace floor |
+| `http://192.168.0.59:8000/dream-team/policy` | Local-first policy JSON (requires device token) |
+| `http://192.168.0.59:8000/health` | API health |
+
+On Tailscale (when LAN is unreachable): use the Tank Tailscale IP from `ssh tank hostname -I`.
+
+**Hard refresh** after deploy: `Cmd+Shift+R` (Safari/Chrome) so cached dashboard HTML/CSS reload.
+
+Mac `install-tank-launchagent.sh` is **dev-only** for local API testing; production UI is always the Ubuntu host above.
+
+## One command (local Mac dev only)
 
 From the repo root:
 

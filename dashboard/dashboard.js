@@ -41,6 +41,19 @@ function updateClock() {
   setText("clock-date", now.toLocaleDateString([], { weekday: "long", month: "short", day: "numeric" }));
 }
 
+async function refreshDreamTeamStatus() {
+  const statusEl = document.getElementById("dream-team-status");
+  if (!statusEl) return;
+  try {
+    const response = await fetch("/dream-team/policy", { cache: "no-store" });
+    if (!response.ok) throw new Error("unavailable");
+    const data = await response.json();
+    statusEl.textContent = `Local model: ${data.model ?? "ready"} →`;
+  } catch {
+    statusEl.textContent = "Policy endpoint unavailable";
+  }
+}
+
 async function refresh() {
   const connection = document.getElementById("connection-state");
   try {
@@ -98,7 +111,9 @@ function shiftForBurnIn() {
 
 updateClock();
 refresh();
+refreshDreamTeamStatus();
 shiftForBurnIn();
 setInterval(updateClock, 1000);
 setInterval(refresh, 15000);
+setInterval(refreshDreamTeamStatus, 60000);
 setInterval(shiftForBurnIn, 120000);
