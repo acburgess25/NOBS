@@ -73,7 +73,7 @@ Use official marks per each vendor’s brand guidelines. The HTML board loads ne
 
 | Asset | Size | Status |
 |-------|------|--------|
-| App icon | 1024×1024 PNG | ✅ Generated (placeholder “N”) |
+| App icon | 1024×1024 PNG | ✅ Sage monogram “N,” generated in all required sizes |
 | iPhone screenshots | 6.7" (1290×2796), 6.5" (1284×2778), etc. | Private repo `outputs/device-hub-live-audit/` |
 | iPad screenshots | 12.9" (2048×2732) if supporting iPad | Private repo `outputs/device-hub-qa/ipad-pro-13.png` |
 | Export compliance | `ITSAppUsesNonExemptEncryption = false` | ✅ In `NOBS/Info.plist` |
@@ -82,7 +82,7 @@ Use official marks per each vendor’s brand guidelines. The HTML board loads ne
 
 ### Current build
 
-- **Version:** 4.0 (1)
+- **Version:** 4.0 (22)
 - **Team:** K853LKQLAS
 - **Distribution profile:** NOBS App Store CI
 

@@ -1,16 +1,17 @@
 #!/usr/bin/env python3
-"""Generate NOBS AppIcon and website favicons from design/tokens.json."""
+"""Generate the NOBS monogram AppIcon and website favicons."""
 
 from __future__ import annotations
 
 import json
-import subprocess
-import sys
 from pathlib import Path
 
 try:
     from PIL import Image, ImageDraw, ImageFont
 except ImportError:
+    import subprocess
+    import sys
+
     subprocess.run([sys.executable, "-m", "pip", "install", "--quiet", "pillow"], check=True)
     from PIL import Image, ImageDraw, ImageFont
 
@@ -62,31 +63,32 @@ def load_serif(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
     return ImageFont.load_default()
 
 
-def label_for(px: int) -> str:
-    return "NOBS" if px >= 120 else "N"
+def render_icon(px: int) -> Image.Image:
+    scale = 4
+    canvas = px * scale
+    cream = hex_rgb(TOKENS["color"]["cream"])
+    forest = hex_rgb(TOKENS["color"]["sageDark"])
+    sage = hex_rgb(TOKENS["color"]["sage"])
+    image = Image.new("RGB", (canvas, canvas), cream)
+    draw = ImageDraw.Draw(image)
 
+    inset = int(canvas * 0.105)
+    draw.ellipse((inset, inset, canvas - inset, canvas - inset), fill=sage)
 
-def render_icon(px: int, bg: tuple[int, int, int], fg: tuple[int, int, int]) -> Image.Image:
-    text = label_for(px)
-    img = Image.new("RGB", (px, px), bg)
-    draw = ImageDraw.Draw(img)
-    font_size = max(int(px * (0.34 if text == "NOBS" else 0.52)), 10)
-    font = load_serif(font_size)
-    bbox = draw.textbbox((0, 0), text, font=font)
-    tw = bbox[2] - bbox[0]
-    th = bbox[3] - bbox[1]
+    font = load_serif(int(canvas * 0.62))
+    bbox = draw.textbbox((0, 0), "N", font=font)
+    width = bbox[2] - bbox[0]
+    height = bbox[3] - bbox[1]
     draw.text(
-        ((px - tw) // 2 - bbox[0], (px - th) // 2 - bbox[1]),
-        text,
-        fill=fg,
+        ((canvas - width) / 2 - bbox[0], (canvas - height) / 2 - bbox[1] - canvas * 0.018),
+        "N",
+        fill=forest,
         font=font,
     )
-    return img
+    return image.resize((px, px), Image.Resampling.LANCZOS)
 
 
 def generate_ios_icons() -> None:
-    bg = hex_rgb(TOKENS["icon"]["background"])
-    fg = hex_rgb(TOKENS["icon"]["foreground"])
     ICON_SET.mkdir(parents=True, exist_ok=True)
     images: list[dict[str, str]] = []
 
@@ -97,7 +99,7 @@ def generate_ios_icons() -> None:
             if idiom == "ios-marketing"
             else f"icon-{idiom}-{size_str}@{scale}x.png"
         )
-        render_icon(px, bg, fg).save(ICON_SET / filename)
+        render_icon(px).save(ICON_SET / filename, optimize=True)
         images.append(
             {
                 "filename": filename,
@@ -113,12 +115,10 @@ def generate_ios_icons() -> None:
 
 
 def generate_web_favicons() -> None:
-    bg = hex_rgb(TOKENS["icon"]["background"])
-    fg = hex_rgb(TOKENS["icon"]["foreground"])
     WEB_PUBLIC.mkdir(parents=True, exist_ok=True)
     for name, px in [("favicon-32.png", 32), ("apple-touch-icon.png", 180), ("favicon-192.png", 192)]:
-        render_icon(px, bg, fg).save(WEB_PUBLIC / name)
-    render_icon(32, bg, fg).save(WEB_PUBLIC / "favicon.ico")
+        render_icon(px).save(WEB_PUBLIC / name, optimize=True)
+    render_icon(32).save(WEB_PUBLIC / "favicon.ico")
     print(f"Generated website favicons in {WEB_PUBLIC}")
 
 
