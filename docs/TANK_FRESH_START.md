@@ -92,7 +92,7 @@ Includes `data/`, `nobs.db`, `.env` (as `dotenv.backup`), and `host-config/nobs-
 1. **Pair iPhone** — `python3 scripts/pairing.py` (generates token + QR), then Privacy → Scan QR on the app.
 2. **Dashboard** — `http://<tank-host>:8000/dashboard` (room-safe status + pairing QR).
 3. **Workplace** — `http://<tank-host>:8000/workplace` (requires paired token for agent routes).
-4. **Verify API** — `curl http://127.0.0.1:8000/health` and authenticated `GET /ready` with `X-NOBS-Device-Token`.
+4. **Verify API** — `curl http://127.0.0.1:8000/health` and authenticated `GET /ready` with `Authorization: Bearer &lt;device token&gt;`.
 5. **Clear stale iPhone pairing** if the app still shows the old token.
 6. **Run checks** — `python3 scripts/dev.py check`.
 

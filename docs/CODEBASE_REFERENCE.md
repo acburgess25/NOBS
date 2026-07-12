@@ -157,14 +157,14 @@ Chat is the home surface. Contextual views (Today, Memory, Home, Activity, Priva
 ### Data flow: Tank ↔ iPhone
 
 1. **Pairing:** User sets Tank URL + device token in Privacy (or scans `nobs://pair` QR from `scripts/pairing.py` / NOBSTankMac). Token stored in Keychain via `TankConfiguration`.
-2. **Auth:** Requests send `X-NOBS-Device-Token` header. Tank rejects missing/invalid tokens on protected routes.
+2. **Auth:** Requests send `Authorization: Bearer &lt;device token&gt;`. Tank rejects missing or invalid tokens on protected routes.
 3. **Chat:** `TankClient` → `POST /chat`. `ModelRouter` prefers Tank when reachable; shows route badge and privacy receipt.
 4. **Briefing:** On-device generation first; optional `POST /briefing` refinement when Tank is connected.
 5. **Sync:** `POST /sync/calendar` and `/sync/reminders` after EventKit permission.
 6. **Approvals:** `GET /agent/approvals` → Activity UI + Live Activity; `POST /agent/approvals/{id}` with approve/deny (atomic, audited).
 7. **Widget:** `BriefingSnapshotWriter` writes `widget-snapshot.json` to App Group; widget reads offline.
 
-Default Tank URLs: Simulator `http://127.0.0.1:8000`; physical device `http://tank.local:8000` (mDNS may fail — use LAN IP).
+Default Tank URLs: Simulator `http://127.0.0.1:8000`; physical device `http://tank.local:8000`. The iOS app declares local-network and `_nobs._tcp` Bonjour access; if discovery is unavailable, pair with a QR code or enter the Tank LAN IP.
 
 ---
 
