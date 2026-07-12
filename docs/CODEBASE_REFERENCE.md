@@ -156,7 +156,7 @@ Chat is the home surface. Contextual views (Today, Memory, Home, Activity, Priva
 
 ### Data flow: Tank ↔ iPhone
 
-1. **Pairing:** User sets Tank URL + device token in Privacy (or scans `nobs://pair` QR from `scripts/pairing.py` / NOBSTankMac). Token stored in Keychain via `TankConfiguration`.
+1. **Pairing:** The iPhone discovers `_nobs._tcp` Bonjour services and then uses Sign in with Apple to receive its device token. Manual URL/token and `nobs://pair` QR remain advanced recovery paths. The token is stored in Keychain via `TankConfiguration`.
 2. **Auth:** Requests send `Authorization: Bearer &lt;device token&gt;`. Tank rejects missing or invalid tokens on protected routes.
 3. **Chat:** `TankClient` → `POST /chat`. `ModelRouter` prefers Tank when reachable; shows route badge and privacy receipt.
 4. **Briefing:** On-device generation first; optional `POST /briefing` refinement when Tank is connected.

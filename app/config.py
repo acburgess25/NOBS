@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     agent_project_path: Path = Path(".")
     agent_max_steps: int = Field(default=4, ge=1, le=8)
     dashboard_name: str = Field(default="Tank", min_length=1, max_length=40)
+    advertised_address: str | None = None
     homeassistant_url: str = Field(default="")
     homeassistant_token: SecretStr | None = Field(default=None)
 
@@ -51,6 +52,15 @@ class Settings(BaseSettings):
     # Queue only advances when recent CPU load is at or below this percentage,
     # so overnight work yields to anything the user is actively doing.
     overnight_idle_cpu_percent: float = Field(default=40.0, ge=0, le=100)
+    overnight_max_retries: int = Field(default=3, ge=0, le=10)
+
+    # Compatibility controls for the persistent background queue used by older
+    # Tank deployments. Keep these explicit so a client deployment cannot
+    # silently disable scheduler work.
+    background_max_concurrent: int = Field(default=1, ge=1, le=3)
+    background_queue_schedule: str = Field(default="idle")
+    background_max_cpu_percent: float = Field(default=70.0, ge=0, le=100)
+    background_min_cpu_percent: float = Field(default=0.0, ge=0, le=100)
 
     # Dream Team Sandbox — local Ollama only; no cloud/external APIs in refinement loop
     dream_team_enabled: bool = True

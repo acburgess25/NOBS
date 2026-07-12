@@ -24,6 +24,7 @@ from app.agent import (
 )
 from app.agent_store import AgentStore
 from app.agent_tools import ToolRegistry
+from app.bonjour import TankBonjourAdvertisement
 from app.config import Settings, get_settings
 from app.dashboard import build_dashboard_status
 from app.dream_team import DreamTeamModelError, DreamTeamSandbox, LocalFirstPolicy
@@ -254,6 +255,14 @@ class WorkplaceBrowserSessionRequest(BaseModel):
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
     optimizer: TankOptimizer = app.state.optimizer
+    bonjour = TankBonjourAdvertisement(
+        name=f"NOBS {settings.dashboard_name}",
+        address=settings.advertised_address,
+    )
+    # zeroconf's synchronous registration waits on its own event loop; keep it
+    # off FastAPI's lifespan loop so an mDNS fault can never prevent the API
+    # from starting.
+    await asyncio.to_thread(bonjour.start)
 
     def dream_team_factory() -> DreamTeamSandbox:
         return DreamTeamSandbox(
@@ -285,6 +294,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     yield
     scheduler_task.cancel()
     optimizer_task.cancel()
+    await asyncio.to_thread(bonjour.close)
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
