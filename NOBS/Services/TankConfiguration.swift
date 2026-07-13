@@ -2,6 +2,9 @@ import Foundation
 @preconcurrency import KeychainAccess
 
 enum TankConfiguration {
+    /// Personal TestFlight proof-of-concept relay. This deliberately bypasses
+    /// stale LAN settings so the app always reaches this owner's Tank.
+    private static let personalRelayAddress = "https://api.nobsdash.com"
     private static let addressKey = "nobs.tank.address"
     private static let tokenAccount = "tank-device-token"
     private static let appleUserAccount = "tank-apple-user-id"
@@ -12,11 +15,11 @@ enum TankConfiguration {
     }
 
     static var savedAddress: String {
-        if let saved = UserDefaults.standard.string(forKey: addressKey) { return saved }
         #if targetEnvironment(simulator)
+        if let saved = UserDefaults.standard.string(forKey: addressKey) { return saved }
         return "http://127.0.0.1:8000"
         #else
-        return "https://api.nobsdash.com"
+        return personalRelayAddress
         #endif
     }
 
