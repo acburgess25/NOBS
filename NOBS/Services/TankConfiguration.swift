@@ -16,7 +16,7 @@ enum TankConfiguration {
         #if targetEnvironment(simulator)
         return "http://127.0.0.1:8000"
         #else
-        return "http://tank.local:8000"
+        return "https://api.nobsdash.com"
         #endif
     }
 

@@ -204,14 +204,16 @@ final class AppModel: ObservableObject {
 
         TankConfiguration.saveAppleUserID(userIdentifier)
 
-        do {
-            let discoveredURL = try await TankDiscovery().findFirstTank()
-            tankAddress = discoveredURL.absoluteString
-            TankConfiguration.saveAddress(tankAddress)
-        } catch {
-            tankConnectStatus = "Couldn’t find Tank automatically."
-            lastError = "NOBS couldn’t find your Tank nearby. Check that Tank is on, then try again."
-            return
+        if TankConfiguration.currentURL?.host != "api.nobsdash.com" {
+            do {
+                let discoveredURL = try await TankDiscovery().findFirstTank()
+                tankAddress = discoveredURL.absoluteString
+                TankConfiguration.saveAddress(tankAddress)
+            } catch {
+                tankConnectStatus = "Couldn’t find Tank automatically."
+                lastError = "NOBS couldn’t find your Tank nearby. Check that Tank is on, then try again."
+                return
+            }
         }
 
         guard prepareTankAddressForAuth() else { return }
