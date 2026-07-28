@@ -2,7 +2,7 @@
 
 For full codebase reference see [`CODEBASE_REFERENCE.md`](CODEBASE_REFERENCE.md).
 
-**Last updated:** July 9, 2026 (v1.1 PCC routing scaffold: ModelRouter, AppleModelProvider, policy-driven chat; badge gated)
+**Last updated:** July 28, 2026 (monetization / growth sequencing; next slice = payments + TestFlight)
 **Purpose:** Tool-neutral handoff for any contributor entering without prior chat history.
 
 This records implementation state, not product direction. [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md) remains the approved product source of truth. Verify the branch, tests, and live services before treating deployment facts as current.
@@ -135,13 +135,15 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 
 ## Recommended next vertical slice
 
-**Physical iPhone validation, TestFlight upload, and App Store Connect submission:**
+**Get money paths open and put the app in strangers' hands** (see [`MONETIZATION_AND_GROWTH.md`](MONETIZATION_AND_GROWTH.md)):
 
-1. Fix distribution signing for app + widget; archive with `./scripts/stage-testflight-ipa.sh`.
-2. Paste metadata from `docs/app-store/` into App Store Connect; host privacy at `https://nobsdash.com/privacy.html`.
-3. Pair a physical iPhone and confirm chat, briefing, widget, and optional Tank sync end-to-end.
+1. Web: fill Stripe Payment Links in `website/public/support.json` and deploy; keep GitHub Sponsors CTA visible.
+2. App Store Connect: Paid Apps agreement, tax/banking, and IAP product IDs ([`APP_STORE_IAP_SETUP.md`](APP_STORE_IAP_SETUP.md)).
+3. Fix distribution signing for app + widget; archive with `./scripts/stage-testflight-ipa.sh`.
+4. Paste metadata from `docs/app-store/` into App Store Connect; host privacy at `https://nobsdash.com/privacy.html`.
+5. External TestFlight: physical iPhone confirms chat, briefing, widget, optional Tank, and Support / tip flow.
 
-Do not connect email, messages, health, location, purchases, deletion, or account administration until the approval UI and revocation path are usable.
+Do not market NOBScloud as delivered cloud capacity until backend entitlement sync ships. Do not connect email, messages, health, location, purchases automation, deletion, or account administration until the approval UI and revocation path are usable.
 
 ## Verification
 
