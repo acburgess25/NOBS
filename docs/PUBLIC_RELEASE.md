@@ -2,6 +2,8 @@
 
 Use this before switching the repository from private to public.
 
+Making the repo public also unlocks the career track in [`CAREER_AND_VISIBILITY.md`](CAREER_AND_VISIBILITY.md)—recruiters cannot evaluate private work.
+
 ## Repository split (done)
 
 - [x] Internal fundraising, discovery, ops docs, and QA captures moved to **NOBS-private** (`https://github.com/acburgess25/NOBS-private`).

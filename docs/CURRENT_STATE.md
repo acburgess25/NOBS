@@ -135,13 +135,14 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 
 ## Recommended next vertical slice
 
-**Get money paths open and put the app in strangers' hands** (see [`MONETIZATION_AND_GROWTH.md`](MONETIZATION_AND_GROWTH.md)):
+**Get money paths open, put the app in strangers' hands, and make the work hire-able** (see [`MONETIZATION_AND_GROWTH.md`](MONETIZATION_AND_GROWTH.md) and [`CAREER_AND_VISIBILITY.md`](CAREER_AND_VISIBILITY.md)):
 
-1. Web: fill Stripe Payment Links in `website/public/support.json` and deploy; keep GitHub Sponsors CTA visible.
+1. Web: fill Stripe Payment Links in `website/public/support.json` and deploy; keep GitHub Sponsors CTA visible; add a Hire-me / contact CTA on the site.
 2. App Store Connect: Paid Apps agreement, tax/banking, and IAP product IDs ([`APP_STORE_IAP_SETUP.md`](APP_STORE_IAP_SETUP.md)).
 3. Fix distribution signing for app + widget; archive with `./scripts/stage-testflight-ipa.sh`.
 4. Paste metadata from `docs/app-store/` into App Store Connect; host privacy at `https://nobsdash.com/privacy.html`.
 5. External TestFlight: physical iPhone confirms chat, briefing, widget, optional Tank, and Support / tip flow.
+6. Public visibility: finish [`PUBLIC_RELEASE.md`](PUBLIC_RELEASE.md), pin the repo, publish one case study (e.g. approval-gated agent), align LinkedIn with the shipped stack.
 
 Do not market NOBScloud as delivered cloud capacity until backend entitlement sync ships. Do not connect email, messages, health, location, purchases automation, deletion, or account administration until the approval UI and revocation path are usable.
 

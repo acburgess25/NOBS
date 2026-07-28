@@ -11,13 +11,15 @@ This plan answers two questions:
 1. How does NOBS start taking money **now**, without selling data or locking the free core?
 2. How does the business deepen as users and cash increase?
 
+A parallel track—using the same shipping work to get job offers and public credibility—is in [`CAREER_AND_VISIBILITY.md`](CAREER_AND_VISIBILITY.md).
+
 It does **not** change the brand promise. NOBS still makes money from optional capability, hardware, and services—not attention or personal data.
 
 ---
 
 ## North star
 
-**Distribution unlocks revenue.** Until strangers can install NOBS, tip jars and subscriptions stay theoretical.
+**Distribution unlocks revenue and hiring interest.** Until strangers can install NOBS, tip jars, subscriptions, and portfolio proof stay theoretical.
 
 **Integrity unlocks trust.** Charge for capacity and convenience that actually work. Tips and early-supporter subscriptions are fine while cloud features are labeled coming soon; do not market unfinished NOBScloud as a finished product.
 
@@ -216,6 +218,7 @@ Until then: Mac NOBSTank + DIY Ubuntu Tank are the proof that local NOBS works w
 - [ ] Fix App ID capabilities; upload TestFlight build
 - [ ] External TestFlight group + honest “What to Test”
 - [ ] Fresh screenshots on site and ASC
+- [ ] Career track: public repo hygiene, LinkedIn/site Hire-me CTA, first case study ([`CAREER_AND_VISIBILITY.md`](CAREER_AND_VISIBILITY.md))
 
 ### Next product slice (engineering)
 
@@ -223,6 +226,7 @@ Until then: Mac NOBSTank + DIY Ubuntu Tank are the proof that local NOBS works w
 - [ ] Entitlement sync for NOBScloud (StoreKit → backend) before selling cloud as delivered
 - [ ] Ship first real paid cloud or hosted-Tank wedge
 - [ ] Update [`CURRENT_STATE.md`](CURRENT_STATE.md) whenever a paid claim becomes true
+- [ ] Record 3-minute demo for portfolio + hiring loops
 
 ### After first revenue
 
