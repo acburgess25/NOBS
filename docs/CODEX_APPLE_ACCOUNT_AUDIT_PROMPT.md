@@ -1,15 +1,20 @@
 # Codex prompt: Apple Developer + Mac audit (NOBS-only)
 
 **Audience:** Paste the block below into Codex on your **home Mac** (needs Xcode, Apple login, and ASC API key access).  
-**Goal:** Inventory everything Apple-related for building/shipping NOBS, clean the Developer account so only NOBS remains, and report what is healthy vs blocked.  
-**Product context:** [`MONETIZATION_AND_GROWTH.md`](MONETIZATION_AND_GROWTH.md), [`APP_STORE_BETA_CHECKLIST.md`](APP_STORE_BETA_CHECKLIST.md), [`CODEBASE_REFERENCE.md`](CODEBASE_REFERENCE.md) § Apple Developer / signing.
+**Goal:** (1) Stop **PosterBoard quit unexpectedly** / simulator wallpaper crash loops, (2) inventory Apple build + App Store Connect state, (3) clean the Developer account so only NOBS remains, (4) report what is healthy vs blocked.  
+**Product context:** [`MONETIZATION_AND_GROWTH.md`](MONETIZATION_AND_GROWTH.md), [`APP_STORE_BETA_CHECKLIST.md`](APP_STORE_BETA_CHECKLIST.md), [`CODEBASE_REFERENCE.md`](CODEBASE_REFERENCE.md) § Apple Developer / signing, [`CI_TROUBLESHOOTING.md`](CI_TROUBLESHOOTING.md) § PosterBoard.
 
 ---
 
 ## Copy-paste prompt for Codex
 
 ```text
-You are Codex on my Mac. Audit and clean up ALL Apple Developer / App Store Connect / local signing state for NOBS. This Apple Developer team should only contain NOBS. Use the tools you have (shell, filesystem, Xcode CLIs, repo scripts, browser if available). Do not invent success — report exact command output and blockers.
+You are Codex on my Mac. Do three jobs in order:
+(1) Diagnose and fix “PosterBoard quit unexpectedly” / MercuryPosterExtension / ReportCrash spin from the iOS Simulator.
+(2) Audit ALL Apple Developer / App Store Connect / local signing state for NOBS.
+(3) Clean the Developer account so only NOBS remains (dry-run first).
+
+Use the tools you have (shell, filesystem, Xcode CLIs, simctl, repo scripts, browser/UI automation if available). Do not invent success — report exact command output and blockers.
 
 ## Hard constraints
 - Repo root: find the NOBS checkout (likely ~/Documents/NOBS or ask `pwd` / search). Work from that root.
@@ -21,17 +26,74 @@ You are Codex on my Mac. Audit and clean up ALL Apple Developer / App Store Conn
   - macOS Tank if present: com.nobsdash.nobstank (report it; do not delete unless it is clearly junk — confirm with me before deleting any macOS identifiers)
 - NEVER commit secrets, .p8 keys, .p12, provisioning profiles, or .env.
 - Destructive Apple cleanup: always dry-run FIRST, show me the KEEP/DELETE list, and wait for my explicit “execute” before --execute or any revoke/delete.
+- PosterBoard fixes that erase Simulator data need my OK before `simctl erase` / delete devices; wallpaper-setting and shutting down runaway Simulator are OK without waiting.
 - Do not force-push git. Do not change product decisions. Docs updates are OK if you discover durable facts.
 
 ## Read first (in repo)
-1. docs/APP_STORE_BETA_CHECKLIST.md
-2. docs/APP_STORE_IAP_SETUP.md
-3. docs/SUPPORT_AND_PAYMENTS.md
-4. docs/CI_TROUBLESHOOTING.md (TestFlight / signing sections)
+1. docs/CI_TROUBLESHOOTING.md (PosterBoard + TestFlight / signing)
+2. docs/APP_STORE_BETA_CHECKLIST.md
+3. docs/APP_STORE_IAP_SETUP.md
+4. docs/SUPPORT_AND_PAYMENTS.md
 5. docs/CODEBASE_REFERENCE.md (Apple Developer / signing state, TestFlight workflow)
 6. docs/IOS_SESSION_HANDOFF.md
 7. docs/MONETIZATION_AND_GROWTH.md (Phase 0 distribution + IAP)
 8. ExportOptions.plist, NOBS/NOBS.storekit, scripts/ci-cleanup-apple-account.py
+
+## Phase 0 — Fix PosterBoard FIRST (do this before long builds)
+I keep getting “PosterBoard quit unexpectedly” on this Mac. Treat that as a P0 simulator bug, not a NOBS app bug.
+
+### 0A. Confirm the crash loop
+1. Check recent crash reports (do not paste huge binaries; summarize exception + process):
+   - `ls -lt ~/Library/Logs/DiagnosticReports/*PosterBoard* 2>/dev/null | head`
+   - `ls -lt ~/Library/Logs/DiagnosticReports/*MercuryPoster* 2>/dev/null | head`
+   - `ls -lt ~/Library/Logs/DiagnosticReports/*ReportCrash* 2>/dev/null | head`
+   - Sample one latest `.ips` / `.crash` for faulting process (PosterBoard / MercuryPosterExtension / PosterKit)
+2. CPU spin check:
+   - `ps aux | egrep -i 'PosterBoard|MercuryPoster|ReportCrash|Simulator' | grep -v egrep`
+   - If ReportCrash or MercuryPosterExtension is pegging CPU, note %CPU
+3. List Simulator runtimes/devices:
+   - `xcrun simctl list runtimes`
+   - `xcrun simctl list devices available`
+   - Note which iOS runtime the NOBS scheme uses (prefer iPhone 17 Pro + iOS 27.x per docs)
+
+### 0B. Apply known fixes in order (stop when crash loop stops)
+Known cause on recent Xcode / iOS Simulator: missing default wallpaper assets → MercuryPosterExtension / PosterBoard crash-loop → ReportCrash burns CPU. Fix order:
+
+1. **Quit runaway UI noise**
+   - Quit Simulator if needed: `killall Simulator 2>/dev/null; killall "iOS Simulator" 2>/dev/null; true`
+   - Dismiss stuck Crash Reporter dialogs if present (osascript OK)
+
+2. **Boot the reference simulator and set a wallpaper (primary fix)**
+   - Boot: `xcrun simctl boot "iPhone 17 Pro" 2>/dev/null || xcrun simctl boot <best available iPhone UDID>`
+   - Open Simulator.app so the UI is visible
+   - Inside the simulator: Settings → Wallpaper → pick ANY image → set for **Lock Screen and Home Screen**
+     (alternate path that also works: Photos → pick any image → Use as Wallpaper → set both)
+   - If UI automation is available, drive those taps; otherwise print exact tap path for me and wait one reply, then re-check CPU
+   - Re-check: ReportCrash / MercuryPoster CPU should drop near 0; no new PosterBoard dialogs for ~60s
+
+3. **If still looping: try an older/sibling runtime**
+   - Prefer a stable iOS 27.0 (or whatever non-broken runtime is installed) over a broken point release
+   - Update scripts/env guidance: `NOBS_SIMULATOR_NAME` / `NOBS_SIMULATOR_OS` and document which pair stopped the crashes
+   - Boot that device and set wallpaper there too
+
+4. **If still looping: erase that simulator device (ask me first)**
+   - Propose: `xcrun simctl shutdown <udid> && xcrun simctl erase <udid>`
+   - After erase: boot again + set wallpaper immediately before unlocking long sessions
+
+5. **Last resorts (ask before destructive)**
+   - Delete and re-download the broken Simulator runtime in Xcode → Settings → Platforms
+   - `xcrun simctl runtime dyld_shared_cache update --all` (can take a while)
+   - Clear Simulator caches only with my OK (`~/Library/Developer/CoreSimulator` is large)
+
+6. **Disable crash dialog spam while developing (optional, ask first)**
+   - Only if dialogs keep interrupting after the loop is fixed: explain `defaults write com.apple.CrashReporter DialogType none` and how to restore (`developer` / `basic`). Do not change CrashReporter defaults without my OK.
+
+### 0C. Prove NOBS still builds on the fixed simulator
+- `./scripts/build-ios-simulator.sh` (or DEVELOPER_DIR=… xcodebuild with CODE_SIGNING_ALLOWED=NO)
+- Prefer the same simulator name/OS that no longer crash-loops
+- Record pass/fail
+
+Do not proceed to long ASC cleanup until Phase 0 either is fixed or you have a clear residual-risk note (“dialogs rare / CPU idle”).
 
 ## Phase A — Local Mac inventory (read-only)
 Run and summarize:
@@ -53,6 +115,7 @@ Run and summarize:
    - Archives: `ls ~/Library/Developer/Xcode/Archives 2>/dev/null`
    - Provisioning profiles on disk: `ls ~/Library/MobileDevice/Provisioning\ Profiles 2>/dev/null | wc -l`
    - Staged IPA: `ls -la ~/nobs-build 2>/dev/null`
+   - Simulator data size: `du -sh ~/Library/Developer/CoreSimulator 2>/dev/null`
 
 4. Project signing settings
    - Grep DEVELOPMENT_TEAM, PRODUCT_BUNDLE_IDENTIFIER, CODE_SIGN_STYLE, APPLICATION_IDENTIFIER in NOBS.xcodeproj and entitlements
@@ -64,7 +127,7 @@ Run and summarize:
    - Check env ASC_API_KEY_ID, ASC_API_ISSUER_ID, ASC_API_KEY_PATH
    - If missing, tell me exactly where to create the key in App Store Connect (Users and Access → Integrations → App Store Connect API) with Developer + enough rights for certs/profiles
 
-6. Simulator build (no device signing required)
+6. Simulator build (skip if already proven in Phase 0C)
    - `./scripts/build-ios-simulator.sh` OR equivalent xcodebuild with CODE_SIGNING_ALLOWED=NO
    - Record pass/fail
 
@@ -124,6 +187,12 @@ Optional GitHub Actions (self-hosted Mac with testflight label):
 ## Deliverable format
 End with a structured report:
 
+### PosterBoard / Simulator
+- Crash evidence (process, runtime, CPU before/after)
+- Fixes applied (wallpaper / runtime switch / erase / other)
+- Stable simulator name + OS for NOBS builds
+- Residual risk
+
 ### Local Mac
 - Xcode path/version, simulator build result, certs found, junk recommended for deletion
 
@@ -140,7 +209,7 @@ End with a structured report:
 ### Exact next commands for me
 Copy-paste commands only — no prose walls.
 
-Start Phase A now. Do not --execute until I say so.
+Start Phase 0 (PosterBoard) now. Then Phase A. Do not --execute Apple cleanup until I say so.
 ```
 
 ---
@@ -151,3 +220,4 @@ Start Phase A now. Do not --execute until I say so.
 2. Have App Store Connect API key ready under `~/private_keys/AuthKey_<KEY_ID>.p8` and export the three `ASC_*` vars (or let Codex find them).
 3. Say **`execute`** only after you read the KEEP/DELETE list from `ci-cleanup-apple-account.py`.
 4. Revoking **all** certificates is intentional in that script’s cleanup path; the refresh script recreates NOBS signing afterward—expect a short window where local/device signing is broken until refresh finishes.
+5. **PosterBoard quick fix if you do not want to wait for Codex:** open Simulator → Settings → Wallpaper → set any image for Lock + Home. That usually stops the crash loop within seconds.
