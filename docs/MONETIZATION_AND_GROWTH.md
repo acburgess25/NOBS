@@ -219,6 +219,7 @@ Until then: Mac NOBSTank + DIY Ubuntu Tank are the proof that local NOBS works w
 - [ ] External TestFlight group + honest “What to Test”
 - [ ] Fresh screenshots on site and ASC
 - [ ] Career track: public repo hygiene, LinkedIn/site Hire-me CTA, first case study ([`CAREER_AND_VISIBILITY.md`](CAREER_AND_VISIBILITY.md))
+- [ ] On the home Mac: run the Codex Apple audit prompt ([`CODEX_APPLE_ACCOUNT_AUDIT_PROMPT.md`](CODEX_APPLE_ACCOUNT_AUDIT_PROMPT.md)) — inventory, NOBS-only cleanup dry-run, then approve execute
 
 ### Next product slice (engineering)
 

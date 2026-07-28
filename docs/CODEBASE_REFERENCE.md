@@ -551,6 +551,7 @@ Tool adapters (`AGENTS.md`, `CLAUDE.md`) point to [`AI_WORKFLOW.md`](AI_WORKFLOW
 | Product direction | [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md) |
 | Monetization & growth sequence | [`MONETIZATION_AND_GROWTH.md`](MONETIZATION_AND_GROWTH.md) |
 | Career / portfolio / job offers | [`CAREER_AND_VISIBILITY.md`](CAREER_AND_VISIBILITY.md) |
+| Codex Mac/Apple account audit prompt | [`CODEX_APPLE_ACCOUNT_AUDIT_PROMPT.md`](CODEX_APPLE_ACCOUNT_AUDIT_PROMPT.md) |
 | Support / payments ops | [`SUPPORT_AND_PAYMENTS.md`](SUPPORT_AND_PAYMENTS.md), [`APP_STORE_IAP_SETUP.md`](APP_STORE_IAP_SETUP.md) |
 | What ships today | [`CURRENT_STATE.md`](CURRENT_STATE.md) |
 | Agent / contributor workflow | [`AI_WORKFLOW.md`](AI_WORKFLOW.md) |
