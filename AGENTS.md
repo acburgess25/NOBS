@@ -6,5 +6,7 @@ Then read and follow [`docs/AI_WORKFLOW.md`](docs/AI_WORKFLOW.md) before making 
 
 The approved product source of truth is [`docs/PRODUCT_DECISIONS.md`](docs/PRODUCT_DECISIONS.md).
 
+For Apple-platform audits and Axiom agent/skill usage, see [`docs/AXIOM_AGENTS.md`](docs/AXIOM_AGENTS.md).
+
 Do not duplicate durable project instructions in this adapter. Update `docs/AI_WORKFLOW.md` so Codex, Claude Code, Antigravity, and human contributors receive the same guidance.
 

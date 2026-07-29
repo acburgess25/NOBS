@@ -20,12 +20,16 @@ website/dist/
 CLAUDE.local.md
 .agents/local/
 .agent/local/
+.claude/settings.local.json
 .codex/local/
 .vscode/
 *.xcuserstate
 xcuserdata/
 .aider*
 build/
+
+# Accidental Eve/skills.sh agent farm (canonical skills live in .agents/skills/)
+/agent/
 
 # Host-specific tunnel config (use deploy/tank/cloudflared-nobsdash.yml.example)
 deploy/tank/cloudflared-nobsdash.yml

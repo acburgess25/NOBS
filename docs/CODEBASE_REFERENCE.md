@@ -15,6 +15,7 @@ NOBS is a **local-first, privacy-first personal assistant** for the Apple ecosys
 **Product source of truth:** [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md)  
 **Implementation boundary:** [`CURRENT_STATE.md`](CURRENT_STATE.md)  
 **Agent workflow rules:** [`AI_WORKFLOW.md`](AI_WORKFLOW.md)
+**Apple-platform Axiom agents/skills:** [`AXIOM_AGENTS.md`](AXIOM_AGENTS.md)
 
 ---
 
@@ -39,6 +40,11 @@ NOBS/
 ├── ExportOptions.plist      # App Store Connect export (automatic signing)
 ├── pyproject.toml           # Python package (nobs-tank-api 0.1.0)
 ├── .env.example             # Backend env template (never commit .env)
+├── .agents/skills/          # Shared Axiom router skills (Apple OS audits)
+├── .cursor/mcp.json         # Cursor → axiom-mcp
+├── .codex/config.toml       # Codex → axiom-mcp
+├── .claude/settings.json    # Claude Code Axiom marketplace plugin
+├── skills-lock.json         # Axiom skills lockfile
 ├── AGENTS.md / CLAUDE.md    # Tool adapters → point to docs/AI_WORKFLOW.md
 └── README.md                # Quick start
 ```
@@ -54,6 +60,7 @@ NOBS/
 | `deploy/tank/` | Reference homelab deployment (systemd, kiosk, tunnel) |
 | `website/` | Public marketing site, privacy policy HTML |
 | `docs/` | Durable product and engineering truth |
+| `.agents/skills/` | Vendored Axiom skills/auditors for Cursor, Codex, Antigravity, Claude Code |
 
 Maintainer-only notes live in the private repo [NOBS-private](https://github.com/acburgess25/NOBS-private); see `docs/internal/README.md`.
 
@@ -555,6 +562,7 @@ Tool adapters (`AGENTS.md`, `CLAUDE.md`) point to [`AI_WORKFLOW.md`](AI_WORKFLOW
 | Support / payments ops | [`SUPPORT_AND_PAYMENTS.md`](SUPPORT_AND_PAYMENTS.md), [`APP_STORE_IAP_SETUP.md`](APP_STORE_IAP_SETUP.md) |
 | What ships today | [`CURRENT_STATE.md`](CURRENT_STATE.md) |
 | Agent / contributor workflow | [`AI_WORKFLOW.md`](AI_WORKFLOW.md) |
+| Axiom Apple OS agents/skills | [`AXIOM_AGENTS.md`](AXIOM_AGENTS.md) |
 | iOS session handoff | [`IOS_SESSION_HANDOFF.md`](IOS_SESSION_HANDOFF.md) |
 | CI failures | [`CI_TROUBLESHOOTING.md`](CI_TROUBLESHOOTING.md) |
 | TestFlight / App Store | [`APP_STORE_BETA_CHECKLIST.md`](APP_STORE_BETA_CHECKLIST.md) |
