@@ -17,21 +17,22 @@ Product decisions still come from [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md)
 
 ## Mac quickstart (full toolchain)
 
-On a Mac with Node 18+, Xcode 27 (or current beta), and this branch checked out:
+On a Mac with Node 18+, Xcode 27 (or current beta), and a local NOBS checkout (often `~/NOBS`):
 
 ```bash
+cd ~/NOBS
 git fetch origin cursor/axiom-agents-system-95fc
-git switch cursor/axiom-agents-system-95fc   # or merge/rebase into your working branch
+git switch cursor/axiom-agents-system-95fc
 
-# Optional: Axiom CLI helpers (simulator console, crash symbolication, UI drive, profiling)
 git clone --depth 1 https://github.com/CharlesWiltgen/Axiom.git ~/Axiom
 mkdir -p "$HOME/.local/bin"
 ln -sf ~/Axiom/.claude-plugin/plugins/axiom/bin/* "$HOME/.local/bin/"
-# ensure ~/.local/bin is on PATH
+export PATH="$HOME/.local/bin:$PATH"
 
-# Smoke-test MCP
-npx -y axiom-mcp   # leave running briefly; Ctrl+C when it waits on stdin
+npx -y axiom-mcp
 ```
+
+Press Ctrl+C after `axiom-mcp` starts and waits on stdin. Keep `~/.local/bin` on your PATH in `~/.zshrc` if you want the CLI helpers permanently.
 
 Then pick a harness:
 
