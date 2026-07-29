@@ -46,7 +46,17 @@ has_valid_dev_identity() {
 }
 
 has_valid_dist_identity() {
-  [[ "$(identity_count 'Apple Distribution')" -ge 1 || "$(identity_count 'iPhone Distribution')" -ge 1 ]]
+  # A local identity is necessary but not sufficient: the certificate must also
+  # still exist in App Store Connect, or profile creation fails later. The
+  # checker exits 2 when it cannot reach Apple, which we treat as "trust the
+  # keychain" rather than revoking on a transient network error.
+  if [[ "$(identity_count 'Apple Distribution')" -ge 1 || "$(identity_count 'iPhone Distribution')" -ge 1 ]]; then
+    python3 "$(dirname "$0")/ci-check-distribution-cert.py"
+    local status=$?
+    [[ "$status" -eq 0 || "$status" -eq 2 ]]
+  else
+    return 1
+  fi
 }
 
 run_fastlane_cert() {

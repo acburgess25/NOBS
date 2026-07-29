@@ -13,7 +13,7 @@ import httpx
 from app.agent_store import AgentStore
 from app.agent_tools import ToolRegistry
 from app.config import Settings
-from app.networking import local_lan_ip
+from app.networking import tank_pairing_url
 from app.tank_optimizer import TankOptimizer
 
 
@@ -23,8 +23,9 @@ async def build_dashboard_status(
     tools: ToolRegistry,
     process_started_at: float,
     transport: httpx.AsyncBaseTransport | None = None,
-    device_token: str | None = None,
+    token_configured: bool = False,
     optimizer: TankOptimizer | None = None,
+    pairing_state: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     system = _system_status(settings.agent_workspace_path, process_started_at)
     ollama = await _ollama_status(settings, transport)
@@ -81,7 +82,7 @@ async def build_dashboard_status(
     agent_for_frontend["pending_approvals"] = frontend_pending
 
     gpu_status = _gpu_status()
-    pairing = _pairing_payload(device_token)
+    pairing = _pairing_payload(token_configured, pairing_state)
     optimizer_status = optimizer.status() if optimizer is not None else None
     if optimizer_status and optimizer_status.get("current_job"):
         attention.insert(
@@ -106,20 +107,33 @@ async def build_dashboard_status(
         "agent": agent_for_frontend,
         "workspaces": workspaces,
         "attention": attention,
-        "privacy": "Room-safe summary only. No conversations or private event details are shown.",
+        "privacy": (
+            "Room-safe summary only. No conversations, private event details, "
+            "or credentials are shown."
+        ),
         "gpu": gpu_status,
         "pairing": pairing,
         "optimizer": optimizer_status,
     }
 
 
-def _pairing_payload(device_token: str | None) -> dict[str, str] | None:
-    if not device_token:
-        return None
-    ip = local_lan_ip()
+def _pairing_payload(
+    token_configured: bool,
+    pairing_state: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Describe pairing without disclosing the device token.
+
+    This status route is intentionally reachable without a token so the kiosk
+    display works, which means everything it returns is readable by anything on
+    the LAN. The token therefore lives behind `GET /dashboard/pairing`; only the
+    Tank address is published here, and Bonjour already advertises that.
+    """
+    state = pairing_state or {"open": False, "expires_in_seconds": None}
     return {
-        "url": f"http://{ip}:8000",
-        "token": device_token,
+        "url": tank_pairing_url(),
+        "token_configured": token_configured,
+        "pairing_open": bool(state.get("open")),
+        "pairing_expires_in_seconds": state.get("expires_in_seconds"),
     }
 
 

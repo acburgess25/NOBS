@@ -22,6 +22,10 @@ class Settings(BaseSettings):
     coding_model: str = "qwen2.5-coder:14b"
     ollama_timeout_seconds: float = Field(default=45.0, gt=0, le=300)
     device_token: SecretStr | None = None
+    # How long an operator-opened pairing window stays valid. Pairing a new
+    # device requires physical access to the Tank, so this only needs to be
+    # long enough to walk over to the phone and finish Sign in with Apple.
+    pairing_window_seconds: int = Field(default=600, ge=30, le=3600)
     agent_database_path: Path = Path("data/nobs-agent.db")
     agent_workspace_path: Path = Path("data/agent-workspace")
     agent_project_path: Path = Path(".")

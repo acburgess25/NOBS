@@ -1,0 +1,13 @@
+{
+  "_comment": "Config for nobsdash.com/work — the private-AI-server setup service. Edit this file only; the page reads it at load. An empty paymentLink turns the buy button into a quote request instead of a dead checkout.",
+  "_howToEnable": {
+    "paymentLink": "Square Dashboard → Online → Payment Links → create a link for the setup service, then paste the https://square.link/... URL here",
+    "contactEmail": "The address you want inquiries sent to. Leave empty to fall back to the GitHub profile link.",
+    "acceptingWork": "Set false when you are booked; the page then says so plainly instead of taking money you cannot deliver against."
+  },
+  "acceptingWork": true,
+  "paymentLink": "",
+  "contactEmail": "",
+  "basePrice": "150",
+  "homePrice": "250"
+}
