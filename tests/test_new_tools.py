@@ -53,6 +53,16 @@ class TestWebSearch:
         assert result["results"][0]["url"] == "https://example.com/1"
         assert result["results"][1]["snippet"] == "Snippet two."
 
+    def test_empty_results_explain_themselves(self) -> None:
+        with patch("app.agent_tools.DDGS") as mock_ddgs:
+            mock_ddgs.return_value.text.return_value = []
+            result = _registry().execute("web_search", {"query": "a query with no matches"})
+
+        assert result["count"] == 0
+        assert result["results"] == []
+        # The model must be able to tell "provider gave nothing" from "nothing exists".
+        assert "note" in result
+
     def test_respects_max_results_setting(self) -> None:
         with patch("app.agent_tools.DDGS") as mock_ddgs:
             mock_ddgs.return_value.text.return_value = []
