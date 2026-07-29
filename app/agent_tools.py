@@ -8,7 +8,6 @@ from pathlib import Path
 import platform
 import re
 from typing import Any
-from urllib.parse import urlparse
 
 import feedparser
 import httpx
@@ -19,6 +18,7 @@ from ddgs import DDGS
 
 from app.agent_store import AgentStore
 from app.home_assistant import HomeAssistantClient
+from app.networking import is_public_http_url
 
 try:
     import pynvml  # type: ignore[import-untyped]
@@ -43,6 +43,10 @@ class ToolDefinition:
     risk: ToolRisk
     parameters: dict[str, Any]
     handler: Callable[[dict[str, Any]], dict[str, Any]]
+    # Optional argument check that must pass before the call is even queued for
+    # approval. Without it, arguments a tool would refuse still produce a pending
+    # approval, so the user is asked to authorize something that cannot run.
+    validate: Callable[[dict[str, Any]], None] | None = None
 
     def ollama_schema(self) -> dict[str, Any]:
         return {
@@ -53,6 +57,68 @@ class ToolDefinition:
                 "parameters": self.parameters,
             },
         }
+
+
+# The one risk tier that may control each home domain, and the only source of
+# that policy. An allowlist, not a denylist: a denylist put every domain nobody
+# enumerated -- and every domain Home Assistant adds in future -- into the
+# lower-risk tool by default.
+#
+# A domain absent from this table is not controllable through a generic tool at
+# all. Scripts, automations, and buttons run whatever their author wrote, up to
+# opening a lock, so no tier honestly covers them. Named scenes are the
+# deliberate exception and belong to `run_home_scene`, which owns that policy.
+#
+# `switch` is CHANGE because it is fundamental to home control, but note a switch
+# entity can be wired to anything, including a garage relay. That is a limit of
+# the platform's own modelling, not something this boundary can fix.
+_HOME_DOMAIN_RISK: dict[str, ToolRisk] = {
+    "climate": ToolRisk.CHANGE,
+    "fan": ToolRisk.CHANGE,
+    "humidifier": ToolRisk.CHANGE,
+    "input_boolean": ToolRisk.CHANGE,
+    "input_number": ToolRisk.CHANGE,
+    "input_select": ToolRisk.CHANGE,
+    "light": ToolRisk.CHANGE,
+    "media_player": ToolRisk.CHANGE,
+    "number": ToolRisk.CHANGE,
+    "select": ToolRisk.CHANGE,
+    "switch": ToolRisk.CHANGE,
+    "text": ToolRisk.CHANGE,
+    "todo": ToolRisk.CHANGE,
+    "alarm_control_panel": ToolRisk.SENSITIVE,
+    "cover": ToolRisk.SENSITIVE,
+    "lock": ToolRisk.SENSITIVE,
+}
+
+_SCENE_DOMAIN = "scene"
+
+_HOME_ASSISTANT_UNCONFIGURED = (
+    "Home Assistant integration is not configured. Ask the user to set "
+    "NOBS_HOMEASSISTANT_URL and NOBS_HOMEASSISTANT_TOKEN in their environment."
+)
+
+# Keys that would retarget a service call away from the approved entity. Home
+# Assistant accepts area/device/label targeting inside the service payload, so
+# leaving these through would let one approved entity_id stand in for a whole
+# area -- and the stored approval would no longer describe what ran.
+_TARGETING_KEYS = frozenset(
+    {"area_id", "device_id", "entity_id", "floor_id", "label_id", "target"}
+)
+
+_SERVICE_NAME_RE = re.compile(r"^[a-z0-9_]{1,50}$")
+
+
+def home_domains_for(risk: ToolRisk) -> list[str]:
+    return sorted(domain for domain, tier in _HOME_DOMAIN_RISK.items() if tier is risk)
+
+
+def home_domain_of(entity_id: str) -> str:
+    """The domain part of `domain.object_id`, or "" when malformed."""
+    domain, _, object_id = entity_id.partition(".")
+    if not domain or not object_id:
+        return ""
+    return domain
 
 
 class ToolRegistry:
@@ -223,9 +289,13 @@ class ToolRegistry:
                 ToolDefinition(
                     name="control_home_device",
                     description=(
-                        "Control a non-secure smart home device (e.g., light, switch, climate, media_player). "
-                        "This tool is prohibited from controlling secure domains like lock, alarm_control_panel, or cover. "
-                        "This changes local home state and requires approval."
+                        "Control an ordinary smart home device. Allowed domains: "
+                        + ", ".join(home_domains_for(ToolRisk.CHANGE))
+                        + ". Secure domains ("
+                        + ", ".join(home_domains_for(ToolRisk.SENSITIVE))
+                        + ") need control_secure_home_device. Scripts, automations, and "
+                        "buttons are not controllable at all; use run_home_scene for a "
+                        "named scene. This changes local home state and requires approval."
                     ),
                     risk=ToolRisk.CHANGE,
                     parameters={
@@ -239,13 +309,17 @@ class ToolRegistry:
                         "additionalProperties": False,
                     },
                     handler=self._control_home_device,
+                    validate=lambda arguments: self._validate_home_call(
+                        arguments, risk=ToolRisk.CHANGE
+                    ),
                 ),
                 ToolDefinition(
                     name="control_secure_home_device",
                     description=(
-                        "Control a secure smart home device (e.g., lock, alarm_control_panel, cover). "
-                        "This tool is restricted only to secure domains and carries a higher risk. "
-                        "This changes local home state and requires approval."
+                        "Control a secure smart home device. Allowed domains: "
+                        + ", ".join(home_domains_for(ToolRisk.SENSITIVE))
+                        + ". Restricted to those domains and carries a higher risk. "
+                        "This changes local home state and always requires approval."
                     ),
                     risk=ToolRisk.SENSITIVE,
                     parameters={
@@ -259,6 +333,9 @@ class ToolRegistry:
                         "additionalProperties": False,
                     },
                     handler=self._control_secure_home_device,
+                    validate=lambda arguments: self._validate_home_call(
+                        arguments, risk=ToolRisk.SENSITIVE
+                    ),
                 ),
                 ToolDefinition(
                     name="list_home_scenes",
@@ -386,7 +463,8 @@ class ToolRegistry:
                         "Fetch a public web URL and extract its main readable text content, "
                         "stripping ads, navigation, and boilerplate. Use this to read articles, "
                         "documentation, or any public page for summarization or research. "
-                        "Only HTTP/HTTPS URLs are allowed."
+                        "Only public HTTP/HTTPS URLs work: local, loopback, and private-network "
+                        "addresses are refused, so this cannot read Tank or home-network services."
                     ),
                     risk=ToolRisk.READ_ONLY,
                     parameters={
@@ -465,6 +543,18 @@ class ToolRegistry:
 
     def get(self, name: str) -> ToolDefinition | None:
         return self._tools.get(name)
+
+    def validate(self, name: str, arguments: dict[str, Any]) -> None:
+        """Raise ValueError if `arguments` are ones `name` would refuse.
+
+        Callers use this before queueing an approval. Handlers re-check, so this
+        is an early exit rather than the only guard.
+        """
+        tool = self.get(name)
+        if tool is None:
+            raise KeyError(name)
+        if tool.validate is not None:
+            tool.validate(arguments)
 
     def execute(self, name: str, arguments: dict[str, Any]) -> dict[str, Any]:
         tool = self.get(name)
@@ -705,7 +795,7 @@ class ToolRegistry:
         self._require_argument_keys(arguments, {"domain"})
         if not self.home_assistant or not self.home_assistant.is_configured:
             return {
-                "error": "Home Assistant integration is not configured. Ask the user to set NOBS_HOMEASSISTANT_URL and NOBS_HOMEASSISTANT_TOKEN in their environment."
+                "error": _HOME_ASSISTANT_UNCONFIGURED
             }
         domain = arguments.get("domain")
         try:
@@ -714,59 +804,83 @@ class ToolRegistry:
         except (httpx.HTTPError, ValueError, TypeError) as error:
             return {"error": f"Failed to list devices from Home Assistant: {error}"}
 
-    def _control_home_device(self, arguments: dict[str, Any]) -> dict[str, Any]:
+    def _validate_home_call(self, arguments: dict[str, Any], *, risk: ToolRisk) -> None:
+        """Refuse anything the calling tool's risk tier does not cover.
+
+        Called before an approval is created as well as before the service runs,
+        so the user is never asked to authorize a call that would be refused.
+        """
         self._require_argument_keys(arguments, {"entity_id", "service", "service_data"})
         entity_id = str(arguments.get("entity_id", ""))
         service = str(arguments.get("service", ""))
-        service_data = arguments.get("service_data", {})
         if not entity_id or not service:
             raise ValueError("entity_id and service are required")
-        domain = entity_id.split(".")[0] if "." in entity_id else ""
-        if domain in {"lock", "alarm_control_panel", "cover"}:
+
+        domain = home_domain_of(entity_id)
+        if not domain:
             raise ValueError(
-                "This tool is not permitted to control secure devices. Use control_secure_home_device instead."
+                "entity_id must look like 'domain.object_id' (for example 'light.kitchen')"
             )
+        if not _SERVICE_NAME_RE.match(service):
+            raise ValueError("service must be a plain Home Assistant service name")
+
+        allowed = _HOME_DOMAIN_RISK.get(domain)
+        if allowed is None:
+            hint = (
+                " Use run_home_scene to run a named scene."
+                if domain == _SCENE_DOMAIN
+                else ""
+            )
+            raise ValueError(
+                f"NOBS does not control '{domain}' entities through this tool. A script, "
+                "automation, or button performs whatever action its author wrote, "
+                "including opening a lock, so no risk tier honestly covers it."
+                f"{hint}"
+            )
+        if allowed is not risk:
+            other = "control_secure_home_device" if allowed is ToolRisk.SENSITIVE else "control_home_device"
+            raise ValueError(
+                f"'{domain}' entities are {allowed.value} risk and must go through "
+                f"{other}."
+            )
+
+        service_data = arguments.get("service_data")
+        retargeting = sorted(
+            _TARGETING_KEYS.intersection(service_data if isinstance(service_data, dict) else {})
+        )
+        if retargeting:
+            raise ValueError(
+                f"service_data may not contain {', '.join(retargeting)}. The approved "
+                "entity_id is the only thing this call may affect."
+            )
+
+    def _call_home_service(self, arguments: dict[str, Any], *, risk: ToolRisk) -> dict[str, Any]:
+        self._validate_home_call(arguments, risk=risk)
         if not self.home_assistant or not self.home_assistant.is_configured:
-            return {
-                "error": "Home Assistant integration is not configured. Ask the user to set NOBS_HOMEASSISTANT_URL and NOBS_HOMEASSISTANT_TOKEN in their environment."
-            }
+            return {"error": _HOME_ASSISTANT_UNCONFIGURED}
+        entity_id = str(arguments["entity_id"])
+        service_data = arguments.get("service_data")
+        data = dict(service_data) if isinstance(service_data, dict) else {}
+        data["entity_id"] = entity_id
         try:
-            data = dict(service_data) if isinstance(service_data, dict) else {}
-            data["entity_id"] = entity_id
-            res = self.home_assistant.call_service(domain, service, data)
+            res = self.home_assistant.call_service(
+                home_domain_of(entity_id), str(arguments["service"]), data
+            )
             return {"status": "success", "result": res}
         except (httpx.HTTPError, ValueError, TypeError) as error:
             return {"error": f"Failed to control device: {error}"}
 
+    def _control_home_device(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        return self._call_home_service(arguments, risk=ToolRisk.CHANGE)
+
     def _control_secure_home_device(self, arguments: dict[str, Any]) -> dict[str, Any]:
-        self._require_argument_keys(arguments, {"entity_id", "service", "service_data"})
-        entity_id = str(arguments.get("entity_id", ""))
-        service = str(arguments.get("service", ""))
-        service_data = arguments.get("service_data", {})
-        if not entity_id or not service:
-            raise ValueError("entity_id and service are required")
-        domain = entity_id.split(".")[0] if "." in entity_id else ""
-        if domain not in {"lock", "alarm_control_panel", "cover"}:
-            raise ValueError(
-                "This tool is only permitted to control secure devices (lock, alarm_control_panel, cover). Use control_home_device for other domains."
-            )
-        if not self.home_assistant or not self.home_assistant.is_configured:
-            return {
-                "error": "Home Assistant integration is not configured. Ask the user to set NOBS_HOMEASSISTANT_URL and NOBS_HOMEASSISTANT_TOKEN in their environment."
-            }
-        try:
-            data = dict(service_data) if isinstance(service_data, dict) else {}
-            data["entity_id"] = entity_id
-            res = self.home_assistant.call_service(domain, service, data)
-            return {"status": "success", "result": res}
-        except (httpx.HTTPError, ValueError, TypeError) as error:
-            return {"error": f"Failed to control secure device: {error}"}
+        return self._call_home_service(arguments, risk=ToolRisk.SENSITIVE)
 
     def _list_home_scenes(self, arguments: dict[str, Any]) -> dict[str, Any]:
         self._require_argument_keys(arguments, set())
         if not self.home_assistant or not self.home_assistant.is_configured:
             return {
-                "error": "Home Assistant integration is not configured. Ask the user to set NOBS_HOMEASSISTANT_URL and NOBS_HOMEASSISTANT_TOKEN in their environment."
+                "error": _HOME_ASSISTANT_UNCONFIGURED
             }
         try:
             scenes = self.home_assistant.list_devices("scene")
@@ -779,15 +893,14 @@ class ToolRegistry:
         entity_id = str(arguments.get("entity_id", ""))
         if not entity_id:
             raise ValueError("entity_id is required")
-        domain = entity_id.split(".")[0] if "." in entity_id else ""
-        if domain != "scene":
+        if home_domain_of(entity_id) != _SCENE_DOMAIN:
             raise ValueError(
                 "This tool is only permitted to run scene entities (e.g. 'scene.good_night'). "
                 "Use control_home_device or control_secure_home_device for individual accessories."
             )
         if not self.home_assistant or not self.home_assistant.is_configured:
             return {
-                "error": "Home Assistant integration is not configured. Ask the user to set NOBS_HOMEASSISTANT_URL and NOBS_HOMEASSISTANT_TOKEN in their environment."
+                "error": _HOME_ASSISTANT_UNCONFIGURED
             }
         try:
             res = self.home_assistant.call_service("scene", "turn_on", {"entity_id": entity_id})
@@ -952,14 +1065,32 @@ class ToolRegistry:
         url = str(arguments.get("url", "")).strip()
         if not url:
             raise ValueError("URL is required")
-        parsed = urlparse(url)
-        if parsed.scheme not in {"http", "https"}:
-            raise ValueError("Only HTTP and HTTPS URLs are allowed")
+        # This tool runs automatically without approval, and the URL can come
+        # from model output shaped by a fetched page or search result. Confine it
+        # to public hosts so it can never be turned into a reader for the Tank's
+        # own API, Home Assistant, or anything else on the local network.
+        if not is_public_http_url(url):
+            raise ValueError(
+                "Only public HTTP and HTTPS URLs are allowed. Local and private "
+                "network addresses cannot be read."
+            )
         try:
-            downloaded = trafilatura.fetch_url(url)
-            if downloaded is None:
-                return {"error": "Could not fetch the URL"}
-            text = trafilatura.extract(downloaded, include_comments=False, include_tables=True)
+            # Fetched here rather than with trafilatura.fetch_url, which follows
+            # redirects: an allowed public page could otherwise 302 to loopback
+            # or a LAN address and the host check would never see it.
+            with httpx.Client(timeout=15.0, follow_redirects=False) as client:
+                response = client.get(url, headers={"User-Agent": "NOBS-Tank/0.1"})
+            if response.is_redirect:
+                return {
+                    "error": (
+                        "That URL redirects elsewhere. Redirects are not followed, so "
+                        "give the final URL directly."
+                    )
+                }
+            response.raise_for_status()
+            text = trafilatura.extract(
+                response.text, include_comments=False, include_tables=True
+            )
             if not text:
                 return {"error": "Could not extract readable content from the URL"}
             truncated = len(text) > 20_000
@@ -969,7 +1100,7 @@ class ToolRegistry:
                 "truncated": truncated,
                 "char_count": len(text),
             }
-        except (ValueError, OSError, TypeError) as exc:
+        except (httpx.HTTPError, ValueError, OSError, TypeError) as exc:
             return {"error": f"Failed to read URL: {exc}"}
 
     def _lookup_wikipedia(self, arguments: dict[str, Any]) -> dict[str, Any]:

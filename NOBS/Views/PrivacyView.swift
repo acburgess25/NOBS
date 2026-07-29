@@ -345,7 +345,7 @@ struct PrivacyView: View {
         if model.tankAvailable { return "Tank available" }
         return switch model.routingPreferences.tankOfflineBehavior {
         case .useAppleCloud: "Apple Cloud when available"
-        case .useNOBScloud: "NOBScloud when subscribed"
+        case .useNOBScloud: "NOBScloud (Apple Cloud when subscribed)"
         case .queueForTank: "Local until Tank returns"
         case .localOnly: "Local only"
         case .askEachTime: "Local fallback"

@@ -956,10 +956,40 @@ final class AppModel: ObservableObject {
             )
 
         case .cloud:
+            // ModelRouter prefers `.pcc` when Apple Cloud can fulfill a paid fallback.
+            // `.cloud` means the subscription is active but Apple Cloud capacity is not usable here.
+            if PCCFeatureFlags.routingEnabled,
+               PCCFeatureFlags.developerEntitlementConfigured,
+               AppleModelProvider.availability.pccAvailable,
+               !AppleModelProvider.availability.pccQuota.isLimitReached
+            {
+                do {
+                    let message = try await appleModelProvider.respond(to: request.text, kind: .pcc)
+                    refreshPCCQuotaStatus()
+                    return ConversationEntry(
+                        role: .assistant,
+                        text: formattedAssistantText(message),
+                        route: .pcc,
+                        receipt: .nobscloudPaidAppleCloud
+                    )
+                } catch AppleModelProviderError.quotaLimitReached {
+                    refreshPCCQuotaStatus()
+                    return ConversationEntry(
+                        role: .assistant,
+                        text: formattedAssistantText(
+                            "Your NOBScloud subscription is active, but Apple's private cloud daily limit is reached. This request stayed on your iPhone. Try again tomorrow, or pair Tank at home for private compute."
+                        ),
+                        route: .local,
+                        receipt: .localOnly
+                    )
+                } catch {
+                    // Fall through to the honest local message below.
+                }
+            }
             return ConversationEntry(
                 role: .assistant,
                 text: formattedAssistantText(
-                    "NOBScloud routing is coming soon. Your subscription is noted; this request stayed local for now."
+                    "Your NOBScloud subscription is active. Apple private cloud capacity isn't available on this device right now, so this request stayed on your iPhone. Pair Tank at home for full private compute, or try again on an Apple Intelligence device when cloud is available."
                 ),
                 route: .local,
                 receipt: .localOnly
@@ -1011,7 +1041,7 @@ final class AppModel: ObservableObject {
         } else if normalized.contains("use nobscloud") || normalized == "nobscloud" {
             routingPreferences.tankOfflineBehavior = .useNOBScloud
             routingPreferences.allowOneTimeNOBScloud = true
-            response = "Saved — I'll use NOBScloud when you're subscribed and Tank isn't home."
+            response = "Saved — when you're subscribed and Tank isn't home, I'll use Apple private cloud as paid NOBScloud capacity when it's available."
         } else {
             response = nil
         }

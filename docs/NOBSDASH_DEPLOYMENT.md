@@ -1,63 +1,74 @@
 # nobsdash.com deployment
 
-The NOBS portfolio is a static Vite site hosted by **Cloudflare Pages**. It no
-longer depends on Tank, a Cloudflare Tunnel, or GitHub Pages for availability.
+The NOBS portfolio is a static Vite site. **Production hosting is GitHub Pages**,
+deployed from `main` by [`.github/workflows/deploy-website.yml`](../.github/workflows/deploy-website.yml).
 
 ## Production configuration
 
 | Item | Value |
 | --- | --- |
-| Pages project | `nobsdash` |
-| Production branch | `main` |
-| Pages hostname | `nobsdash.pages.dev` |
+| Host | GitHub Pages |
+| Source | GitHub Actions (`Deploy website`) |
+| Build | `website/` → `pnpm build` → `dist/` |
 | Custom domains | `nobsdash.com`, `www.nobsdash.com` |
-| DNS target | `nobsdash.pages.dev` |
+| Pages URL | `https://acburgess25.github.io/NOBS/` (until custom domain is attached) |
 
-Both custom domains must be attached to the Pages project, proxied by
-Cloudflare, and covered by active SSL certificates. GitHub Pages must remain
-disabled so it cannot compete for the custom domain.
+Cloudflare may still hold DNS for the domain. Point DNS at GitHub Pages (below).
+Do not leave Cloudflare Pages also claiming `nobsdash.com` or the hosts will fight.
 
-## Build and deploy
+## One-time GitHub setup
 
-From the repository root:
+1. Repo **Settings → Pages**
+2. **Build and deployment → Source:** GitHub Actions
+3. After the first green `Deploy website` run, open **Settings → Pages** again
+4. **Custom domain:** `nobsdash.com` → Save → enable **Enforce HTTPS** when available
+5. Add `www.nobsdash.com` as well if you use www (GitHub will show the DNS records)
+
+## DNS (Cloudflare DNS or any registrar)
+
+For the **apex** `nobsdash.com`, create **A** records to GitHub Pages:
+
+| Type | Name | Value |
+| --- | --- | --- |
+| A | `@` | `185.199.108.153` |
+| A | `@` | `185.199.109.153` |
+| A | `@` | `185.199.110.153` |
+| A | `@` | `185.199.111.153` |
+
+For **www**:
+
+| Type | Name | Value |
+| --- | --- | --- |
+| CNAME | `www` | `acburgess25.github.io` |
+
+In Cloudflare DNS:
+
+- Set those records to **DNS only** (grey cloud), not Proxied, until HTTPS works on GitHub — or keep proxy only after you know Pages is the origin.
+- Remove any CNAME/A that still points at `nobsdash.pages.dev` or Cloudflare Pages.
+
+In Cloudflare **Workers & Pages → nobsdash → Custom domains**, remove `nobsdash.com` / `www` so Pages is not also serving the hostname.
+
+## Local build
 
 ```bash
 cd website
 pnpm install --frozen-lockfile
 pnpm build
-npx wrangler pages deploy dist --project-name=nobsdash --branch=main
+pnpm preview
 ```
-
-The command returns an immutable deployment URL. Verify that URL before
-checking the production domains.
 
 ## Verification
 
 ```bash
 curl --fail --silent --show-error https://nobsdash.com/ >/dev/null
-curl --fail --silent --show-error https://www.nobsdash.com/ >/dev/null
-curl --fail --silent --show-error https://nobsdash.com/privacy >/dev/null
+curl --fail --silent --show-error https://nobsdash.com/support.json
+curl --fail --silent --show-error https://nobsdash.com/thanks.html >/dev/null
+curl --fail --silent --show-error https://nobsdash.com/privacy.html >/dev/null
 ```
 
-Confirm the production page references the same hashed JavaScript asset as the
-new Pages deployment. This proves DNS is serving the intended build rather
-than a cached or competing origin.
-
-## Rollback
-
-Cloudflare Pages keeps immutable deployments. To roll back without rebuilding:
-
-1. Open **Workers & Pages → nobsdash → Deployments** in Cloudflare.
-2. Select the last known-good production deployment.
-3. Choose **Rollback to this deployment** and confirm.
-4. Re-run the three public verification requests above.
-
-If only one hostname fails, inspect its Pages custom-domain status and DNS
-record before changing the deployment. Do not restore the old Tank tunnel or
-GitHub Pages as a production workaround.
+`support.json` should include the Square tip URL when configured.
 
 ## Optional support links
 
-Edit `website/public/support.json` with GitHub Sponsors and Stripe Payment Link
-URLs, then rebuild. See [`SUPPORT_AND_PAYMENTS.md`](SUPPORT_AND_PAYMENTS.md).
-The Support section appears only when at least one URL is set.
+Edit `website/public/support.json` with GitHub Sponsors and Square (or Stripe) Payment Link
+URLs, then merge to `main`. See [`SUPPORT_AND_PAYMENTS.md`](SUPPORT_AND_PAYMENTS.md).

@@ -23,7 +23,7 @@ struct SupportView: View {
         } header: {
             Text("Support NOBS")
         } footer: {
-            Text("Tips fund open development through Apple In-App Purchase. They do not unlock features. NOBScloud is an optional subscription for future cloud capacity—local briefing and Tank stay free.")
+            Text("Tips fund open development through Apple In-App Purchase. They do not unlock features. NOBScloud unlocks Apple private cloud fallback when Tank is away and your device supports it. Local briefing and Tank stay free.")
         }
         .task {
             await store.refresh()
@@ -67,7 +67,7 @@ struct SupportView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text("NOBScloud Monthly")
                             .font(.body.weight(.medium))
-                        Text(store.hasNOBScloud ? "Active — thank you" : "Early supporter subscription")
+                        Text(store.hasNOBScloud ? "Active — thank you" : "Paid Apple Cloud fallback when Tank is away")
                             .font(.caption)
                             .foregroundStyle(store.hasNOBScloud ? accent : .secondary)
                     }

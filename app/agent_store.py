@@ -85,13 +85,16 @@ class AgentStore:
                     title TEXT NOT NULL,
                     start TEXT NOT NULL,
                     context TEXT NOT NULL,
-                    created_at TEXT NOT NULL
+                    created_at TEXT NOT NULL,
+                    end_time TEXT,
+                    location TEXT
                 );
                 CREATE TABLE IF NOT EXISTS reminders (
                     id TEXT PRIMARY KEY,
                     title TEXT NOT NULL,
                     context TEXT NOT NULL,
-                    created_at TEXT NOT NULL
+                    created_at TEXT NOT NULL,
+                    due_at TEXT
                 );
                 CREATE TABLE IF NOT EXISTS kv (
                     key TEXT PRIMARY KEY,
@@ -156,7 +159,31 @@ class AgentStore:
                 );
                 """
             )
+            self._add_missing_columns(self._connection)
         return self._connection
+
+    # Columns added after a table first shipped. `CREATE TABLE IF NOT EXISTS`
+    # does nothing to a table that already exists, so an existing Tank database
+    # would keep the old shape and fail at query time. Every entry here must be
+    # nullable or carry a default, because SQLite cannot add a NOT NULL column
+    # without one to a populated table.
+    _ADDED_COLUMNS: tuple[tuple[str, str, str], ...] = (
+        ("calendar_events", "end_time", "TEXT"),
+        ("calendar_events", "location", "TEXT"),
+        ("reminders", "due_at", "TEXT"),
+    )
+
+    @classmethod
+    def _add_missing_columns(cls, connection: sqlite3.Connection) -> None:
+        tables = {table for table, _, _ in cls._ADDED_COLUMNS}
+        existing = {
+            table: {row["name"] for row in connection.execute(f"PRAGMA table_info({table})")}
+            for table in tables
+        }
+        for table, column, declaration in cls._ADDED_COLUMNS:
+            if column not in existing[table]:
+                connection.execute(f"ALTER TABLE {table} ADD COLUMN {column} {declaration}")
+        connection.commit()
 
     def create_run(self, objective: str, context: str) -> str:
         run_id = str(uuid4())
@@ -480,20 +507,41 @@ class AgentStore:
         return self.get_briefing_schedule(schedule_id)
 
     def sync_calendar(self, events: list[dict[str, str]]) -> None:
+        """Replace synced calendar rows.
+
+        `end` and `location` are stored, not discarded: without an end time the
+        briefing heuristics cannot detect overlapping or back-to-back events, so
+        dropping them silently disabled conflict detection for any briefing built
+        from synced data. They are held under `end_time` because `end` is a
+        reserved word in SQL.
+        """
         created_at = _now()
         with self._lock:
             connection = self._connect()
             connection.execute("DELETE FROM calendar_events")
             for event in events:
                 connection.execute(
-                    "INSERT INTO calendar_events VALUES (?, ?, ?, ?, ?)",
-                    (str(uuid4()), event["title"], event["start"], event["context"], created_at),
+                    "INSERT INTO calendar_events "
+                    "(id, title, start, context, created_at, end_time, location) "
+                    "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    (
+                        str(uuid4()),
+                        event["title"],
+                        event["start"],
+                        event["context"],
+                        created_at,
+                        event.get("end"),
+                        event.get("location"),
+                    ),
                 )
             connection.commit()
 
     def list_calendar_events(self) -> list[dict[str, Any]]:
         with self._lock:
-            rows = self._connect().execute("SELECT * FROM calendar_events").fetchall()
+            rows = self._connect().execute(
+                'SELECT id, title, start, end_time AS "end", location, context, created_at '
+                "FROM calendar_events"
+            ).fetchall()
         return [dict(row) for row in rows]
 
     def sync_reminders(self, reminders: list[dict[str, str]]) -> None:
@@ -503,14 +551,23 @@ class AgentStore:
             connection.execute("DELETE FROM reminders")
             for reminder in reminders:
                 connection.execute(
-                    "INSERT INTO reminders VALUES (?, ?, ?, ?)",
-                    (str(uuid4()), reminder["title"], reminder["context"], created_at),
+                    "INSERT INTO reminders (id, title, context, created_at, due_at) "
+                    "VALUES (?, ?, ?, ?, ?)",
+                    (
+                        str(uuid4()),
+                        reminder["title"],
+                        reminder["context"],
+                        created_at,
+                        reminder.get("due"),
+                    ),
                 )
             connection.commit()
 
     def list_reminders(self) -> list[dict[str, Any]]:
         with self._lock:
-            rows = self._connect().execute("SELECT * FROM reminders").fetchall()
+            rows = self._connect().execute(
+                'SELECT id, title, due_at AS "due", context, created_at FROM reminders'
+            ).fetchall()
         return [dict(row) for row in rows]
 
     @staticmethod

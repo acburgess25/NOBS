@@ -57,7 +57,12 @@ def test_dashboard_status_is_room_safe(tmp_path) -> None:
     assert pairing is not None
     assert pairing["url"].startswith("http://")
     assert pairing["url"].endswith(":8000")
-    assert pairing["token"] == "pairing-test-token"
+    # The device token must never appear here: this route is intentionally
+    # unauthenticated so the kiosk display works, so anything it returns is
+    # readable by every device on the LAN.
+    assert pairing["token_configured"] is True
+    assert "token" not in pairing
+    assert "pairing-test-token" not in response.text
 
 
 def test_dashboard_status_includes_gpu_when_available(monkeypatch) -> None:
