@@ -1,31 +1,58 @@
+<div align="center">
+
 # NOBS
 
-**Your technology. Finally working for you.**
+### Your technology. Finally working for you.
 
-NOBS is a local-first, privacy-first personal assistant for the Apple ecosystem. It is designed to reduce mental load while keeping everyday intelligence on the user's iPhone or private Tank hardware. Optional NOBScloud processing is a future capability, not a requirement.
+A local-first personal assistant that turns a chaotic day into a realistic plan—without turning your life into someone else's dataset.
+
+[![Website](https://img.shields.io/badge/website-nobsdash.com-36584a?style=flat-square)](https://nobsdash.com)
+[![Swift 6](https://img.shields.io/badge/Swift-6-f05138?style=flat-square&logo=swift&logoColor=white)](https://www.swift.org)
+[![iOS 18+](https://img.shields.io/badge/iOS-18%2B-111111?style=flat-square&logo=apple)](https://developer.apple.com/ios/)
+[![Backend CI](https://img.shields.io/github/actions/workflow/status/acburgess25/NOBS/backend-ci.yml?branch=main&style=flat-square&label=backend%20CI)](https://github.com/acburgess25/NOBS/actions/workflows/backend-ci.yml)
+[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-6d7f68?style=flat-square)](LICENSE)
+
+[Explore the project](https://nobsdash.com) · [See what works](#what-works-today) · [Contribute](CONTRIBUTING.md) · [Report a security issue](SECURITY.md)
+
+</div>
+
+---
+
+NOBS is a privacy-first assistant for iPhone, iPad, Mac, and a private **Tank** computer. Everyday intelligence stays on the user's devices whenever possible. Optional cloud processing is a future capability—not a requirement.
+
+> **Project status:** Active, early-stage prototype. The repository is public so the product, privacy model, and engineering decisions can be built in the open.
 
 ## What works today
 
 This repository contains an early end-to-end prototype:
 
-- a SwiftUI iPhone/iPad app with conversational onboarding and chat at the center;
-- an on-device Today view that reads Calendar data only after contextual permission;
-- visible Local or Tank processing labels and per-response privacy receipts;
-- secure Tank token storage in the iOS Keychain;
-- an authenticated FastAPI chat endpoint backed by Ollama on Tank;
-- honest local fallback when Tank is unavailable;
-- placeholder views that clearly label unfinished Memory, Home, and automation capabilities;
-- cross-platform backend setup and automated API tests.
-- an approval-gated Tank agent core with separated Personal, Business, and Shared contexts.
-- a room-safe Tank dashboard with live health, approvals, activity, and light/dark themes.
+- **Apple app:** SwiftUI conversation-first experience, Today briefing, widgets, Siri/App Intents, visible processing labels, and privacy receipts.
+- **Private Tank:** Authenticated FastAPI + Ollama backend with an approval-gated agent and Personal, Business, and Shared contexts.
+- **Safe automation:** State-changing tools queue exact actions for explicit approval; decisions are atomic, audited, and non-replayable.
+- **Cross-platform companions:** A macOS Tank supervisor and an Android tablet companion share documented, authenticated contracts.
+- **Room-safe dashboard:** Live health, approvals, activity, and light/dark themes without exposing personal content.
+- **Honest fallback:** The app remains useful locally when Tank is unavailable and labels unfinished capabilities clearly.
 
-This is a prototype, not a production release. Memory, smart-home control, NOBScloud, account sync, subscriptions, and most proactive automation remain planned.
+This is not a production release. Household identity, subscriptions, NOBScloud, direct Google Home/Alexa integration, and most proactive automation remain planned.
+
+## Why NOBS
+
+| Principle | What it means in practice |
+|---|---|
+| **Local first** | Useful core features run on the devices you already own. |
+| **Privacy visible** | Every response identifies where it was processed. |
+| **Approval before action** | The model may propose a change; it never authorizes one. |
+| **No manufactured lock-in** | No intentional degradation, surveillance advertising, or forced hardware cycle. |
+| **Built in public** | Product decisions, limitations, architecture, and progress stay inspectable. |
 
 ## Repository map
 
 | Path | Purpose |
 |---|---|
 | `NOBS/` | SwiftUI application |
+| `NOBSWidgets/` | Home Screen, Lock Screen, and Live Activity extensions |
+| `NOBSTankMac/` | macOS menu-bar Tank supervisor |
+| `NOBSAndroid/` | Native Android tablet companion |
 | `app/` | FastAPI Tank API and Ollama bridge |
 | `tests/` | Backend contract and failure-path tests |
 | `deploy/tank/` | Tank service definitions |
@@ -33,6 +60,22 @@ This is a prototype, not a production release. Memory, smart-home control, NOBSc
 | `docs/` | Product truth, architecture, research, and operating guides |
 | `docs/internal/` | Pointer to maintainer-only docs in [NOBS-private](https://github.com/acburgess25/NOBS-private) |
 | `website/` | Public project website |
+
+## Architecture at a glance
+
+```text
+iPhone / iPad / Mac / Android
+            │
+            │ authenticated private-network API
+            ▼
+     Tank (FastAPI + Ollama)
+            │
+            ├── approval-gated tools
+            ├── local memory and schedules
+            └── room-safe dashboard
+```
+
+NOBS prefers on-device processing, uses Tank when the user has paired one, and exposes cloud routes only behind explicit policy and availability gates.
 
 ## Run the backend
 
@@ -84,6 +127,7 @@ Use the NOBS setup scripts to run AI workloads on your own hardware (Tank or loc
 ```
 
 This prepares:
+
 - local Ollama models (`qwen3:8b`, `qwen2.5-coder:14b`);
 - Aider for coding-agent workflows;
 - Open WebUI in a dedicated user venv.
