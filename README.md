@@ -27,7 +27,7 @@ NOBS is a privacy-first assistant for iPhone, iPad, Mac, and a private **Tank** 
 Optional support keeps the local-first build going:
 
 1. **[GitHub Sponsors](https://github.com/sponsors/acburgess25)** — fastest path today (enable the listing if the link redirects to your profile).
-2. **Stripe card tips** — add Payment Links to `website/public/support.json` (phone-friendly; no home Mac required). Helper: `scripts/setup_stripe_support_links.py`.
+2. **Square card tips** — create Payment Links in the Square Dashboard, paste into `website/public/support.json` (`donateOneTime` / `donateMonthly`). Phone-friendly; no home Mac required.
 3. **In-app tips + NOBScloud** — StoreKit products in the app; needs App Store Connect Paid Apps + a TestFlight/App Store build.
 
 Do not put morning briefing or local chat behind a paywall.

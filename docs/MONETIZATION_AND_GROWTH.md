@@ -44,9 +44,10 @@ Paid layers sit **above** that floor.
 |-------|--------|-------------------|
 | iPhone app (chat, Today, widget, Tank optional) | Simulator-verified prototype | Can delight early users once TestFlight ships |
 | StoreKit tip jar + NOBScloud monthly | Code + local StoreKit config ready | Needs Paid Apps agreement + ASC products + live build |
-| Website `nobsdash.com` | Live | Can take Sponsors / Stripe today |
-| GitHub Sponsors | URL wired (`acburgess25`) | Usable immediately |
-| Stripe Payment Links | Empty in `support.json` | Fastest card checkout for web |
+| Website `nobsdash.com` | Live | Can take Square Payment Links / Sponsors today |
+| GitHub Sponsors | URL wired (`acburgess25`); listing may still need enabling | Usable once Sponsors is activated |
+| Square / card Payment Links | Empty in `support.json` (`cardProcessor: square`) | Fastest card checkout for web |
+| Stripe Payment Links | Optional alternative | Helper script still available |
 | NOBScloud backend entitlements | On-device StoreKit only; PCC paid fallback coded | Do not claim hosted NOBScloud servers yet |
 | Hosted Tank / NOBSbox / paid skills | Planned | Later revenue, not day-one |
 
@@ -61,8 +62,8 @@ Goal: open every cash path that does not depend on shipping unfinished cloud fea
 ### 0A. Web support (same day)
 
 1. Confirm GitHub Sponsors is active and linked from the site (`website/public/support.json` → `githubSponsors`).
-2. Create Stripe Payment Links for one-time tip and optional monthly support.
-3. Fill `donateOneTime` / `donateMonthly` in `support.json`, rebuild and deploy the site.
+2. Create **Square** Payment Links for one-time tip and optional monthly support (Square Dashboard → Payment Links).
+3. Fill `donateOneTime` / `donateMonthly` in `support.json` (`cardProcessor` already `"square"`), rebuild and deploy the site.
 4. Put a single clear CTA on the homepage and README: **Support the free local core** → Sponsors / tip / (soon) in-app Support.
 
 Rules:
@@ -211,7 +212,7 @@ Until then: Mac NOBSTank + DIY Ubuntu Tank are the proof that local NOBS works w
 
 ### Today / this week (home + ops)
 
-- [ ] Stripe Payment Links → `support.json` → deploy site
+- [ ] Square Payment Links → `support.json` → deploy site
 - [ ] Confirm Sponsors CTA visible on site and README
 - [ ] Paid Apps + tax/banking in App Store Connect
 - [ ] Create IAP product IDs; sandbox test Support screen

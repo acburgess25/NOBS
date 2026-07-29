@@ -3,5 +3,6 @@
   "donateOneTime": "",
   "donateMonthly": "",
   "supportInApp": true,
-  "_comment": "Fill donateOneTime / donateMonthly with Stripe Payment Link URLs (scripts/setup_stripe_support_links.py with STRIPE_SECRET_KEY=sk_test_… then replace with live links). Leave empty until links exist — the site shows an honest Stripe-coming-soon card."
+  "cardProcessor": "square",
+  "_comment": "Paste Square Payment Link URLs into donateOneTime / donateMonthly (Square Dashboard → Payment Links). cardProcessor drives website labels (square | stripe | card). In-app digital goods stay on Apple IAP only."
 }

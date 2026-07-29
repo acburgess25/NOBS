@@ -58,6 +58,6 @@ GitHub Pages as a production workaround.
 
 ## Optional support links
 
-Edit `website/public/support.json` with GitHub Sponsors and Stripe Payment Link
+Edit `website/public/support.json` with GitHub Sponsors and Square (or Stripe) Payment Link
 URLs, then rebuild. See [`SUPPORT_AND_PAYMENTS.md`](SUPPORT_AND_PAYMENTS.md).
-The Support section appears only when at least one URL is set.
+The Support section appears when at least one URL or `supportInApp` is set.
