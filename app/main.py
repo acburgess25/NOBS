@@ -9,7 +9,7 @@ import time
 from typing import Any, AsyncIterator, Literal
 
 import httpx
-from fastapi import Depends, FastAPI, Header, HTTPException, Query, status
+from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, status
 from fastapi.responses import RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -35,6 +35,8 @@ from app.workplace import (
     parse_allowed_domains,
 )
 from app.home_assistant import HomeAssistantClient
+from app.networking import local_lan_ip
+from app.pairing import PairingWindow, is_loopback_client
 from app.scheduler import _BRIEFING_SYSTEM_PROMPT, run_scheduler
 from app.tank_optimizer import (
     TankOptimizer,
@@ -251,6 +253,17 @@ class WorkplaceBrowserSessionRequest(BaseModel):
     url: str = Field(min_length=1, max_length=2000)
 
 
+class PairingStateView(BaseModel):
+    open: bool
+    expires_in_seconds: int | None
+    ttl_seconds: int
+
+
+class PairingSecretView(PairingStateView):
+    url: str
+    token: str
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
@@ -306,6 +319,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     app.state.agent_store = AgentStore(settings.agent_database_path)
     app.state.optimizer = TankOptimizer(settings)
+    app.state.pairing_window = PairingWindow(settings.pairing_window_seconds)
     app.state.home_assistant = HomeAssistantClient(
         settings.homeassistant_url,
         settings.homeassistant_token,
@@ -361,14 +375,18 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.get("/dashboard/status", tags=["operations"])
     async def dashboard_status() -> dict[str, object]:
         store: AgentStore = app.state.agent_store
+        pairing: PairingWindow = app.state.pairing_window
         return await build_dashboard_status(
             settings,
             store,
             app.state.agent_tools,
             app.state.process_started_at,
             getattr(app.state, "ollama_transport", None),
-            resolve_device_token(store),
-            getattr(app.state, "optimizer", None),
+            # Never the token itself: this route is deliberately unauthenticated
+            # so the kiosk display works without pairing.
+            token_configured=resolve_device_token(store) is not None,
+            optimizer=getattr(app.state, "optimizer", None),
+            pairing_state=pairing.state(),
         )
 
     @app.get("/tank/optimizer", include_in_schema=False)
@@ -436,6 +454,87 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 detail="Invalid device token",
                 headers={"WWW-Authenticate": "Bearer"},
             )
+
+    def require_local_request(request: Request) -> None:
+        """Allow only requests that originated on the Tank host itself.
+
+        The peer address is read from the connection, never from a forwarded-for
+        header, because those are supplied by the caller. This assumes the API
+        port is not published through a reverse proxy — `deploy/tank/` only
+        tunnels the marketing site — so a loopback peer really does mean someone
+        is at the Tank. Putting a proxy in front of this port would turn every
+        remote request into a local one and must not be done.
+        """
+        if not is_loopback_client(request.client.host if request.client else None):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=(
+                    "Pairing can only be managed from the Tank itself. "
+                    "Open the NOBS dashboard on the Tank display."
+                ),
+            )
+
+    async def require_local_or_paired_request(
+        request: Request,
+        authorization: str | None = Header(default=None),
+    ) -> None:
+        """Permit the Tank's own display, or an already-paired device.
+
+        A remote caller that offers no credential at all is a locality failure,
+        not an authentication failure, so it gets 403 rather than a 401 that
+        would invite a credential prompt for a route gated on being at the Tank.
+        """
+        if is_loopback_client(request.client.host if request.client else None):
+            return
+        if not authorization:
+            require_local_request(request)
+        await require_device_token(authorization)
+
+    def pairing_secret(pairing: PairingWindow) -> PairingSecretView:
+        store: AgentStore = app.state.agent_store
+        token = resolve_device_token(store)
+        if not token:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Tank device authentication is not configured",
+            )
+        return PairingSecretView(
+            url=f"http://{local_lan_ip()}:8000",
+            token=token,
+            **pairing.state(),
+        )
+
+    @app.get(
+        "/dashboard/pairing",
+        response_model=PairingSecretView,
+        tags=["operations"],
+        dependencies=[Depends(require_local_or_paired_request)],
+        summary="Read the device token for display on the Tank",
+    )
+    async def dashboard_pairing() -> PairingSecretView:
+        return pairing_secret(app.state.pairing_window)
+
+    @app.post(
+        "/dashboard/pairing/open",
+        response_model=PairingSecretView,
+        tags=["operations"],
+        dependencies=[Depends(require_local_request)],
+        summary="Open a time-boxed window allowing one new device to pair",
+    )
+    async def open_pairing_window() -> PairingSecretView:
+        pairing: PairingWindow = app.state.pairing_window
+        pairing.open()
+        return pairing_secret(pairing)
+
+    @app.post(
+        "/dashboard/pairing/close",
+        response_model=PairingStateView,
+        tags=["operations"],
+        dependencies=[Depends(require_local_request)],
+    )
+    async def close_pairing_window() -> PairingStateView:
+        pairing: PairingWindow = app.state.pairing_window
+        return PairingStateView.model_validate(pairing.close())
 
     @app.post("/optimizer/run-now", tags=["operations"], dependencies=[Depends(require_device_token)])
     async def optimizer_run_now(
@@ -511,16 +610,31 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         """
         Bootstrap endpoint — no device token required.
 
-        First call registers the Apple user ID and returns the device token.
-        Subsequent calls from the same user ID also return the token.
-        Any other user ID is rejected (personal-use protection).
+        Claiming an unpaired Tank additionally requires a pairing window opened
+        on the Tank itself, because an Apple user identifier travels inside this
+        request and so proves nothing on its own. Without that gate the first
+        caller to reach the port would own the Tank.
+
+        Once paired, the registered Apple user gets the same token back and any
+        other user ID is rejected.
         """
         store: AgentStore = app.state.agent_store
+        pairing: PairingWindow = app.state.pairing_window
         registered = store.get_kv("apple_user_identifier")
 
         if registered is None:
-            # First pairing — register this Apple user.
+            if not pairing.is_open():
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=(
+                        "This Tank is not open for pairing. Open pairing on the "
+                        "Tank display, then sign in again."
+                    ),
+                )
+            # First pairing — register this Apple user and spend the window so a
+            # single opening cannot be reused to claim the Tank twice.
             store.set_kv("apple_user_identifier", request.user_identifier)
+            pairing.close()
         elif registered != request.user_identifier:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

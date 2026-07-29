@@ -16,13 +16,10 @@ import httpx
 
 from app.agent_store import AgentStore
 from app.config import Settings
+from app.networking import is_public_http_url
 
 logger = logging.getLogger(__name__)
 
-_PRIVATE_HOST_RE = re.compile(
-    r"^(localhost|127\.|10\.|192\.168\.|172\.(1[6-9]|2\d|3[01])\.|::1|\[::1\])",
-    re.IGNORECASE,
-)
 
 ROLE_APPEARANCE: dict[str, dict[str, str]] = {
     "planner": {"icon": "📋", "color": "#7ec8e3"},
@@ -165,12 +162,9 @@ class BrowserSandbox:
         return session
 
     def _is_url_allowed(self, url: str) -> bool:
-        parsed = urlparse(url.strip())
-        if parsed.scheme not in {"http", "https"}:
+        if not is_public_http_url(url):
             return False
-        host = (parsed.hostname or "").lower()
-        if not host or _PRIVATE_HOST_RE.match(host):
-            return False
+        host = (urlparse(url.strip()).hostname or "").lower()
         if host in self.allowed_domains:
             return True
         return any(host == domain or host.endswith(f".{domain}") for domain in self.allowed_domains)
@@ -179,7 +173,10 @@ class BrowserSandbox:
         try:
             async with httpx.AsyncClient(
                 timeout=8.0,
-                follow_redirects=True,
+                # Redirects are not followed: an allowlisted page that answers
+                # with a 302 to a private address would otherwise reach it
+                # without the allowlist or host check being re-applied.
+                follow_redirects=False,
                 transport=self.transport,
             ) as client:
                 response = await client.get(url, headers={"User-Agent": "NOBS-Workplace-Sandbox/1.0"})

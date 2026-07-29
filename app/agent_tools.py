@@ -8,7 +8,6 @@ from pathlib import Path
 import platform
 import re
 from typing import Any
-from urllib.parse import urlparse
 
 import feedparser
 import httpx
@@ -19,6 +18,7 @@ from duckduckgo_search import DDGS
 
 from app.agent_store import AgentStore
 from app.home_assistant import HomeAssistantClient
+from app.networking import is_public_http_url
 
 try:
     import pynvml  # type: ignore[import-untyped]
@@ -386,7 +386,8 @@ class ToolRegistry:
                         "Fetch a public web URL and extract its main readable text content, "
                         "stripping ads, navigation, and boilerplate. Use this to read articles, "
                         "documentation, or any public page for summarization or research. "
-                        "Only HTTP/HTTPS URLs are allowed."
+                        "Only public HTTP/HTTPS URLs work: local, loopback, and private-network "
+                        "addresses are refused, so this cannot read Tank or home-network services."
                     ),
                     risk=ToolRisk.READ_ONLY,
                     parameters={
@@ -943,9 +944,15 @@ class ToolRegistry:
         url = str(arguments.get("url", "")).strip()
         if not url:
             raise ValueError("URL is required")
-        parsed = urlparse(url)
-        if parsed.scheme not in {"http", "https"}:
-            raise ValueError("Only HTTP and HTTPS URLs are allowed")
+        # This tool runs automatically without approval, and the URL can come
+        # from model output shaped by a fetched page or search result. Confine it
+        # to public hosts so it can never be turned into a reader for the Tank's
+        # own API, Home Assistant, or anything else on the local network.
+        if not is_public_http_url(url):
+            raise ValueError(
+                "Only public HTTP and HTTPS URLs are allowed. Local and private "
+                "network addresses cannot be read."
+            )
         try:
             downloaded = trafilatura.fetch_url(url)
             if downloaded is None:

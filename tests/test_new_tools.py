@@ -198,8 +198,19 @@ class TestReadNewsFeeds:
 
 
 class TestReadUrl:
+    """Host rules live in tests/test_url_guard.py; these cover extraction.
+
+    The guard is stubbed so these stay offline — otherwise every case would
+    depend on real DNS for example.com.
+    """
+
+    @staticmethod
+    def _allow_host():
+        return patch("app.agent_tools.is_public_http_url", return_value=True)
+
     def test_returns_extracted_content(self) -> None:
         with (
+            self._allow_host(),
             patch("app.agent_tools.trafilatura.fetch_url") as mock_fetch,
             patch("app.agent_tools.trafilatura.extract") as mock_extract,
         ):
@@ -214,13 +225,29 @@ class TestReadUrl:
         with pytest.raises(ValueError, match="HTTP"):
             _registry().execute("read_url", {"url": "file:///etc/passwd"})
 
+    def test_private_address_raises_without_fetching(self) -> None:
+        """The Tank's own API must be unreachable through this tool."""
+        with (
+            patch("app.agent_tools.is_public_http_url", return_value=False),
+            patch("app.agent_tools.trafilatura.fetch_url") as mock_fetch,
+        ):
+            with pytest.raises(ValueError, match="private network"):
+                _registry().execute(
+                    "read_url", {"url": "http://127.0.0.1:8000/dashboard/pairing"}
+                )
+        mock_fetch.assert_not_called()
+
     def test_fetch_returns_none_gives_error(self) -> None:
-        with patch("app.agent_tools.trafilatura.fetch_url", return_value=None):
+        with (
+            self._allow_host(),
+            patch("app.agent_tools.trafilatura.fetch_url", return_value=None),
+        ):
             result = _registry().execute("read_url", {"url": "https://example.com"})
         assert "error" in result
 
     def test_no_extractable_content_gives_error(self) -> None:
         with (
+            self._allow_host(),
             patch("app.agent_tools.trafilatura.fetch_url", return_value="<html/>"),
             patch("app.agent_tools.trafilatura.extract", return_value=None),
         ):
@@ -230,6 +257,7 @@ class TestReadUrl:
     def test_long_content_is_truncated(self) -> None:
         big_text = "word " * 5000  # 25k chars
         with (
+            self._allow_host(),
             patch("app.agent_tools.trafilatura.fetch_url", return_value="<html/>"),
             patch("app.agent_tools.trafilatura.extract", return_value=big_text),
         ):
