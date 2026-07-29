@@ -20,7 +20,7 @@ jobs:
         python-version: ["3.12"]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up Python ${{ matrix.python-version }}
         run: |
@@ -45,7 +45,7 @@ jobs:
         python-version: ["3.12"]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Set up NOBS
         run: /opt/homebrew/bin/python3.13 scripts/dev.py setup
@@ -60,7 +60,7 @@ jobs:
       DEVELOPER_DIR: /Applications/Xcode-beta.app/Contents/Developer
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Run NOBSTests
         run: bash scripts/test-ios.sh
