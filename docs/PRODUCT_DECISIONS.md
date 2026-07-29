@@ -594,6 +594,10 @@ Paid NOBScloud may provide:
 - cross-device continuity;
 - optional cloud bursting for workloads beyond local hardware.
 
+### Go-to-market sequencing
+
+Operational sequencing for taking money and distributing the app—without weakening the free core—is recorded in [`MONETIZATION_AND_GROWTH.md`](MONETIZATION_AND_GROWTH.md). When that plan and this section disagree on principles, this section wins; when they disagree only on order of execution, follow the growth plan until the decision owner supersedes it.
+
 ## 22. NOBSbox Hardware Direction
 
 NOBSbox is a future plug-in home appliance for local NOBS.
@@ -647,10 +651,12 @@ The first usable release should include:
 
 1. Build the iPhone conversational core and daily-planning loop.
 2. Establish secure iPhone-to-Tank communication and processing visibility.
-3. Implement memory approval, activity history, and privacy receipts.
-4. Add initial Tank research with cited library entries.
-5. Add Home Assistant and Apple Home/Siri integration.
-6. Expand cross-platform household endpoints only after reliable testing.
+3. Ship TestFlight / App Store distribution and open support payments (tips, early NOBScloud) per [`MONETIZATION_AND_GROWTH.md`](MONETIZATION_AND_GROWTH.md).
+4. Implement memory approval, activity history, and privacy receipts.
+5. Add initial Tank research with cited library entries.
+6. Deliver the first real paid wedge (NOBScloud burst and/or hosted Tank) before broadening SKUs.
+7. Add Home Assistant and Apple Home/Siri integration.
+8. Expand cross-platform household endpoints only after reliable testing.
 
 ## 24. Decision Rules for Future Work
 

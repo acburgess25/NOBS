@@ -1,6 +1,6 @@
 # CI troubleshooting
 
-**Last updated:** July 8, 2026
+**Last updated:** July 28, 2026
 
 Quick reference for red checks on NOBS pull requests and `main`.
 
@@ -108,6 +108,26 @@ bash scripts/test-ios.sh
 ```
 
 Fix any failing tests or lint before pushing.
+
+---
+
+## PosterBoard quit unexpectedly (local Mac / Simulator)
+
+**What it is:** macOS dialog spam from the **iOS Simulator** lock-screen / wallpaper stack (`PosterBoard`, often `MercuryPosterExtension`), not a NOBS app crash. Common on recent Xcode betas when a Simulator runtime ships without usable default wallpaper assets; `ReportCrash` may peg CPU.
+
+**Fast fix**
+
+1. Boot the simulator you use for NOBS (usually iPhone 17 Pro).
+2. In the simulator: **Settings → Wallpaper** (or Photos → Use as Wallpaper) and set **any** image for Lock Screen **and** Home Screen.
+3. Confirm `ReportCrash` / `MercuryPosterExtension` CPU drops in Activity Monitor within ~a minute.
+
+**If it keeps looping**
+
+- Try a sibling runtime (e.g. iOS 27.0 instead of a broken point release) via `NOBS_SIMULATOR_OS` / scheme destination.
+- Erase that simulator device (`xcrun simctl erase <udid>`), boot, and set wallpaper immediately.
+- Re-download the Simulator runtime in Xcode → Settings → Platforms.
+
+Full Mac audit (PosterBoard + Apple account cleanup): paste [`CODEX_APPLE_ACCOUNT_AUDIT_PROMPT.md`](CODEX_APPLE_ACCOUNT_AUDIT_PROMPT.md) into Codex on the home Mac.
 
 ---
 

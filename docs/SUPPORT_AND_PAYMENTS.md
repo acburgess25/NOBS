@@ -2,6 +2,8 @@
 
 NOBS makes money from **optional capability and services—not personal data** ([`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md) §21). Core local features stay free.
 
+Operating sequence (tips today → TestFlight → first paid wedge → hardware): [`MONETIZATION_AND_GROWTH.md`](MONETIZATION_AND_GROWTH.md).
+
 ## Primary path: Apple In-App Purchase
 
 With the Paid Applications Agreement active, use **StoreKit 2** in the iPhone app:
