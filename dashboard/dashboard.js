@@ -1,6 +1,20 @@
 const root = document.documentElement;
 root.dataset.theme = "dark"; // Force premium dark mode
 
+// The device token is not part of /dashboard/status — that route is readable by
+// anything on the LAN. It comes from /dashboard/pairing, which only answers
+// requests originating on the Tank, so the kiosk can render the QR while a phone
+// or laptop pointed at the same URL cannot.
+async function fetchPairingSecret() {
+  try {
+    const response = await fetch("/dashboard/pairing");
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
 function renderPairingQR(pairing) {
   const container = document.getElementById("qrcode");
   if (!container || !pairing?.url || !pairing?.token) return;
@@ -83,7 +97,7 @@ async function refresh() {
     setText("attention-detail", attention.detail);
     connection.textContent = "Live from Tank";
     setText("last-refresh", `Updated ${new Date(data.generated_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit", second: "2-digit" })}`);
-    renderPairingQR(data.pairing);
+    renderPairingQR(await fetchPairingSecret());
 
     const gpu = data.gpu;
     if (gpu) {
