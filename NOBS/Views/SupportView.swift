@@ -37,7 +37,7 @@ struct SupportView: View {
     private var emptyState: some View {
         VStack(alignment: .leading, spacing: 8) {
             if store.loadFailed {
-                Text("Couldn't reach the App Store to load support options. Check your connection and try again.")
+                Text("Couldn't load support options from the App Store right now. This may be a connection issue or a temporary App Store problem.")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                 Button("Try again") {
