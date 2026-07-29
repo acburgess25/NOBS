@@ -39,7 +39,7 @@ AppModel.send / generateBriefing
    ┌────┴────┬──────────┬────────────┐
    │         │          │            │
  Local    Apple Cloud   Tank      NOBScloud
- (FM)     (PCC)         (HTTP)    (paid stub)
+ (FM)     (PCC)         (HTTP)    (paid → PCC fallback)
 ```
 
 ### Key files
@@ -63,7 +63,8 @@ AppModel.send / generateBriefing
 | Tank offline + `askEachTime` | Prompt user once per session pattern |
 | Tank offline + `localOnly` | Local (FM or templates) |
 | Tank offline + `useAppleCloud` + PCC available + entitled | Apple Cloud |
-| Tank offline + `useNOBScloud` + subscribed + `cloudOk` | NOBScloud |
+| Tank offline + `useNOBScloud` + subscribed + `cloudOk` + PCC available | Apple Cloud (paid fallback; receipt names NOBScloud) |
+| Tank offline + `useNOBScloud` + subscribed + `cloudOk` + PCC unavailable | Local with honest “capacity unavailable” message |
 | Tank offline + `queueForTank` | Local with queue messaging |
 | User says "think harder" + PCC available | Apple Cloud (one-shot or policy) |
 | PCC quota exceeded | Fall back to Local; disable send when Apple Cloud-only |
@@ -89,7 +90,8 @@ User replies (persisted in `routing-preferences.json`):
 | Local | `Local on this iPhone` or `(on-device model)` |
 | Apple Cloud | `Apple Private Cloud Compute (not stored after request)` |
 | Tank | `Tank on your private network` |
-| NOBScloud | `NOBScloud` |
+| NOBScloud (delivered) | `Apple Private Cloud Compute (NOBScloud paid fallback; …)` |
+| NOBScloud (unavailable) | Local receipt + chat explanation |
 
 ## Feature flags (honesty gate)
 
@@ -111,9 +113,9 @@ PCC requires **Apple Intelligence** (iPhone 15 Pro+, iPhone 16+, etc.). Older iP
 
 | | Apple Cloud (PCC) | NOBScloud |
 |--|-------------------|-----------|
-| Cost to developer | Free (eligible) | Your infra |
+| Cost to developer | Free (eligible) | Subscription via IAP; compute via Apple PCC for now |
 | Cost to user | Apple Intelligence quota | Subscription |
-| Best for | Private reasoning burst, 32K context | Cross-platform heavy research |
+| Best for | Private reasoning burst, 32K context | Paid Tank-away fallback today; hosted research later |
 
 ## Testing
 

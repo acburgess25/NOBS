@@ -2,5 +2,6 @@
   "githubSponsors": "https://github.com/sponsors/acburgess25",
   "donateOneTime": "",
   "donateMonthly": "",
-  "supportInApp": true
+  "supportInApp": true,
+  "_comment": "Fill donateOneTime / donateMonthly with Stripe Payment Link URLs (scripts/setup_stripe_support_links.py with STRIPE_SECRET_KEY=sk_test_… then replace with live links). Leave empty until links exist — the site shows an honest Stripe-coming-soon card."
 }

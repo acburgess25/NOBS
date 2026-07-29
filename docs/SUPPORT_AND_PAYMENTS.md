@@ -19,7 +19,7 @@ With the Paid Applications Agreement active, use **StoreKit 2** in the iPhone ap
 | Large tip | `com.nobsdash.nobs.tip.large` |
 | NOBScloud monthly | `com.nobsdash.nobs.nobscloud.monthly` |
 
-Tips do not unlock features. NOBScloud subscription is for future optional cloud capacity; local briefing and Tank stay free.
+Tips do not unlock features. NOBScloud subscription unlocks Apple private cloud fallback when Tank is away (on-device StoreKit entitlement + PCC when available). Local briefing and Tank stay free.
 
 ## Website and GitHub (optional)
 
@@ -39,7 +39,7 @@ Set `"supportInApp": true` to show that tips and subscriptions live in the iOS a
 
 ## Later: backend entitlement sync
 
-[`PRD.md`](PRD.md) FR-4 describes RevenueCat webhooks and Tank API checks before enabling paid cloud routes. Until then, `hasNOBScloud` is tracked on-device only.
+[`PRD.md`](PRD.md) FR-4 describes RevenueCat webhooks and Tank API checks before enabling multi-device or hosted paid cloud routes. Until then, `hasNOBScloud` is tracked on-device only, and paid fallback runs through Apple PCC on the iPhone.
 
 ## Checklist before accepting real money
 

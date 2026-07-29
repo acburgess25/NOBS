@@ -34,11 +34,11 @@ Subscription group name: **NOBScloud** (reference in code: `StoreProducts.nobscl
 - Remove or override the StoreKit configuration file in the scheme for release archives.
 - Test with a **Sandbox Apple ID** on a physical device before going live.
 - Tips are consumables — they do not unlock entitlements.
-- NOBScloud subscription sets `StoreKitService.hasNOBScloud` when active; cloud features remain **coming soon** until backend entitlement sync ships.
+- NOBScloud subscription sets `StoreKitService.hasNOBScloud` when active. When Tank is away and privacy comfort allows cloud, the router delivers paid capacity through Apple Private Cloud Compute (when PCC flags + device allow it). Dedicated NOBScloud hosts and backend entitlement sync are still later.
 
 ## App Review notes (suggested)
 
-> Tips are optional donations that do not unlock features. NOBScloud is an optional subscription for future cloud capacity. Core local briefing, chat, and Tank pairing remain free. Purchases use Apple In-App Purchase only.
+> Tips are optional and do not unlock features. NOBScloud is an optional subscription that unlocks Apple private cloud fallback when Tank is away and the device supports it. Core local briefing, chat, and Tank pairing remain free. Purchases use Apple In-App Purchase only.
 
 ## Privacy policy
 

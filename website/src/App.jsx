@@ -160,7 +160,7 @@ export function App() {
                 <p className="eyebrow">Support the build</p>
                 <h2>Help NOBS stay local-first.</h2>
               </div>
-              <p>Optional tips and sponsorships fund open development. Tips and NOBScloud subscriptions are available in the NOBS iPhone app through Apple In-App Purchase. Core features stay free.</p>
+              <p>Optional tips and sponsorships fund open development. In the iPhone app, tips stay tips; NOBScloud unlocks Apple private cloud fallback when Tank is away. Core local features stay free.</p>
             </div>
             <div className="support-grid">
               {supportLinks.supportInApp && (
@@ -168,7 +168,16 @@ export function App() {
                   <DeviceMobile />
                   <span>
                     <strong>Support in the NOBS app</strong>
-                    <small>Open Privacy → Support NOBS for Apple tips and NOBScloud subscription.</small>
+                    <small>Open Privacy → Account &amp; support for Apple tips and NOBScloud.</small>
+                  </span>
+                </article>
+              )}
+              {!supportLinks.donateOneTime && !supportLinks.donateMonthly && supportLinks.githubSponsors && (
+                <article className="support-card support-card-static" aria-label="Web card tips coming soon">
+                  <Heart weight="fill" />
+                  <span>
+                    <strong>Web tips via Stripe</strong>
+                    <small>Card checkout links open after Payment Links are added to support.json. Sponsor on GitHub works now.</small>
                   </span>
                 </article>
               )}

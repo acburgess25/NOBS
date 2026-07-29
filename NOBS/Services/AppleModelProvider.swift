@@ -175,4 +175,12 @@ extension PrivacyReceipt {
         shared: [],
         changed: []
     )
+
+    /// Paid NOBScloud capacity delivered via Apple Private Cloud Compute (not a separate NOBS host).
+    static let nobscloudPaidAppleCloud = PrivacyReceipt(
+        used: ["conversation messages sent with this request", "NOBScloud subscription"],
+        processed: "Apple Private Cloud Compute (NOBScloud paid fallback; not stored after request)",
+        shared: [],
+        changed: []
+    )
 }
