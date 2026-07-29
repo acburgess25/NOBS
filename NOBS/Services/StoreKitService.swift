@@ -14,6 +14,7 @@ final class StoreKitService: ObservableObject {
     @Published private(set) var nobscloudProduct: Product?
     @Published private(set) var hasNOBScloud = false
     @Published private(set) var isLoading = false
+    @Published private(set) var loadFailed = false
     @Published var purchaseState: PurchaseState = .idle
 
     private var updatesTask: Task<Void, Never>?
@@ -38,9 +39,13 @@ final class StoreKitService: ObservableObject {
                 .filter { StoreProducts.tipIDs.contains($0.id) }
                 .sorted { $0.price < $1.price }
             nobscloudProduct = loaded.first { $0.id == StoreProducts.nobscloudMonthly }
+            loadFailed = false
             await updateEntitlements()
         } catch {
-            purchaseState = .failed("Could not load App Store products. \(error.localizedDescription)")
+            // A load failure is not a purchase failure — routing it through
+            // `purchaseState` would pop the purchase-result alert every time
+            // this view appears before products exist in App Store Connect.
+            loadFailed = true
         }
     }
 
