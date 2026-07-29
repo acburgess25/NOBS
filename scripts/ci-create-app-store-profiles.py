@@ -105,8 +105,7 @@ def _distribution_certificate_id(client: ASCClient) -> str:
     raise RuntimeError("No Apple Distribution certificate found in App Store Connect")
 
 
-def _delete_existing_profiles(client: ASCClient, bundle_identifier: str, profile_name: str) -> None:
-    bundle_id = _bundle_id(client, bundle_identifier)
+def _delete_existing_profiles(client: ASCClient, profile_name: str) -> None:
     for item in client.paginate("/profiles", params={"filter[profileType]": "IOS_APP_STORE"}):
         attrs = item.get("attributes", {})
         if attrs.get("name") != profile_name:
@@ -200,7 +199,7 @@ def main() -> int:
 
     for bundle_identifier, profile_name in PROFILES:
         bundle_resource_id = _bundle_id(client, bundle_identifier)
-        _delete_existing_profiles(client, bundle_identifier, profile_name)
+        _delete_existing_profiles(client, profile_name)
         content = _create_profile(
             client,
             bundle_identifier=bundle_identifier,
