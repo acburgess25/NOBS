@@ -9,7 +9,8 @@ const githubUrl = "https://github.com/acburgess25/NOBS";
 // linking to a beta that doesn't exist yet.
 const testflightUrl = "";
 const betaLive = Boolean(testflightUrl);
-const navItems = [["Vision", "vision"], ["Work so far", "work"], ["Architecture", "architecture"], ["Roadmap", "roadmap"], ["Support", "support"]];
+const baseNavItems = [["Vision", "vision"], ["Work so far", "work"], ["Architecture", "architecture"], ["Roadmap", "roadmap"]];
+const supportNavItem = ["Support", "support"];
 const milestones = [
   { label: "iPhone app (SwiftUI)", detail: `Authenticated chat with visible Local/Tank routing, conversational onboarding, and privacy receipts — ${betaLive ? "now in public TestFlight beta" : "heading into public TestFlight beta"}.`, icon: DeviceMobile },
   { label: "Apple-native day surface", detail: "Home Screen and Lock Screen briefing widget, Siri shortcuts, Focus-aware planning, and evening wrap-up on Today.", icon: DeviceMobile },
@@ -49,6 +50,8 @@ export function App() {
       .catch(() => setSupportLinks({}));
   }, []);
 
+  const navItems = hasSupportLinks(supportLinks) ? [...baseNavItems, supportNavItem] : baseNavItems;
+
   useEffect(() => {
     const sections = navItems.map(([, id]) => document.getElementById(id)).filter(Boolean);
     const observer = new IntersectionObserver((entries) => {
@@ -57,7 +60,7 @@ export function App() {
     }, { rootMargin: "-22% 0px -65%", threshold: 0 });
     sections.forEach((section) => observer.observe(section));
     return () => observer.disconnect();
-  }, []);
+  }, [supportLinks]);
 
   useEffect(() => {
     const targets = document.querySelectorAll(".section:not(.hero)");

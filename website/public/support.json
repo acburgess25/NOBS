@@ -1,6 +1,13 @@
 {
-  "githubSponsors": "https://github.com/sponsors/acburgess25",
+  "_comment": "Each field turns on one support card at nobsdash.com/#support. Leave a field empty until that payment path is genuinely live — an empty field hides its card, and the whole Support section disappears when every field is empty. Never point these at a page that cannot actually accept money.",
+  "_howToEnable": {
+    "githubSponsors": "Enable GitHub Sponsors first (github.com/sponsors — onboarding, bank and tax details). Only once your public sponsors page loads for a signed-out visitor, set this to https://github.com/sponsors/acburgess25",
+    "donateOneTime": "Stripe Dashboard → Payment Links → create a one-time link, paste the https://buy.stripe.com/... URL here",
+    "donateMonthly": "Stripe Dashboard → Payment Links → create a recurring link, paste the https://buy.stripe.com/... URL here",
+    "supportInApp": "Set true only once the app is installable (TestFlight public link or App Store) AND the tip/subscription products are cleared for sale in App Store Connect"
+  },
+  "githubSponsors": "",
   "donateOneTime": "",
   "donateMonthly": "",
-  "supportInApp": true
+  "supportInApp": false
 }
