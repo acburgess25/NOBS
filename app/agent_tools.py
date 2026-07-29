@@ -14,7 +14,7 @@ import httpx
 import psutil
 import trafilatura
 import wikipediaapi
-from duckduckgo_search import DDGS
+from ddgs import DDGS
 
 from app.agent_store import AgentStore
 from app.home_assistant import HomeAssistantClient
@@ -955,6 +955,15 @@ class ToolRegistry:
             {"title": r.get("title", ""), "url": r.get("href", ""), "snippet": r.get("body", "")}
             for r in raw
         ]
+        if not results:
+            # An empty list is usually the provider throttling or not matching, not an
+            # answer. Say so, or the model reads silence as "nothing exists" and retries.
+            return {
+                "query": query,
+                "results": [],
+                "count": 0,
+                "note": "The search provider returned no results. Try different wording.",
+            }
         return {"query": query, "results": results, "count": len(results)}
 
     def _get_weather(self, _: dict[str, Any]) -> dict[str, Any]:
