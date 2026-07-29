@@ -40,6 +40,8 @@ Reference: team `K853LKQLAS`, app `com.nobsdash.nobs`, widget `com.nobsdash.nobs
 
 > The Xcode Cloud iOS build is also red on `main`, so until step 1 is done it blocks **every** PR, not just the current one. If a docs/website-only PR needs to merge first, make that check non-required in branch protection temporarily. See [`CI_TROUBLESHOOTING.md`](CI_TROUBLESHOOTING.md).
 
+For a full home-Mac inventory (Xcode, keychains, ASC API, NOBS-only account cleanup dry-run), paste the prompt in [`CODEX_APPLE_ACCOUNT_AUDIT_PROMPT.md`](CODEX_APPLE_ACCOUNT_AUDIT_PROMPT.md) into Codex.
+
 ### Export compliance
 - [x] `ITSAppUsesNonExemptEncryption = false` in `NOBS/Info.plist` (standard HTTPS only)
 
