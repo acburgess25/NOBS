@@ -1,0 +1,18 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "nobs-website",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--dir", "/Users/ab/NOBS/website", "dev"],
+      "port": 5173,
+      "autoPort": true
+    },
+    {
+      "name": "nobs-website-old",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--dir", "/private/tmp/claude-501/-Users-ab-NOBS/f1d268f8-9bee-4c68-9afb-54ca7eb5dd86/scratchpad/old-website", "dev", "--port", "4174"],
+      "port": 4174
+    }
+  ]
+}

@@ -66,14 +66,14 @@ def load_serif(size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageFont:
 def render_icon(px: int) -> Image.Image:
     scale = 4
     canvas = px * scale
-    cream = hex_rgb(TOKENS["color"]["cream"])
-    forest = hex_rgb(TOKENS["color"]["sageDark"])
-    sage = hex_rgb(TOKENS["color"]["sage"])
-    image = Image.new("RGB", (canvas, canvas), cream)
+    field = hex_rgb(TOKENS["color"]["cream"])
+    monogram = hex_rgb(TOKENS["icon"]["foreground"])
+    circle = hex_rgb(TOKENS["icon"]["background"])
+    image = Image.new("RGB", (canvas, canvas), field)
     draw = ImageDraw.Draw(image)
 
     inset = int(canvas * 0.105)
-    draw.ellipse((inset, inset, canvas - inset, canvas - inset), fill=sage)
+    draw.ellipse((inset, inset, canvas - inset, canvas - inset), fill=circle)
 
     font = load_serif(int(canvas * 0.62))
     bbox = draw.textbbox((0, 0), "N", font=font)
@@ -82,7 +82,7 @@ def render_icon(px: int) -> Image.Image:
     draw.text(
         ((canvas - width) / 2 - bbox[0], (canvas - height) / 2 - bbox[1] - canvas * 0.018),
         "N",
-        fill=forest,
+        fill=monogram,
         font=font,
     )
     return image.resize((px, px), Image.Resampling.LANCZOS)
