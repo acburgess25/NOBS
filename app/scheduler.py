@@ -1,5 +1,4 @@
 import asyncio
-import json
 import logging
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -11,6 +10,13 @@ import psutil
 from app.agent import AgentModelError, AgentTaskRequest, TankAgent
 from app.agent_store import AgentStore
 from app.agent_tools import ToolRegistry
+from app.briefing import (
+    BriefingCalendarItem,
+    BriefingError,
+    BriefingRequest,
+    BriefingReminderItem,
+    generate_briefing,
+)
 from app.config import Settings
 
 logger = logging.getLogger(__name__)
@@ -22,17 +28,6 @@ _IDEA_WINDOW_SECONDS = 15
 # Minimum time between autonomous idea proposals regardless of their status.
 # Prevents flooding even if the user hasn't reviewed previous proposals.
 _IDEA_COOLDOWN = timedelta(hours=1)
-
-_BRIEFING_SYSTEM_PROMPT = (
-    "You are NOBS, a warm, concise, privacy-first personal assistant. "
-    "Create a realistic daily briefing using ONLY the supplied calendar and "
-    "reminder items. Never invent events, tasks, or context. Return only a JSON "
-    "object with fields: topline (string), priorities (array of 3-5 strings), "
-    "conflicts_or_risks (array of strings), recommended_plan (array of strings), "
-    "one_useful_question (string or null), and suggested_next_actions (array of strings). "
-    "Ask one useful question only when ambiguity is real; otherwise set it to null. "
-    "Keep context boundaries clear by labeling Personal, Business, or Shared where useful."
-)
 
 _IDEA_OBJECTIVE = (
     "You are NOBS. Come up with a single, highly useful smart home routine or "
@@ -62,18 +57,18 @@ async def run_scheduler(
     while True:
         now = datetime.now(UTC)
         try:
-            current_time = now.strftime("%H:%M")
+            current_time = local_hhmm(settings, now)
 
             if current_time != last_triggered_minute:
                 schedules = store.list_briefing_schedules(status="active")
-                for schedule in schedules:
-                    if schedule["time_of_day"] == current_time:
-                        logger.info(
-                            "Triggering briefing schedule %s for %s",
-                            schedule["id"],
-                            current_time,
-                        )
-                        await trigger_briefing_generation(settings, store, transport)
+                due = due_schedules(schedules, settings, now)
+                if due:
+                    logger.info(
+                        "Triggering briefing schedule(s) %s for %s local",
+                        ", ".join(schedule["id"] for schedule in due),
+                        current_time,
+                    )
+                    await trigger_briefing_generation(settings, store, transport)
 
                 last_triggered_minute = current_time
 
@@ -122,6 +117,36 @@ async def run_scheduler(
             logger.exception("Scheduler error during overnight queue check")
 
         await asyncio.sleep(15)
+
+
+def local_hhmm(settings: Settings, now_utc: datetime) -> str:
+    """`now_utc` as HH:MM in the user's configured timezone."""
+    return now_utc.astimezone(_resolve_timezone(settings.timezone)).strftime("%H:%M")
+
+
+def local_today(settings: Settings, now_utc: datetime):
+    """The user's current local date.
+
+    Not the UTC date: at 23:30 in Chicago the UTC date is already tomorrow, which
+    would file the briefing under the wrong day.
+    """
+    return now_utc.astimezone(_resolve_timezone(settings.timezone)).date()
+
+
+def due_schedules(
+    schedules: list[dict[str, Any]],
+    settings: Settings,
+    now_utc: datetime,
+) -> list[dict[str, Any]]:
+    """Schedules whose local wall-clock time matches now.
+
+    Schedules are created as local times -- "07:00" means 07:00 where the user
+    lives -- so this comparison must happen in the configured timezone. Matching
+    against UTC fired a 7am briefing at 1am or 2am local for anyone west of
+    Greenwich, which broke the product's anchor feature.
+    """
+    current = local_hhmm(settings, now_utc)
+    return [schedule for schedule in schedules if schedule["time_of_day"] == current]
 
 
 def _resolve_timezone(name: str) -> ZoneInfo:
@@ -229,81 +254,75 @@ async def trigger_autonomous_idea(
         logger.exception("Autonomous idea generation failed: %s", error)
 
 
+def _briefing_request_from_store(store: AgentStore, today: Any) -> BriefingRequest:
+    """Rebuild the same request shape the /briefing route validates.
+
+    Synced rows carry the end time, location, and due date, so the scheduled
+    briefing sees exactly what a requested one does — without end times the
+    heuristics could not detect overlaps at all.
+    """
+    calendar = [
+        BriefingCalendarItem(
+            title=row["title"],
+            start=row["start"],
+            end=row.get("end"),
+            location=row.get("location"),
+            context=row["context"],
+        )
+        for row in store.list_calendar_events()
+    ]
+    reminders = [
+        BriefingReminderItem(
+            title=row["title"],
+            due=row.get("due"),
+            context=row["context"],
+        )
+        for row in store.list_reminders()
+    ]
+    return BriefingRequest(date=today, calendar=calendar, reminders=reminders)
+
+
 async def trigger_briefing_generation(
     settings: Settings,
     store: AgentStore,
     transport: Any,
 ) -> None:
-    """Generate a daily briefing from synced calendar/reminder data and persist it."""
-    calendar = store.list_calendar_events()
-    reminders = store.list_reminders()
-    today = datetime.now(UTC).date()
+    """Generate a daily briefing from synced calendar/reminder data and persist it.
 
-    source = {
-        "date": today.isoformat(),
-        "calendar": calendar,
-        "reminders": reminders,
-    }
-    payload = {
-        "model": settings.ollama_model,
-        "stream": False,
-        "think": False,
-        "format": "json",
-        "messages": [
-            {"role": "system", "content": _BRIEFING_SYSTEM_PROMPT},
-            {"role": "user", "content": json.dumps(source)},
-        ],
-    }
+    This goes through the same `generate_briefing` pipeline as `POST /briefing`,
+    so a scheduled briefing is validated and gets the same heuristic conflict
+    detection. It previously parsed model output with bare `.get()` calls and
+    skipped the heuristics, which quietly made automatic briefings weaker than
+    requested ones and let unvalidated output reach storage.
+    """
+    today = local_today(settings, datetime.now(UTC))
 
     try:
-        async with httpx.AsyncClient(
-            timeout=settings.ollama_timeout_seconds,
-            transport=transport,
-        ) as client:
-            response = await client.post(f"{settings.ollama_base_url}/api/chat", json=payload)
-            response.raise_for_status()
+        request = _briefing_request_from_store(store, today)
+    except ValueError as error:
+        logger.exception("Synced calendar or reminder rows are unusable: %s", error)
+        return
 
-        sections = json.loads(response.json()["message"]["content"])
-        result = {
-            "date": today.isoformat(),
-            "topline": sections.get(
-                "topline",
-                "This day needs active prioritization to stay realistic.",
-            ),
-            "priorities": sections.get("priorities", []),
-            "conflicts_or_risks": sections.get("conflicts_or_risks", []),
-            "recommended_plan": sections.get("recommended_plan", []),
-            "one_useful_question": sections.get("one_useful_question"),
-            "suggested_next_actions": sections.get("suggested_next_actions", []),
-            "generated_at": datetime.now(UTC).isoformat(),
-            "route": "Tank",
-            "privacy_receipt": {
-                "used": [
-                    f"{len(calendar)} calendar items",
-                    f"{len(reminders)} reminder items",
-                ],
-                "processed": "Tank on your private network",
-                "shared": [],
-                "changed": [],
-            },
-        }
+    try:
+        result = await generate_briefing(settings, request, transport)
+    except BriefingError as error:
+        logger.warning("Failed to generate scheduled briefing: %s", error)
+        return
 
-        store.save_briefing(today.isoformat(), result)
-        logger.info("Generated and saved scheduled briefing for %s.", today.isoformat())
+    payload = result.model_dump(mode="json")
+    store.save_briefing(today.isoformat(), payload)
+    logger.info("Generated and saved scheduled briefing for %s.", today.isoformat())
 
-        run_id = store.create_run(
-            objective=(
-                "Autonomously generate the scheduled daily briefing "
-                "based on the latest synced data."
-            ),
-            context="personal",
-        )
-        store.record_event(
-            run_id,
-            "tool_executed",
-            {"tool": "generate_briefing", "risk": "read_only", "result": result},
-        )
-        store.update_run(run_id, "completed")
-
-    except (httpx.HTTPError, ValueError, KeyError, TypeError, json.JSONDecodeError) as error:
-        logger.exception("Failed to generate scheduled briefing: %s", error)
+    run_id = store.create_run(
+        objective=(
+            "Autonomously generate the scheduled daily briefing "
+            "based on the latest synced data."
+        ),
+        context="personal",
+    )
+    store.record_event(
+        run_id,
+        "tool_executed",
+        {"tool": "generate_briefing", "risk": "read_only", "result": payload},
+    )
+    store.update_run(run_id, "completed")
