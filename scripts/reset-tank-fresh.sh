@@ -326,8 +326,8 @@ Backup: ${backup_dir:-"(dry-run — no backup created)"}
      http://127.0.0.1:${TANK_PORT}/workplace
 
 5. Verify authenticated routes once paired:
-     curl -H "X-NOBS-Device-Token: <token>" http://127.0.0.1:${TANK_PORT}/ready
-     curl -H "X-NOBS-Device-Token: <token>" http://127.0.0.1:${TANK_PORT}/dream-team/policy
+     curl -H "Authorization: Bearer <token>" http://127.0.0.1:${TANK_PORT}/ready
+     curl -H "Authorization: Bearer <token>" http://127.0.0.1:${TANK_PORT}/dream-team/policy
 
 6. On iPhone, clear old Tank pairing in Privacy if the app still shows a stale token.
 
