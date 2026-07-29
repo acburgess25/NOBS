@@ -10,9 +10,7 @@ struct SupportView: View {
             if store.isLoading && store.tipProducts.isEmpty && store.nobscloudProduct == nil {
                 ProgressView("Loading App Store offers…")
             } else if store.tipProducts.isEmpty && store.nobscloudProduct == nil {
-                Text("In-app support is not available yet. Add the products in App Store Connect, then try again.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                emptyState
             } else {
                 tipButtons
                 subscriptionRow
@@ -32,6 +30,25 @@ struct SupportView: View {
             Button("OK") { store.clearPurchaseState() }
         } message: {
             Text(purchaseAlertMessage)
+        }
+    }
+
+    @ViewBuilder
+    private var emptyState: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if store.loadFailed {
+                Text("Couldn't load support options from the App Store right now. This may be a connection issue or a temporary App Store problem.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                Button("Try again") {
+                    Task { await store.refresh() }
+                }
+                .font(.footnote)
+            } else {
+                Text("Tips and NOBScloud aren't turned on for this build yet — coming soon. Everything else in NOBS stays free either way.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 
