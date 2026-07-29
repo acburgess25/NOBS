@@ -15,6 +15,47 @@ Product decisions still come from [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md)
 | `.codex/config.toml` | Codex MCP server `axiom` via `npx -y axiom-mcp`. |
 | `skills-lock.json` | Pin/hash lockfile for `npx skills experimental_install`. |
 
+## Mac quickstart (full toolchain)
+
+On a Mac with Node 18+, Xcode 27 (or current beta), and this branch checked out:
+
+```bash
+git fetch origin cursor/axiom-agents-system-95fc
+git switch cursor/axiom-agents-system-95fc   # or merge/rebase into your working branch
+
+# Optional: Axiom CLI helpers (simulator console, crash symbolication, UI drive, profiling)
+git clone --depth 1 https://github.com/CharlesWiltgen/Axiom.git ~/Axiom
+mkdir -p "$HOME/.local/bin"
+ln -sf ~/Axiom/.claude-plugin/plugins/axiom/bin/* "$HOME/.local/bin/"
+# ensure ~/.local/bin is on PATH
+
+# Smoke-test MCP
+npx -y axiom-mcp   # leave running briefly; Ctrl+C when it waits on stdin
+```
+
+Then pick a harness:
+
+| Harness | Activate | First command / ask |
+|---------|----------|---------------------|
+| **Cursor** | Open the repo; confirm MCP shows `axiom` from `.cursor/mcp.json` | “Run a health check on my project” |
+| **Claude Code** | Trust the folder; install plugin if prompted | `/axiom:health-check` |
+| **Codex** | Restart so `.codex/config.toml` loads | “Audit NOBS for accessibility and Swift 6 concurrency” |
+| **Xcode Claude/Codex** | See [Xcode MCP setup](https://charleswiltgen.github.io/Axiom/start/xcode-setup) — use absolute `npx` path | `/context` should list Axiom |
+
+Claude Code plugin (once per machine/trust):
+
+```bash
+claude plugin marketplace add CharlesWiltgen/Axiom
+claude plugin install axiom@axiom-marketplace --scope project
+```
+
+Good first Mac asks after MCP/plugin is live:
+
+- “Run a health check on my project”
+- “Check accessibility on the iPhone app”
+- “Review for Swift 6 concurrency violations”
+- “Take a screenshot to verify this fix” (needs booted simulator)
+
 ## How agents use Axiom
 
 ### Cursor
@@ -34,12 +75,7 @@ Natural-language examples that should pull Axiom guidance:
 
 ### Claude Code
 
-On first trust of the repo, install the project marketplace plugin if prompted:
-
-```bash
-claude plugin marketplace add CharlesWiltgen/Axiom
-claude plugin install axiom@axiom-marketplace --scope project
-```
+On first trust of the repo, install the project marketplace plugin if prompted (commands in Mac quickstart above).
 
 Then use `/axiom:health-check`, `/axiom:audit accessibility`, and related commands. Autonomous agents (for example `health-check`, `accessibility-auditor`, `concurrency-auditor`) are available through the plugin.
 
