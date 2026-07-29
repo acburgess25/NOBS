@@ -1,75 +1,63 @@
 # nobsdash.com deployment
 
-The NOBS portfolio is deployed to Tank as a static Vite build and published through a locally configured Cloudflare Tunnel.
+The NOBS portfolio is a static Vite site hosted by **Cloudflare Pages**. It no
+longer depends on Tank, a Cloudflare Tunnel, or GitHub Pages for availability.
 
-## Security boundary
+## Production configuration
 
-- The origin listens only on `127.0.0.1:4173`.
-- Cloudflare Tunnel is the only public path to the site.
-- No router port forwarding or public Tank administration endpoint is required.
-- Tunnel credentials live only on the Tank host (for example `~/.config/nobs/<tunnel-uuid>.json`) with mode `0600`.
-- The ingress configuration maps both `nobsdash.com` and `www.nobsdash.com` to `http://127.0.0.1:4173` and ends with a 404 catch-all.
-- Remove temporary Cloudflare login certificates and connector tokens after provisioning.
+| Item | Value |
+| --- | --- |
+| Pages project | `nobsdash` |
+| Production branch | `main` |
+| Pages hostname | `nobsdash.pages.dev` |
+| Custom domains | `nobsdash.com`, `www.nobsdash.com` |
+| DNS target | `nobsdash.pages.dev` |
+
+Both custom domains must be attached to the Pages project, proxied by
+Cloudflare, and covered by active SSL certificates. GitHub Pages must remain
+disabled so it cannot compete for the custom domain.
 
 ## Build and deploy
 
-From the repository root on your workstation:
-
-```bash
-bash scripts/deploy-nobsdash.sh
-```
-
-Or manually:
+From the repository root:
 
 ```bash
 cd website
-pnpm install
-pnpm run build
-rsync -az --delete dist/ tank:~/services/nobsdash/current/
+pnpm install --frozen-lockfile
+pnpm build
+npx wrangler pages deploy dist --project-name=nobsdash --branch=main
 ```
 
-Install the checked-in user service template from `deploy/tank/nobsdash.service` at:
+The command returns an immutable deployment URL. Verify that URL before
+checking the production domains.
 
-```text
-~/.config/systemd/user/nobsdash.service
-```
-
-After replacing the static build, restart the origin and verify it locally on Tank:
+## Verification
 
 ```bash
-systemctl --user restart nobsdash.service
-curl --fail --silent --show-error http://127.0.0.1:4173/privacy.html
+curl --fail --silent --show-error https://nobsdash.com/ >/dev/null
+curl --fail --silent --show-error https://www.nobsdash.com/ >/dev/null
+curl --fail --silent --show-error https://nobsdash.com/privacy >/dev/null
 ```
 
-Public policy URLs after deploy: `https://nobsdash.com/privacy.html` and `https://nobsdash.com/privacy/`.
+Confirm the production page references the same hashed JavaScript asset as the
+new Pages deployment. This proves DNS is serving the intended build rather
+than a cached or competing origin.
 
-## Cloudflare tunnel route
+## Rollback
 
-Copy `deploy/tank/cloudflared-nobsdash.yml.example` to `~/.config/nobs/cloudflared-nobsdash.yml`, replace `YOUR_TUNNEL_UUID` and `YOUR_USER`, and install `deploy/tank/cloudflared-nobsdash.service` as a user unit.
+Cloudflare Pages keeps immutable deployments. To roll back without rebuilding:
 
-| Public hostname | Origin service |
-| --- | --- |
-| `nobsdash.com` | `http://127.0.0.1:4173` |
-| `www.nobsdash.com` | `http://127.0.0.1:4173` |
+1. Open **Workers & Pages → nobsdash → Deployments** in Cloudflare.
+2. Select the last known-good production deployment.
+3. Choose **Rollback to this deployment** and confirm.
+4. Re-run the three public verification requests above.
 
-Keep tunnel credentials out of Git and shell history.
-
-Enable lingering for the Tank user so user services survive logout:
-
-```bash
-loginctl enable-linger "$USER"
-loginctl show-user "$USER" -p Linger
-```
-
-## Operations
-
-```bash
-systemctl --user status nobsdash.service cloudflared-nobsdash.service
-journalctl --user -u nobsdash.service -u cloudflared-nobsdash.service --since today
-```
-
-Rollback is a static-file replacement followed by `systemctl --user restart nobsdash.service`. Stopping `cloudflared-nobsdash.service` removes public access without exposing the origin.
+If only one hostname fails, inspect its Pages custom-domain status and DNS
+record before changing the deployment. Do not restore the old Tank tunnel or
+GitHub Pages as a production workaround.
 
 ## Optional support links
 
-Edit `website/public/support.json` with GitHub Sponsors and Stripe Payment Link URLs, then rebuild. See [`docs/SUPPORT_AND_PAYMENTS.md`](../docs/SUPPORT_AND_PAYMENTS.md). The Support section appears only when at least one URL is set.
+Edit `website/public/support.json` with GitHub Sponsors and Stripe Payment Link
+URLs, then rebuild. See [`SUPPORT_AND_PAYMENTS.md`](SUPPORT_AND_PAYMENTS.md).
+The Support section appears only when at least one URL is set.
