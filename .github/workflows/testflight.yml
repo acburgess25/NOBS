@@ -5,13 +5,10 @@ name: TestFlight
 #   ASC_API_KEY_ID, ASC_API_ISSUER_ID, ASC_API_KEY_CONTENT
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - "NOBS/**"
-      - "NOBSWidgets/**"
-      - "NOBS.xcodeproj/**"
-      - "ExportOptions.plist"
+  # Xcode 27 beta builds are useful for development but App Store Connect
+  # rejects uploads until Apple publishes a supported RC/release toolchain.
+  # Keep uploads intentional so ordinary merges do not create misleading red
+  # repository checks while that external submission gate is closed.
   workflow_dispatch:
     inputs:
       refresh_signing_only:
