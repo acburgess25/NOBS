@@ -95,6 +95,7 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 - Home control tools: `list_home_devices`, `control_home_device`, `control_secure_home_device`, `list_home_scenes`, `run_home_scene` — all backed by the existing Home Assistant bridge (`app/home_assistant.py`); state-changing calls always create a pending approval. No direct HomeKit protocol code on Tank (cross-platform requirement); Apple Home accessories reach Tank by being bridged into Home Assistant. iOS Home tab and Activity rendering for these proposals are still pending (see `docs/GOOGLE_HOME_INTEGRATION.md`).
 - Overnight Tank queue: `overnight_tasks` SQLite table plus `POST/GET /overnight/tasks`, `GET /overnight/tasks/{id}`, `POST /overnight/tasks/{id}/cancel`. The scheduler claims and runs one queued task at a time through the normal agent/approval path when the current time falls inside the configured `NOBS_TIMEZONE` overnight window and Tank's recent CPU load is idle. See `docs/TANK_AGENT_CORE.md`.
 - Deterministic tests plus live Tank verification for read-only execution and denied changes.
+- Hermetic backend test suite: `tests/conftest.py` runs every test from a fresh temporary working directory and scrubs `NOBS_*` environment variables, so the suite passes unchanged on a deployed Tank checkout with live `data/` state and a real `.env`.
 - Device-authenticated daily briefing generation with validated contexts, a
   privacy receipt, and latest-per-date SQLite persistence.
 
