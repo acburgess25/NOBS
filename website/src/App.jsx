@@ -42,6 +42,14 @@ export function App() {
   const [openRoadmap, setOpenRoadmap] = useState(0);
   const [activeSection, setActiveSection] = useState("vision");
   const [supportLinks, setSupportLinks] = useState(null);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 12);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   useEffect(() => {
     fetch("/support.json")
@@ -79,7 +87,7 @@ export function App() {
 
   return (
     <div className="site-shell">
-      <header className="site-header">
+      <header className={scrolled ? "site-header stuck" : "site-header"}>
         <a className="builder-mark" href="#vision" onClick={(event) => { event.preventDefault(); goTo("vision"); }}>
           <span>Alexander Burgess</span><i>/</i><strong>Building NOBS</strong>
         </a>
@@ -96,30 +104,47 @@ export function App() {
 
       <main>
         <section className="hero section" id="vision">
-          <div className="hero-copy reveal">
-            <div className="status-pill"><span /> {betaLive ? "In public TestFlight beta" : "TestFlight beta — opening soon"}</div>
-            <p className="eyebrow">A personal project, built in the open</p>
-            <h1>NOBS</h1>
-            <h2>Your technology.<br />Finally working for you.</h2>
-            <p className="lede">I’m building a private, local-first personal assistant for Apple devices—one that runs on your terms, keeps your context under your control, and helps make everyday technology genuinely useful.</p>
-            <p className="honesty-note">{betaLive
-              ? "The iPhone app is in public TestFlight beta. Core planning works on-device; Tank is optional. Expect rough edges while the build matures."
-              : "The iPhone app is heading into public TestFlight beta. Core planning works on-device; Tank is optional. Expect rough edges while the build matures."}</p>
-            {betaLive
-              ? <a className="primary-link" href={testflightUrl} target="_blank" rel="noreferrer"><DeviceMobile weight="fill" /> Join the TestFlight beta <ArrowRight /></a>
-              : <a className="primary-link" href={githubUrl} target="_blank" rel="noreferrer"><GithubLogo weight="fill" /> Follow the build on GitHub <ArrowRight /></a>}
+          <div className="status-pill reveal"><span /> {betaLive ? "In public TestFlight beta" : "TestFlight beta — opening soon"}</div>
+          <h1 className="wordmark" aria-label="NOBS">
+            {["N", "O", "B", "S"].map((letter, index) => <span aria-hidden="true" key={index}>{letter}</span>)}
+          </h1>
+          <h2 className="hero-statement">Your technology.<br /><em>Finally</em> working for you.</h2>
+
+          <div className="hero-lower">
+            <div>
+              <p className="eyebrow">A personal project, built in the open</p>
+              <p className="lede">I’m building a private, local-first personal assistant for Apple devices—one that runs on your terms, keeps your context under your control, and helps make everyday technology genuinely useful.</p>
+              <p className="honesty-note">{betaLive
+                ? "The iPhone app is in public TestFlight beta. Core planning works on-device; Tank is optional. Expect rough edges while the build matures."
+                : "The iPhone app is heading into public TestFlight beta. Core planning works on-device; Tank is optional. Expect rough edges while the build matures."}</p>
+              {betaLive
+                ? <a className="primary-link" href={testflightUrl} target="_blank" rel="noreferrer"><DeviceMobile weight="fill" /> Join the TestFlight beta <ArrowRight /></a>
+                : <a className="primary-link" href={githubUrl} target="_blank" rel="noreferrer"><GithubLogo weight="fill" /> Follow the build on GitHub <ArrowRight /></a>}
+              <dl className="proof" aria-label="Project at a glance">
+                {[["224", "commits, in public"], ["136", "automated tests passing"], ["100%", "of core features run locally"]].map(([value, label]) => (
+                  <div key={label}><dt>{value}</dt><dd>{label}</dd></div>
+                ))}
+              </dl>
+            </div>
+            <div className="hero-aside">
+              <div className="code-window" aria-label="SwiftUI code excerpt">
+                <div className="window-bar"><span /><span /><span /><b>TodayView.swift</b></div>
+                <pre><code><em>if</em> model.shouldShowEveningWrapUp {`{`}{"\n"}  EveningWrapUpCard({`\n`}    wrapUp: model.eveningWrapUp{`\n`}  ){`\n`}  .nobsSectionCard(){`\n`}{`}`}</code></pre>
+              </div>
+              <p className="code-note">Real SwiftUI from the live build · shared NOBS design tokens</p>
+            </div>
           </div>
-          <div className="hero-art reveal" aria-label="Current NOBS iPhone prototype">
-            <div className="phone-frame"><img src="/nobs-app-preview.png" alt="NOBS running in the iPhone 17 Pro Simulator with a private morning briefing" /></div>
-            <div className="annotation annotation-one"><span>Rendered from the live SwiftUI build</span><i /></div>
-            <div className="annotation annotation-two"><span>Processing stays visible</span><i /></div>
-          </div>
-          <div className="code-window reveal" aria-label="SwiftUI code excerpt">
-            <div className="window-bar"><span /><span /><span /><b>TodayView.swift</b></div>
-            <pre><code><em>if</em> model.shouldShowEveningWrapUp {`{`}{"\n"}  EveningWrapUpCard({`\n`}    wrapUp: model.eveningWrapUp{`\n`}  ){`\n`}  .nobsSectionCard(){`\n`}{`}`}</code></pre>
-          </div>
-          <p className="code-note">SwiftUI · shared NOBS design tokens</p>
         </section>
+
+        <div className="marquee" aria-hidden="true">
+          {[0, 1].map((track) => (
+            <div className="marquee-track" key={track}>
+              {["No tracking", "No lock-in", "No data sold", "No forced upgrades", "No BS"].map((promise) => (
+                <span key={promise}><b>{promise}</b> <i>◆</i></span>
+              ))}
+            </div>
+          ))}
+        </div>
 
         <section className="architecture section" id="architecture">
           <div className="section-intro"><p className="eyebrow">Architecture</p><h2>Local, by design.</h2><p>NOBS is built around a simple principle: your data stays with you. More processing is available only when you choose it.</p></div>
@@ -135,7 +160,7 @@ export function App() {
 
         <section className="work section" id="work">
           <div className="section-heading"><div><p className="eyebrow">Work so far</p><h2>What exists today</h2></div><p>Real progress, plain language, no vaporware.</p></div>
-          <div className="milestone-grid">{milestones.map(({ label, detail, icon: Icon }) => <article className="milestone" key={label}><Icon /><div><h3>{label}</h3><p>{detail}</p></div></article>)}</div>
+          <div className="bento">{milestones.map(({ label, detail, icon: Icon }) => <article className="bento-tile" key={label}><Icon /><h3>{label}</h3><p>{detail}</p></article>)}</div>
           <button className="health-card" onClick={copyHealth} aria-live="polite">
             <span className="health-title">Tank API <i>live</i></span><span className="health-status"><b /> Healthy</span>
             <code>{"GET   /health              200 OK\nPOST  /chat     (no token) 401\nPOST  /chat     (with key) 200 OK"}</code>
