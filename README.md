@@ -12,15 +12,25 @@ A local-first personal assistant that turns a chaotic day into a realistic plan�
 [![Backend CI](https://img.shields.io/github/actions/workflow/status/acburgess25/NOBS/backend-ci.yml?branch=main&style=flat-square&label=backend%20CI)](https://github.com/acburgess25/NOBS/actions/workflows/backend-ci.yml)
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-6d7f68?style=flat-square)](LICENSE)
 
-[Explore the project](https://nobsdash.com) · [See what works](#what-works-today) · [Contribute](CONTRIBUTING.md) · [Report a security issue](SECURITY.md)
+[Explore the project](https://nobsdash.com) · [Sponsor the build](https://github.com/sponsors/acburgess25) · [See what works](#what-works-today) · [Contribute](CONTRIBUTING.md)
 
 </div>
 
 ---
 
-NOBS is a privacy-first assistant for iPhone, iPad, Mac, and a private **Tank** computer. Everyday intelligence stays on the user's devices whenever possible. Optional cloud processing is a future capability—not a requirement.
+NOBS is a privacy-first assistant for iPhone, iPad, Mac, and a private **Tank** computer. Everyday intelligence stays on the user's devices whenever possible. Optional paid capacity (NOBScloud) is for convenience when Tank is away—not a paywall on the free local core.
 
-> **Project status:** Active, early-stage prototype. The repository is public so the product, privacy model, and engineering decisions can be built in the open.
+> **Project status:** Active, early-stage prototype. Tips and sponsorships fund open development; they do not unlock features. In-app NOBScloud is App Store IAP once distribution is live. See [`docs/MONETIZATION_AND_GROWTH.md`](docs/MONETIZATION_AND_GROWTH.md).
+
+## Support the free core
+
+Optional support keeps the local-first build going:
+
+1. **[GitHub Sponsors](https://github.com/sponsors/acburgess25)** — fastest path today (enable the listing if the link redirects to your profile).
+2. **Square card tips** — create Payment Links in the Square Dashboard, paste into `website/public/support.json` (`donateOneTime` / `donateMonthly`). Phone-friendly; no home Mac required.
+3. **In-app tips + NOBScloud** — StoreKit products in the app; needs App Store Connect Paid Apps + a TestFlight/App Store build.
+
+Do not put morning briefing or local chat behind a paywall.
 
 ## What works today
 
@@ -33,7 +43,7 @@ This repository contains an early end-to-end prototype:
 - **Room-safe dashboard:** Live health, approvals, activity, and light/dark themes without exposing personal content.
 - **Honest fallback:** The app remains useful locally when Tank is unavailable and labels unfinished capabilities clearly.
 
-This is not a production release. Household identity, subscriptions, NOBScloud, direct Google Home/Alexa integration, and most proactive automation remain planned.
+This is not a production release. Household identity, hosted NOBScloud servers, direct Google Home/Alexa integration, and most proactive automation remain planned. StoreKit tips/subscription UI and on-device NOBScloud→Apple Cloud fallback are in the app; distribution and ASC products still gate live purchases.
 
 ## Why NOBS
 

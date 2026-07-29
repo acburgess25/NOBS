@@ -12,7 +12,7 @@ enum TankOfflineBehavior: String, Codable, CaseIterable, Sendable {
         case .askEachTime: "Ask each time"
         case .localOnly: "Stay local"
         case .useAppleCloud: "Use Apple private cloud"
-        case .useNOBScloud: "Use NOBScloud"
+        case .useNOBScloud: "Use NOBScloud (Apple Cloud)"
         case .queueForTank: "Wait for Tank"
         }
     }

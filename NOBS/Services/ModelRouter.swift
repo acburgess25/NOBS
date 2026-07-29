@@ -260,12 +260,28 @@ struct ModelRouter: Sendable {
 
     private func cloudDecision(context: RoutingContext, request: NOBSRequest) -> RoutingDecision? {
         guard context.hasNOBScloud, context.profile.privacyComfort == .cloudOk else { return nil }
+
+        // Delivered paid capacity today: Apple Private Cloud Compute under a NOBScloud subscription.
+        // Dedicated NOBScloud hosts remain later; do not invent a fake cloud API.
+        if context.pccRoutingEnabled,
+           context.developerEntitled,
+           context.pccAvailable,
+           !context.pccQuotaLimitReached
+        {
+            return RoutingDecision(
+                route: .pcc,
+                reason: .paidFallback,
+                receipt: .nobscloudPaidAppleCloud
+            )
+        }
+
+        // Subscription is active but Apple Cloud capacity is unavailable on this device/build.
         return RoutingDecision(
             route: .cloud,
             reason: .paidFallback,
             receipt: PrivacyReceipt(
-                used: ["conversation messages sent with this request"],
-                processed: "NOBScloud",
+                used: ["conversation messages sent with this request", "NOBScloud subscription"],
+                processed: "NOBScloud (Apple Cloud capacity unavailable; staying local)",
                 shared: [],
                 changed: []
             )

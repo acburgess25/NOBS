@@ -91,7 +91,7 @@ final class StoreKitService: ObservableObject {
 
     private func successMessage(for product: Product) -> String {
         if product.id == StoreProducts.nobscloudMonthly {
-            return "Thank you for supporting NOBScloud. Core local features stay free while cloud capacity rolls out."
+            return "Thank you for NOBScloud. When Tank is away, subscribed capacity can use Apple private cloud where available. Core local features stay free."
         }
         return "Thank you for supporting NOBS."
     }

@@ -73,7 +73,28 @@ final class ModelRouterTests: XCTestCase {
                 preferences: RoutingPreferences(tankOfflineBehavior: .useNOBScloud)
             )
         )
+        // Without PCC available/enabled, subscription still selects the cloud route
+        // so AppModel can explain that Apple Cloud capacity is unavailable.
         XCTAssertEqual(decision.route, ProcessingRoute.cloud)
+        XCTAssertEqual(decision.reason, .paidFallback)
+    }
+
+    func testNOBScloudUsesAppleCloudWhenPCCAvailable() {
+        let decision = router.route(
+            .chat("analyze this long document " + String(repeating: "word ", count: 800)),
+            context: baseContext(
+                tankAvailable: false,
+                pccAvailable: true,
+                pccRoutingEnabled: true,
+                developerEntitled: true,
+                hasNOBScloud: true,
+                profile: UserProfile(privacyComfort: .cloudOk),
+                preferences: RoutingPreferences(tankOfflineBehavior: .useNOBScloud)
+            )
+        )
+        XCTAssertEqual(decision.route, ProcessingRoute.pcc)
+        XCTAssertEqual(decision.reason, .paidFallback)
+        XCTAssertTrue(decision.receipt.processed.contains("NOBScloud"))
     }
 
     func testDoesNotClaimPCCWhenUnavailable() {

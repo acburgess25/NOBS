@@ -1,6 +1,8 @@
 {
   "githubSponsors": "https://github.com/sponsors/acburgess25",
-  "donateOneTime": "",
+  "donateOneTime": "https://square.link/u/1Lv8qXB9",
   "donateMonthly": "",
-  "supportInApp": true
+  "supportInApp": true,
+  "cardProcessor": "square",
+  "_comment": "donateOneTime is the live Square Payment Link. Add donateMonthly when a recurring Square link exists. cardProcessor drives website labels. In-app digital goods stay on Apple IAP only."
 }

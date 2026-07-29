@@ -44,10 +44,11 @@ Paid layers sit **above** that floor.
 |-------|--------|-------------------|
 | iPhone app (chat, Today, widget, Tank optional) | Simulator-verified prototype | Can delight early users once TestFlight ships |
 | StoreKit tip jar + NOBScloud monthly | Code + local StoreKit config ready | Needs Paid Apps agreement + ASC products + live build |
-| Website `nobsdash.com` | Live | Can take Sponsors / Stripe today |
-| GitHub Sponsors | URL wired (`acburgess25`) | Usable immediately |
-| Stripe Payment Links | Empty in `support.json` | Fastest card checkout for web |
-| NOBScloud backend entitlements | Not shipped | Do not sell “cloud power” as delivered yet |
+| Website `nobsdash.com` | Live | Can take Square Payment Links / Sponsors today |
+| GitHub Sponsors | URL wired (`acburgess25`); listing may still need enabling | Usable once Sponsors is activated |
+| Square / card Payment Links | Empty in `support.json` (`cardProcessor: square`) | Fastest card checkout for web |
+| Stripe Payment Links | Optional alternative | Helper script still available |
+| NOBScloud backend entitlements | On-device StoreKit only; PCC paid fallback coded | Do not claim hosted NOBScloud servers yet |
 | Hosted Tank / NOBSbox / paid skills | Planned | Later revenue, not day-one |
 
 **Bottleneck:** App Store Connect capability / distribution signing for TestFlight. Home Mac + Apple Developer portal actions unblock almost everything else.
@@ -61,8 +62,8 @@ Goal: open every cash path that does not depend on shipping unfinished cloud fea
 ### 0A. Web support (same day)
 
 1. Confirm GitHub Sponsors is active and linked from the site (`website/public/support.json` → `githubSponsors`).
-2. Create Stripe Payment Links for one-time tip and optional monthly support.
-3. Fill `donateOneTime` / `donateMonthly` in `support.json`, rebuild and deploy the site.
+2. Create **Square** Payment Links for one-time tip and optional monthly support (Square Dashboard → Payment Links).
+3. Fill `donateOneTime` / `donateMonthly` in `support.json` (`cardProcessor` already `"square"`), rebuild and deploy the site.
 4. Put a single clear CTA on the homepage and README: **Support the free local core** → Sponsors / tip / (soon) in-app Support.
 
 Rules:
@@ -140,7 +141,7 @@ Ship **one** paid wedge before broadening:
 ### Recommended wedge order
 
 1. **NOBScloud burst when Tank is away**  
-   Secure fallback processing with visible privacy receipts, entitlement sync (StoreKit → backend), hard caps, and honest Local/Tank/Cloud badges. Matches §21 and existing routing flags.
+   Secure fallback via Apple Private Cloud Compute with visible privacy receipts, on-device StoreKit entitlement (`hasNOBScloud`), hard honesty when PCC is unavailable, and Local/Tank/Apple Cloud badges. Hosted NOBScloud API + entitlement sync remain a follow-on.
 
 2. **Hosted Tank for people without a GPU box**  
    Same Tank API, operated for them. Price above raw compute; sell “always-on private assistant brain” without hardware.
@@ -211,7 +212,7 @@ Until then: Mac NOBSTank + DIY Ubuntu Tank are the proof that local NOBS works w
 
 ### Today / this week (home + ops)
 
-- [ ] Stripe Payment Links → `support.json` → deploy site
+- [ ] Square Payment Links → `support.json` → deploy site
 - [ ] Confirm Sponsors CTA visible on site and README
 - [ ] Paid Apps + tax/banking in App Store Connect
 - [ ] Create IAP product IDs; sandbox test Support screen
@@ -223,9 +224,10 @@ Until then: Mac NOBSTank + DIY Ubuntu Tank are the proof that local NOBS works w
 
 ### Next product slice (engineering)
 
+- [x] NOBScloud Tank-away fallback routes through Apple PCC when entitled/available (on-device StoreKit)
 - [ ] Stabilize physical-iPhone briefing → widget → optional Tank loop
-- [ ] Entitlement sync for NOBScloud (StoreKit → backend) before selling cloud as delivered
-- [ ] Ship first real paid cloud or hosted-Tank wedge
+- [ ] Entitlement sync for NOBScloud (StoreKit → backend) before multi-device / hosted cloud API
+- [ ] Enable `NOBSPCC*` flags after entitlement QA so paid fallback is live in production builds
 - [ ] Update [`CURRENT_STATE.md`](CURRENT_STATE.md) whenever a paid claim becomes true
 - [ ] Record 3-minute demo for portfolio + hiring loops
 

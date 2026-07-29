@@ -35,6 +35,13 @@ function hasSupportLinks(links) {
   return Boolean(links?.githubSponsors || links?.donateOneTime || links?.donateMonthly || links?.supportInApp);
 }
 
+function cardProcessorLabel(links) {
+  const processor = (links?.cardProcessor || "card").toLowerCase();
+  if (processor === "square") return "Square";
+  if (processor === "stripe") return "Stripe";
+  return "card checkout";
+}
+
 export function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -160,7 +167,7 @@ export function App() {
                 <p className="eyebrow">Support the build</p>
                 <h2>Help NOBS stay local-first.</h2>
               </div>
-              <p>Optional tips and sponsorships fund open development. Tips and NOBScloud subscriptions are available in the NOBS iPhone app through Apple In-App Purchase. Core features stay free.</p>
+              <p>Optional tips and sponsorships fund open development. In the iPhone app, tips stay tips; NOBScloud unlocks Apple private cloud fallback when Tank is away. Core local features stay free.</p>
             </div>
             <div className="support-grid">
               {supportLinks.supportInApp && (
@@ -168,7 +175,16 @@ export function App() {
                   <DeviceMobile />
                   <span>
                     <strong>Support in the NOBS app</strong>
-                    <small>Open Privacy → Support NOBS for Apple tips and NOBScloud subscription.</small>
+                    <small>Open Privacy → Account &amp; support for Apple tips and NOBScloud.</small>
+                  </span>
+                </article>
+              )}
+              {!supportLinks.donateOneTime && !supportLinks.donateMonthly && (
+                <article className="support-card support-card-static" aria-label="Web card tips pending Payment Links">
+                  <Heart weight="fill" />
+                  <span>
+                    <strong>Web tips via {cardProcessorLabel(supportLinks)}</strong>
+                    <small>Card checkout opens after Square Payment Links are added to support.json.</small>
                   </span>
                 </article>
               )}
@@ -177,7 +193,7 @@ export function App() {
                   <Heart weight="fill" />
                   <span>
                     <strong>Send a tip</strong>
-                    <small>One-time contribution through Stripe.</small>
+                    <small>One-time contribution through {cardProcessorLabel(supportLinks)}.</small>
                   </span>
                   <ArrowRight />
                 </a>
@@ -187,7 +203,7 @@ export function App() {
                   <Repeat />
                   <span>
                     <strong>Support monthly</strong>
-                    <small>Recurring sponsorship through Stripe.</small>
+                    <small>Recurring support through {cardProcessorLabel(supportLinks)}.</small>
                   </span>
                   <ArrowRight />
                 </a>
@@ -197,7 +213,7 @@ export function App() {
                   <GithubLogo weight="fill" />
                   <span>
                     <strong>Sponsor on GitHub</strong>
-                    <small>Follow the build and back the project there.</small>
+                    <small>Enable the Sponsors listing if this link still redirects to your profile.</small>
                   </span>
                   <ArrowRight />
                 </a>

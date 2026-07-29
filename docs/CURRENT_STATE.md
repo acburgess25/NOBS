@@ -2,7 +2,7 @@
 
 For full codebase reference see [`CODEBASE_REFERENCE.md`](CODEBASE_REFERENCE.md).
 
-**Last updated:** July 28, 2026 (monetization / growth sequencing; next slice = payments + TestFlight)
+**Last updated:** July 29, 2026 (NOBScloud paid fallback via Apple PCC; web tips via Square Payment Links when filled)
 **Purpose:** Tool-neutral handoff for any contributor entering without prior chat history.
 
 This records implementation state, not product direction. [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md) remains the approved product source of truth. Verify the branch, tests, and live services before treating deployment facts as current.
@@ -33,6 +33,7 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
   paths rather than the normal setup flow.
 - Authenticated Tank chat with visible Local/Tank/Apple Cloud routing and privacy receipts via `ModelRouter`.
 - Policy-driven chat routing: Tank when home; conversational Tank-offline preferences (`stay local`, `use apple cloud`, `wait for tank`, `use nobscloud`); Apple Cloud (PCC) and NOBScloud paths behind feature flags.
+- **NOBScloud paid fallback (on-device entitlement):** StoreKit 2 tip jar + monthly subscription in Privacy → Account & support. An active subscription with `cloudOk` privacy comfort routes Tank-offline work through Apple Private Cloud Compute when PCC flags/entitlement/device allow it. Privacy receipts label this as Apple PCC under NOBScloud paid fallback—not a separate NOBS host. If PCC is unavailable, chat stays local with an honest explanation (no “coming soon” dead end). Backend entitlement sync is still not shipped.
 - `AppleModelProvider` wraps Foundation Models on-device + `PrivateCloudComputeLanguageModel` (iOS 27+); honesty gate hides Apple Cloud badge until entitlement QA (`PCCFeatureFlags`).
 - PCC quota UX in chat composer and Privacy (`PCCQuotaStatusView`); see `docs/PCC_INTEGRATION.md` and `docs/PCC_ENTITLEMENT_CHECKLIST.md`.
 - Honest local fallback when Tank is unavailable, without permanently marking
@@ -133,23 +134,24 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 ## Not working yet
 
 - No approved long-term memory workflow.
-- No household identity, subscription, or NOBScloud implementation.
+- No household identity or hosted NOBScloud servers (subscription delivers Apple PCC fallback on-device when available).
 - No arbitrary MCP server is trusted or installed by the NOBS agent.
 - mDNS (`tank.local`) may not resolve on every LAN; clients can use the Tank host IP directly (for example `http://192.168.1.100:8000`).
 - Physical iPhone validation and TestFlight upload remain pending (simulator build verified; archive requires home signing). See [`docs/CI_TROUBLESHOOTING.md`](CI_TROUBLESHOOTING.md) for current CI failure modes.
+- Website Square Payment Links in `website/public/support.json` are still empty until the owner pastes live Square Dashboard Payment Link URLs. GitHub Sponsors CTA is wired; enable the Sponsors listing if the URL still redirects to the profile.
 
 ## Recommended next vertical slice
 
-**Get money paths open, put the app in strangers' hands, and make the work hire-able** (see [`MONETIZATION_AND_GROWTH.md`](MONETIZATION_AND_GROWTH.md) and [`CAREER_AND_VISIBILITY.md`](CAREER_AND_VISIBILITY.md)):
+**Get money into a stranger’s hands and verify the paid fallback on device** (see [`MONETIZATION_AND_GROWTH.md`](MONETIZATION_AND_GROWTH.md)):
 
-1. Web: fill Stripe Payment Links in `website/public/support.json` and deploy; keep GitHub Sponsors CTA visible; add a Hire-me / contact CTA on the site.
+1. Web: paste Square Payment Links into `website/public/support.json` and deploy; enable GitHub Sponsors if the listing is still inactive.
 2. App Store Connect: Paid Apps agreement, tax/banking, and IAP product IDs ([`APP_STORE_IAP_SETUP.md`](APP_STORE_IAP_SETUP.md)).
 3. Fix distribution signing for app + widget; archive with `./scripts/stage-testflight-ipa.sh`.
-4. Paste metadata from `docs/app-store/` into App Store Connect; host privacy at `https://nobsdash.com/privacy.html`.
-5. External TestFlight: physical iPhone confirms chat, briefing, widget, optional Tank, and Support / tip flow.
-6. Public visibility: finish [`PUBLIC_RELEASE.md`](PUBLIC_RELEASE.md), pin the repo, publish one case study (e.g. approval-gated agent), align LinkedIn with the shipped stack.
+4. After PCC entitlement QA, enable `NOBSPCC*` Info.plist flags so subscribed Tank-offline users get Apple Cloud fallback ([`PCC_ENTITLEMENT_CHECKLIST.md`](PCC_ENTITLEMENT_CHECKLIST.md)).
+5. External TestFlight: physical iPhone confirms chat, briefing, widget, optional Tank, Support / tip / NOBScloud purchase + restore.
+6. Later: backend entitlement sync before multi-device or hosted NOBScloud API claims.
 
-Do not market NOBScloud as delivered cloud capacity until backend entitlement sync ships. Do not connect email, messages, health, location, purchases automation, deletion, or account administration until the approval UI and revocation path are usable.
+Do not claim a separate NOBScloud server exists until it does. Do not connect email, messages, health, location, purchases automation, deletion, or account administration until the approval UI and revocation path are usable.
 
 ## Verification
 

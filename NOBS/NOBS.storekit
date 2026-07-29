@@ -92,7 +92,7 @@
           "introductoryOffer" : null,
           "localizations" : [
             {
-              "description" : "Optional cloud capacity when Tank is unavailable.",
+              "description" : "Apple private cloud fallback when Tank is away.",
               "displayName" : "NOBScloud Monthly",
               "locale" : "en_US"
             }
