@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Turn the computer you already own into a private AI server — NOBS</title>
+  <meta name="description" content="I set up a private AI assistant on hardware you already own. It runs in your house, works offline, and nothing you type leaves your network." />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500&family=Newsreader:opsz,wght@6..72,300;6..72,400&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --canvas: #f8f6ef; --canvas-warm: #f4f1e8; --ink: #172818; --muted: #657064;
+      --sage: #5d7d4a; --sage-dark: #31562f; --sage-pale: #e8ede2;
+      --line: rgba(23,40,24,.13); --surface: rgba(255,255,255,.58);
+      --shadow: 0 2px 4px rgba(23,40,24,.05), 0 22px 50px rgba(23,40,24,.1);
+      --gutter: clamp(1.5rem, 5.5vw, 5rem);
+      --ease: cubic-bezier(.22,1,.36,1);
+      color-scheme: light dark;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --canvas: #11150f; --canvas-warm: #151a13; --ink: #eceee2; --muted: #98a291;
+        --sage: #8fae73; --sage-dark: #b3cd9c; --sage-pale: rgba(143,174,115,.14);
+        --line: rgba(236,238,226,.13); --surface: rgba(236,238,226,.045);
+        --shadow: 0 2px 4px rgba(0,0,0,.3), 0 22px 50px rgba(0,0,0,.4);
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; background: var(--canvas); color: var(--ink); line-height: 1.65;
+      font-family: "DM Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+      -webkit-font-smoothing: antialiased; overflow-x: clip;
+    }
+    a { color: var(--sage-dark); }
+    :focus-visible { outline: 2px solid var(--sage); outline-offset: 3px; border-radius: 3px; }
+    body::after {
+      content: ""; position: fixed; inset: 0; z-index: 100; pointer-events: none;
+      opacity: .3; mix-blend-mode: multiply;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.42'/%3E%3C/svg%3E");
+    }
+    @media (prefers-color-scheme: dark) { body::after { mix-blend-mode: screen; } }
+
+    header { padding: 1.6rem var(--gutter); border-bottom: 1px solid var(--line); }
+    .mark { text-decoration: none; font: 300 1.2rem "Newsreader", Georgia, serif; display: inline-flex; gap: .55rem; color: var(--ink); }
+    .mark i { color: var(--sage); font-style: normal; }
+
+    main { max-width: 60rem; margin: 0 auto; padding: clamp(3rem,8vh,6rem) var(--gutter) 5rem; position: relative; z-index: 1; }
+    .eyebrow { text-transform: uppercase; letter-spacing: .16em; font-size: .69rem; font-weight: 500; color: var(--sage-dark); margin: 0 0 1.1rem; }
+    h1 { font: 300 clamp(2.3rem,6vw,4.2rem)/1.04 "Newsreader", Georgia, serif; letter-spacing: -.03em; margin: 0 0 1.5rem; text-wrap: balance; }
+    h1 em { font-style: italic; color: var(--sage-dark); }
+    .lede { font-size: clamp(1.05rem,1.4vw,1.25rem); color: var(--muted); max-width: 46ch; margin: 0; }
+    h2 { font: 300 clamp(1.6rem,3vw,2.3rem)/1.1 "Newsreader", Georgia, serif; letter-spacing: -.02em; margin: 3.5rem 0 1.2rem; }
+    p { max-width: 62ch; }
+
+    .proof { display: flex; flex-wrap: wrap; gap: 2.5rem; margin: 3rem 0 0; padding-top: 1.75rem; border-top: 1px solid var(--line); }
+    .proof div { display: grid; gap: .3rem; }
+    .proof dt { font: 300 clamp(1.6rem,2.4vw,2.1rem) "Newsreader", Georgia, serif; color: var(--sage-dark); letter-spacing: -.03em; }
+    .proof dd { margin: 0; color: var(--muted); font-size: .8rem; max-width: 14ch; line-height: 1.4; }
+
+    ul { padding-left: 1.1rem; max-width: 62ch; }
+    li { margin-bottom: .6rem; }
+    li::marker { color: var(--sage); }
+
+    .tiers { display: grid; grid-template-columns: repeat(auto-fit, minmax(17rem,1fr)); gap: 1rem; margin-top: 1.5rem; }
+    .tier { border: 1px solid var(--line); border-radius: 1rem; padding: 1.6rem; background: var(--surface); }
+    .tier.feature { background: var(--sage-pale); }
+    .tier h3 { margin: 0 0 .4rem; font-size: 1rem; font-weight: 500; }
+    .price { font: 300 2.2rem "Newsreader", Georgia, serif; color: var(--sage-dark); letter-spacing: -.02em; display: block; margin-bottom: .6rem; }
+    .tier p { margin: 0; font-size: .9rem; color: var(--muted); }
+
+    .cta { margin-top: 2.5rem; padding: 2rem; border: 1px solid var(--line); border-radius: 1rem; background: var(--canvas-warm); }
+    .cta p { margin-top: 0; }
+    .button {
+      display: inline-flex; align-items: center; gap: .6rem; margin-top: .5rem;
+      padding: .9rem 1.6rem; border-radius: 100px; background: var(--sage-dark);
+      color: var(--canvas); text-decoration: none; font-weight: 500;
+      box-shadow: var(--shadow); transition: transform .3s var(--ease);
+    }
+    .button:hover { transform: translateY(-2px); }
+    .note { font-size: .85rem; color: var(--muted); margin-top: 1rem; }
+
+    .honest { border-left: 2px solid var(--sage-pale); padding-left: 1.1rem; color: var(--muted); font-size: .95rem; }
+    footer { border-top: 1px solid var(--line); padding: 1.6rem var(--gutter); color: var(--muted); font-size: .78rem; display: flex; flex-wrap: wrap; gap: 1rem; justify-content: space-between; }
+    @media (prefers-reduced-motion: no-preference) {
+      main > * { animation: rise .8s var(--ease) both; }
+      @keyframes rise { from { opacity: 0; transform: translateY(1rem); } }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a class="mark" href="/">Alexander Burgess <i>/</i> Building NOBS</a>
+  </header>
+
+  <main>
+    <p class="eyebrow">Work with me</p>
+    <h1>The computer in your closet is not junk. It's a <em>private</em> AI server.</h1>
+    <p class="lede">I'll set up a working AI assistant on hardware you already own. It runs in your house, keeps working when the internet doesn't, and nothing you type leaves your network.</p>
+
+    <dl class="proof">
+      <div><dt>20B</dt><dd>parameter model on a 5-year-old GPU</dd></div>
+      <div><dt>$0</dt><dd>monthly cloud bill, forever</dd></div>
+      <div><dt>0</dt><dd>bytes of your data sent anywhere</dd></div>
+    </dl>
+
+    <h2>Why this works</h2>
+    <p>Every major AI company needs a warehouse of servers to answer your questions, and charges you monthly for the privilege. That's true for <em>their</em> scale — millions of users at once. It is not true for you.</p>
+    <p>An ordinary desktop with a gaming graphics card can run a serious language model locally, right now. I know because I did it: my own Windows desktop runs a 20-billion-parameter model on an RTX 3060, answering my phone over my home network, with my smart home attached. It cost nothing to run and works with the router unplugged.</p>
+
+    <h2>What you get</h2>
+    <ul>
+      <li>A local AI model running as a proper background service that survives reboots</li>
+      <li>A private chat interface you can reach from any device in your house</li>
+      <li>Secure remote access, so it works from outside the house without opening ports to the internet</li>
+      <li>Model selection tuned to what your hardware can actually handle — honestly, not optimistically</li>
+      <li>Plain-language documentation of what was installed and how to change it</li>
+      <li>Two weeks of follow-up if something breaks</li>
+    </ul>
+
+    <h2>What it costs</h2>
+    <div class="tiers">
+      <div class="tier feature">
+        <h3>Private AI server</h3>
+        <span class="price" data-price="base">$150</span>
+        <p>Your hardware becomes a local assistant, reachable across your home network and remotely, with documentation.</p>
+      </div>
+      <div class="tier">
+        <h3>Server + connected home</h3>
+        <span class="price" data-price="home">$250</span>
+        <p>Everything above, plus your existing smart-home devices unified into one system your assistant can see and control.</p>
+      </div>
+    </div>
+
+    <h2>What you need</h2>
+    <p>A desktop or laptop you can leave on — Windows, Linux, or a Mac. A dedicated graphics card makes it substantially faster, but is not required for a smaller model. If your hardware genuinely can't do the job well, I'll tell you before you pay, not after.</p>
+
+    <h2>What this is not</h2>
+    <p class="honest">This is not the NOBS iPhone app — that's still in development and isn't part of this service. This is a private AI assistant running on your own machine, set up properly. Local models are capable but not identical to the largest cloud models; I'll be straight with you about where the difference shows and where it doesn't. No subscription, no account, no data collection. When I'm done, it's yours and I'm not in the loop.</p>
+
+    <div class="cta">
+      <h2 style="margin-top:0">Get started</h2>
+      <p id="cta-copy">Tell me what hardware you have and I'll tell you honestly what it can do.</p>
+      <a class="button" id="cta-button" href="https://github.com/acburgess25">Ask about my hardware →</a>
+      <p class="note" id="cta-note">Based in Northwest Arkansas — in person locally, or remotely by screen share.</p>
+    </div>
+  </main>
+
+  <footer>
+    <span>© 2026 Alexander Burgess</span>
+    <span><a href="/">nobsdash.com</a> · <a href="/privacy.html">Privacy</a></span>
+  </footer>
+
+  <script>
+    fetch("/services.json")
+      .then(function (r) { return r.ok ? r.json() : {}; })
+      .then(function (cfg) {
+        var button = document.getElementById("cta-button");
+        var note = document.getElementById("cta-note");
+        var copy = document.getElementById("cta-copy");
+
+        if (cfg.basePrice) document.querySelector('[data-price="base"]').textContent = "$" + cfg.basePrice;
+        if (cfg.homePrice) document.querySelector('[data-price="home"]').textContent = "$" + cfg.homePrice;
+
+        if (cfg.acceptingWork === false) {
+          button.removeAttribute("href");
+          button.textContent = "Currently booked";
+          button.style.opacity = ".6";
+          copy.textContent = "I'm fully booked right now. Check back soon.";
+          return;
+        }
+
+        // Only show a checkout button when there is a real link behind it.
+        if (cfg.paymentLink) {
+          button.href = cfg.paymentLink;
+          button.textContent = "Book a setup →";
+          note.textContent = "Secure checkout through Square. Northwest Arkansas in person, or remotely by screen share.";
+        } else if (cfg.contactEmail) {
+          button.href = "mailto:" + cfg.contactEmail + "?subject=Private%20AI%20server%20setup";
+          button.textContent = "Ask about my hardware →";
+        }
+      })
+      .catch(function () { /* Static fallback already renders; leave it alone. */ });
+  </script>
+</body>
+</html>

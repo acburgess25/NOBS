@@ -239,7 +239,7 @@ export function App() {
           <a className="github-card" href={githubUrl} target="_blank" rel="noreferrer"><GithubLogo weight="fill" /><span><strong>Follow the build on GitHub</strong><small>See the code, roadmap, and latest progress.</small></span><ArrowRight /></a>
         </section>
       </main>
-      <footer><span>© 2026 Alexander Burgess</span><button onClick={() => goTo("vision")}>Back to top ↑</button><span><a href="/privacy.html">Privacy</a> · nobsdash.com</span></footer>
+      <footer><span>© 2026 Alexander Burgess</span><button onClick={() => goTo("vision")}>Back to top ↑</button><span><a href="/work/">Work with me</a> · <a href="/privacy.html">Privacy</a> · nobsdash.com</span></footer>
     </div>
   );
 }
