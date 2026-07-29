@@ -1,13 +1,13 @@
 /* Canonical NOBS tokens — keep in sync with design/tokens.json */
 :root {
-  --ink: #2a3328;
-  --muted: #5f695f;
-  --sage: #9caf88;
-  --sage-dark: #4a5d45;
-  --sage-pale: #eaeee6;
-  --sage-mist: #f2f4f0;
-  --accent: #6e8b62;
+  --ink: #172818;
+  --muted: #657064;
+  --sage: #5d7d4a;
+  --sage-dark: #31562f;
+  --sage-pale: #e8ede2;
+  --sage-mist: #f0f3eb;
+  --accent: #5d7d4a;
   --warning: #c17a3a;
-  --cream: #f5f3ed;
-  --line: rgba(42, 51, 40, 0.08);
+  --cream: #f8f6ef;
+  --line: rgba(23, 40, 24, 0.14);
 }
