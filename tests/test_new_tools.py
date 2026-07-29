@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+import httpx
 import pytest
 
 from app.agent_store import AgentStore
@@ -208,18 +209,33 @@ class TestReadUrl:
     def _allow_host():
         return patch("app.agent_tools.is_public_http_url", return_value=True)
 
+    @staticmethod
+    def _page(body: str = "<html>...</html>", status: int = 200):
+        """Stub the httpx fetch read_url performs itself."""
+        response = httpx.Response(status, text=body, request=httpx.Request("GET", "https://e.com"))
+        client = MagicMock()
+        client.__enter__ = MagicMock(return_value=client)
+        client.__exit__ = MagicMock(return_value=False)
+        client.get.return_value = response
+        return patch("app.agent_tools.httpx.Client", return_value=client)
+
     def test_returns_extracted_content(self) -> None:
         with (
             self._allow_host(),
-            patch("app.agent_tools.trafilatura.fetch_url") as mock_fetch,
+            self._page(),
             patch("app.agent_tools.trafilatura.extract") as mock_extract,
         ):
-            mock_fetch.return_value = "<html>...</html>"
             mock_extract.return_value = "This is the article text."
             result = _registry().execute("read_url", {"url": "https://example.com/article"})
 
         assert result["content"] == "This is the article text."
         assert result["truncated"] is False
+
+    def test_redirects_are_not_followed(self) -> None:
+        """trafilatura.fetch_url would follow a 302 into a private address."""
+        with self._allow_host(), self._page(body="", status=302):
+            result = _registry().execute("read_url", {"url": "https://example.com/r"})
+        assert "redirects" in result["error"]
 
     def test_non_http_url_raises(self) -> None:
         with pytest.raises(ValueError, match="HTTP"):
@@ -229,7 +245,7 @@ class TestReadUrl:
         """The Tank's own API must be unreachable through this tool."""
         with (
             patch("app.agent_tools.is_public_http_url", return_value=False),
-            patch("app.agent_tools.trafilatura.fetch_url") as mock_fetch,
+            patch("app.agent_tools.httpx.Client") as mock_fetch,
         ):
             with pytest.raises(ValueError, match="private network"):
                 _registry().execute(
@@ -237,18 +253,15 @@ class TestReadUrl:
                 )
         mock_fetch.assert_not_called()
 
-    def test_fetch_returns_none_gives_error(self) -> None:
-        with (
-            self._allow_host(),
-            patch("app.agent_tools.trafilatura.fetch_url", return_value=None),
-        ):
+    def test_http_error_gives_error(self) -> None:
+        with self._allow_host(), self._page(body="nope", status=500):
             result = _registry().execute("read_url", {"url": "https://example.com"})
         assert "error" in result
 
     def test_no_extractable_content_gives_error(self) -> None:
         with (
             self._allow_host(),
-            patch("app.agent_tools.trafilatura.fetch_url", return_value="<html/>"),
+            self._page(),
             patch("app.agent_tools.trafilatura.extract", return_value=None),
         ):
             result = _registry().execute("read_url", {"url": "https://example.com"})
@@ -258,7 +271,7 @@ class TestReadUrl:
         big_text = "word " * 5000  # 25k chars
         with (
             self._allow_host(),
-            patch("app.agent_tools.trafilatura.fetch_url", return_value="<html/>"),
+            self._page(),
             patch("app.agent_tools.trafilatura.extract", return_value=big_text),
         ):
             result = _registry().execute("read_url", {"url": "https://example.com"})

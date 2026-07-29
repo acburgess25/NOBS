@@ -13,7 +13,7 @@ import httpx
 from app.agent_store import AgentStore
 from app.agent_tools import ToolRegistry
 from app.config import Settings
-from app.networking import local_lan_ip
+from app.networking import tank_pairing_url
 from app.tank_optimizer import TankOptimizer
 
 
@@ -130,7 +130,7 @@ def _pairing_payload(
     """
     state = pairing_state or {"open": False, "expires_in_seconds": None}
     return {
-        "url": f"http://{local_lan_ip()}:8000",
+        "url": tank_pairing_url(),
         "token_configured": token_configured,
         "pairing_open": bool(state.get("open")),
         "pairing_expires_in_seconds": state.get("expires_in_seconds"),

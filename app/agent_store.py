@@ -175,16 +175,14 @@ class AgentStore:
 
     @classmethod
     def _add_missing_columns(cls, connection: sqlite3.Connection) -> None:
+        tables = {table for table, _, _ in cls._ADDED_COLUMNS}
+        existing = {
+            table: {row["name"] for row in connection.execute(f"PRAGMA table_info({table})")}
+            for table in tables
+        }
         for table, column, declaration in cls._ADDED_COLUMNS:
-            existing = {
-                row["name"]
-                for row in connection.execute(f"PRAGMA table_info({table})").fetchall()
-            }
-            if not existing:
-                continue  # Table absent entirely; the schema script owns it.
-            if column in existing:
-                continue
-            connection.execute(f"ALTER TABLE {table} ADD COLUMN {column} {declaration}")
+            if column not in existing[table]:
+                connection.execute(f"ALTER TABLE {table} ADD COLUMN {column} {declaration}")
         connection.commit()
 
     def create_run(self, objective: str, context: str) -> str:
@@ -540,19 +538,11 @@ class AgentStore:
 
     def list_calendar_events(self) -> list[dict[str, Any]]:
         with self._lock:
-            rows = self._connect().execute("SELECT * FROM calendar_events").fetchall()
-        return [
-            {
-                "id": row["id"],
-                "title": row["title"],
-                "start": row["start"],
-                "end": row["end_time"],
-                "location": row["location"],
-                "context": row["context"],
-                "created_at": row["created_at"],
-            }
-            for row in rows
-        ]
+            rows = self._connect().execute(
+                'SELECT id, title, start, end_time AS "end", location, context, created_at '
+                "FROM calendar_events"
+            ).fetchall()
+        return [dict(row) for row in rows]
 
     def sync_reminders(self, reminders: list[dict[str, str]]) -> None:
         created_at = _now()
@@ -575,17 +565,10 @@ class AgentStore:
 
     def list_reminders(self) -> list[dict[str, Any]]:
         with self._lock:
-            rows = self._connect().execute("SELECT * FROM reminders").fetchall()
-        return [
-            {
-                "id": row["id"],
-                "title": row["title"],
-                "due": row["due_at"],
-                "context": row["context"],
-                "created_at": row["created_at"],
-            }
-            for row in rows
-        ]
+            rows = self._connect().execute(
+                'SELECT id, title, due_at AS "due", context, created_at FROM reminders'
+            ).fetchall()
+        return [dict(row) for row in rows]
 
     @staticmethod
     def _proposal_dict(row: sqlite3.Row) -> dict[str, Any]:

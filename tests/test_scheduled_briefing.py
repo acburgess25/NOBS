@@ -66,7 +66,7 @@ def test_seven_am_chicago_schedule_does_not_fire_at_seven_utc() -> None:
     seven_utc = datetime(2026, 7, 4, 7, 0, tzinfo=UTC)
 
     assert local_hhmm(settings, seven_utc) == "02:00"
-    assert due_schedules([_schedule("07:00")], settings, seven_utc) == []
+    assert due_schedules([_schedule("07:00")], local_hhmm(settings, seven_utc)) == []
 
 
 def test_seven_am_chicago_schedule_fires_at_noon_utc() -> None:
@@ -74,7 +74,7 @@ def test_seven_am_chicago_schedule_fires_at_noon_utc() -> None:
     noon_utc = datetime(2026, 7, 4, 12, 0, tzinfo=UTC)
 
     assert local_hhmm(settings, noon_utc) == "07:00"
-    assert [s["id"] for s in due_schedules([_schedule("07:00")], settings, noon_utc)] == ["s1"]
+    assert [s["id"] for s in due_schedules([_schedule("07:00")], local_hhmm(settings, noon_utc))] == ["s1"]
 
 
 def test_utc_timezone_is_unchanged() -> None:
@@ -82,7 +82,7 @@ def test_utc_timezone_is_unchanged() -> None:
     settings = _settings(timezone="UTC")
     seven_utc = datetime(2026, 7, 4, 7, 0, tzinfo=UTC)
 
-    assert due_schedules([_schedule("07:00")], settings, seven_utc)
+    assert due_schedules([_schedule("07:00")], local_hhmm(settings, seven_utc))
 
 
 def test_unrecognized_timezone_falls_back_to_utc() -> None:
@@ -105,7 +105,9 @@ def test_multiple_schedules_on_the_same_minute_are_reported_together() -> None:
     settings = _settings(timezone="UTC")
     now = datetime(2026, 7, 4, 7, 0, tzinfo=UTC)
 
-    due = due_schedules([_schedule("07:00", "a"), _schedule("07:00", "b")], settings, now)
+    due = due_schedules(
+        [_schedule("07:00", "a"), _schedule("07:00", "b")], local_hhmm(settings, now)
+    )
 
     # The loop generates one briefing for the whole set rather than one per
     # schedule, so both appear in a single decision.

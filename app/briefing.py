@@ -34,19 +34,15 @@ _BRIEFING_SYSTEM_PROMPT = (
 
 
 class BriefingError(RuntimeError):
-    """The briefing could not be produced."""
+    """The briefing could not be produced because the model failed it."""
 
 
 class BriefingModelUnavailable(BriefingError):
-    """Ollama could not be reached."""
+    """Ollama could not be reached at all.
 
-
-class BriefingModelFailed(BriefingError):
-    """Ollama answered with an error status."""
-
-
-class BriefingModelInvalid(BriefingError):
-    """Ollama answered with something that is not a briefing."""
+    Separate from `BriefingError` only because callers distinguish "come back
+    later" from "the model answered badly" -- 503 versus 502.
+    """
 
 
 class PrivacyReceipt(BaseModel):
@@ -136,23 +132,18 @@ async def generate_briefing(
     except (httpx.TimeoutException, httpx.ConnectError) as error:
         raise BriefingModelUnavailable("Tank model is unavailable") from error
     except httpx.HTTPStatusError as error:
-        raise BriefingModelFailed("Tank model returned an error") from error
+        raise BriefingError("Tank model returned an error") from error
 
     try:
         model_content = OllamaResponse.model_validate_json(response.content).message.content
         sections = BriefingSections.model_validate_json(model_content)
     except ValueError as error:
-        raise BriefingModelInvalid("Tank model returned an invalid briefing") from error
+        raise BriefingError("Tank model returned an invalid briefing") from error
 
-    sections = merge_briefing_with_heuristics(request, sections)
+    sections = _merge_briefing_with_heuristics(request, sections)
     return BriefingResponse(
         date=request.date,
-        topline=sections.topline,
-        priorities=sections.priorities,
-        conflicts_or_risks=sections.conflicts_or_risks,
-        recommended_plan=sections.recommended_plan,
-        one_useful_question=sections.one_useful_question,
-        suggested_next_actions=sections.suggested_next_actions,
+        **sections.model_dump(),
         generated_at=datetime.now(UTC),
         route="Tank",
         privacy_receipt=PrivacyReceipt(
@@ -373,7 +364,7 @@ def _fallback_next_actions(request: BriefingRequest, risks: list[str]) -> list[s
     return _dedupe(actions)[:4]
 
 
-def merge_briefing_with_heuristics(
+def _merge_briefing_with_heuristics(
     request: BriefingRequest, sections: BriefingSections
 ) -> BriefingSections:
     """Add deterministic conflict detection on top of what the model returned.

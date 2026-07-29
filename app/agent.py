@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 from typing import Any, Literal
 
@@ -132,7 +133,12 @@ class TankAgent:
                     result = {"error": "Unknown or unavailable tool"}
                 elif tool.risk is ToolRisk.READ_ONLY:
                     try:
-                        result = self.tools.execute(tool.name, call.function.arguments)
+                        # Tool handlers are synchronous and several perform network
+                        # I/O, so running them inline would block the event loop
+                        # for the whole Tank.
+                        result = await asyncio.to_thread(
+                            self.tools.execute, tool.name, call.function.arguments
+                        )
                     except (OSError, ValueError) as error:
                         result = {"error": str(error)}
                     self.store.record_event(
@@ -142,6 +148,33 @@ class TankAgent:
                     )
                     tool_results.append({"tool": tool.name, "result": result})
                 else:
+                    try:
+                        # Check the arguments before queueing anything. Otherwise a
+                        # call the tool would refuse still becomes a pending
+                        # approval, and the user is asked to authorize something
+                        # that cannot run. Reporting the error here also lets the
+                        # model correct itself within the same run.
+                        self.tools.validate(tool.name, call.function.arguments)
+                    except ValueError as error:
+                        result = {"error": str(error)}
+                        self.store.record_event(
+                            run_id,
+                            "tool_refused",
+                            {
+                                "tool": tool.name,
+                                "risk": tool.risk,
+                                "arguments": call.function.arguments,
+                                "error": str(error),
+                            },
+                        )
+                        messages.append(
+                            {
+                                "role": "tool",
+                                "tool_name": call.function.name,
+                                "content": json.dumps(result),
+                            }
+                        )
+                        continue
                     approval = self.store.create_approval(
                         run_id=run_id,
                         tool_name=tool.name,

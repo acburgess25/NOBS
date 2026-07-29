@@ -1,6 +1,7 @@
 import asyncio
+from functools import lru_cache
 import logging
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -13,8 +14,9 @@ from app.agent_tools import ToolRegistry
 from app.briefing import (
     BriefingCalendarItem,
     BriefingError,
-    BriefingRequest,
     BriefingReminderItem,
+    BriefingRequest,
+    _time_to_minutes,
     generate_briefing,
 )
 from app.config import Settings
@@ -61,7 +63,7 @@ async def run_scheduler(
 
             if current_time != last_triggered_minute:
                 schedules = store.list_briefing_schedules(status="active")
-                due = due_schedules(schedules, settings, now)
+                due = due_schedules(schedules, current_time)
                 if due:
                     logger.info(
                         "Triggering briefing schedule(s) %s for %s local",
@@ -119,37 +121,41 @@ async def run_scheduler(
         await asyncio.sleep(15)
 
 
+def local_now(settings: Settings, now_utc: datetime) -> datetime:
+    """`now_utc` in the user's configured timezone."""
+    return now_utc.astimezone(_resolve_timezone(settings.timezone))
+
+
 def local_hhmm(settings: Settings, now_utc: datetime) -> str:
-    """`now_utc` as HH:MM in the user's configured timezone."""
-    return now_utc.astimezone(_resolve_timezone(settings.timezone)).strftime("%H:%M")
+    return local_now(settings, now_utc).strftime("%H:%M")
 
 
-def local_today(settings: Settings, now_utc: datetime):
+def local_today(settings: Settings, now_utc: datetime) -> date:
     """The user's current local date.
 
     Not the UTC date: at 23:30 in Chicago the UTC date is already tomorrow, which
     would file the briefing under the wrong day.
     """
-    return now_utc.astimezone(_resolve_timezone(settings.timezone)).date()
+    return local_now(settings, now_utc).date()
 
 
 def due_schedules(
     schedules: list[dict[str, Any]],
-    settings: Settings,
-    now_utc: datetime,
+    current_hhmm: str,
 ) -> list[dict[str, Any]]:
-    """Schedules whose local wall-clock time matches now.
+    """Schedules whose local wall-clock time matches `current_hhmm`.
 
     Schedules are created as local times -- "07:00" means 07:00 where the user
-    lives -- so this comparison must happen in the configured timezone. Matching
-    against UTC fired a 7am briefing at 1am or 2am local for anyone west of
-    Greenwich, which broke the product's anchor feature.
+    lives -- so the caller must pass a local time (see `local_hhmm`). Matching
+    against UTC fired a 7am briefing at 2am local for a user in Chicago, which
+    broke the product's anchor feature.
     """
-    current = local_hhmm(settings, now_utc)
-    return [schedule for schedule in schedules if schedule["time_of_day"] == current]
+    return [schedule for schedule in schedules if schedule["time_of_day"] == current_hhmm]
 
 
+@lru_cache(maxsize=8)
 def _resolve_timezone(name: str) -> ZoneInfo:
+    """Cached so an invalid NOBS_TIMEZONE warns once, not on every tick."""
     try:
         return ZoneInfo(name or "UTC")
     except (ZoneInfoNotFoundError, ValueError):
@@ -157,29 +163,19 @@ def _resolve_timezone(name: str) -> ZoneInfo:
         return ZoneInfo("UTC")
 
 
-def _parse_hhmm(value: str) -> tuple[int, int] | None:
-    try:
-        hour_text, minute_text = value.strip().split(":", 1)
-        hour, minute = int(hour_text), int(minute_text)
-    except (ValueError, AttributeError):
-        return None
-    if 0 <= hour <= 23 and 0 <= minute <= 59:
-        return hour, minute
-    return None
-
-
 def is_overnight_window(settings: Settings, now_utc: datetime) -> bool:
     """Return True when `now_utc`, converted to the configured timezone, falls
     inside the configured overnight window. The window may wrap past midnight
     (e.g. 23:00 -> 06:00)."""
-    tz = _resolve_timezone(settings.timezone)
-    local_now = now_utc.astimezone(tz)
-    now_minutes = local_now.hour * 60 + local_now.minute
+    here = local_now(settings, now_utc)
+    now_minutes = here.hour * 60 + here.minute
 
-    start = _parse_hhmm(settings.overnight_window_start) or (23, 0)
-    end = _parse_hhmm(settings.overnight_window_end) or (6, 0)
-    start_minutes = start[0] * 60 + start[1]
-    end_minutes = end[0] * 60 + end[1]
+    start_minutes = _time_to_minutes(settings.overnight_window_start)
+    end_minutes = _time_to_minutes(settings.overnight_window_end)
+    if start_minutes is None:
+        start_minutes = 23 * 60
+    if end_minutes is None:
+        end_minutes = 6 * 60
 
     if start_minutes == end_minutes:
         return False

@@ -26,12 +26,12 @@ from app.agent_tools import ToolRegistry
 from app.bonjour import TankBonjourAdvertisement
 from app.briefing import (
     BriefingCalendarItem,
-    BriefingModelFailed,
-    BriefingModelInvalid,
+    BriefingError,
     BriefingModelUnavailable,
     BriefingReminderItem,
     BriefingRequest,
     BriefingResponse,
+    OllamaResponse,
     PrivacyReceipt,
     generate_briefing,
 )
@@ -45,7 +45,7 @@ from app.workplace import (
     parse_allowed_domains,
 )
 from app.home_assistant import HomeAssistantClient
-from app.networking import local_lan_ip
+from app.networking import tank_pairing_url
 from app.pairing import PairingWindow, is_loopback_client
 from app.scheduler import run_scheduler
 from app.tank_optimizer import (
@@ -69,14 +69,6 @@ class ChatResponse(BaseModel):
     message: str
     route: str
     privacy_receipt: PrivacyReceipt
-
-
-class OllamaMessage(BaseModel):
-    content: str
-
-
-class OllamaResponse(BaseModel):
-    message: OllamaMessage
 
 
 class ProposalView(BaseModel):
@@ -451,8 +443,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             require_local_request(request)
         await require_device_token(authorization)
 
-    def pairing_secret(pairing: PairingWindow) -> PairingSecretView:
+    def pairing_secret() -> PairingSecretView:
         store: AgentStore = app.state.agent_store
+        pairing: PairingWindow = app.state.pairing_window
         token = resolve_device_token(store)
         if not token:
             raise HTTPException(
@@ -460,7 +453,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                 detail="Tank device authentication is not configured",
             )
         return PairingSecretView(
-            url=f"http://{local_lan_ip()}:8000",
+            url=tank_pairing_url(),
             token=token,
             **pairing.state(),
         )
@@ -473,7 +466,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         summary="Read the device token for display on the Tank",
     )
     async def dashboard_pairing() -> PairingSecretView:
-        return pairing_secret(app.state.pairing_window)
+        return pairing_secret()
 
     @app.post(
         "/dashboard/pairing/open",
@@ -483,9 +476,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         summary="Open a time-boxed window allowing one new device to pair",
     )
     async def open_pairing_window() -> PairingSecretView:
-        pairing: PairingWindow = app.state.pairing_window
-        pairing.open()
-        return pairing_secret(pairing)
+        app.state.pairing_window.open()
+        return pairing_secret()
 
     @app.post(
         "/dashboard/pairing/close",
@@ -495,7 +487,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     async def close_pairing_window() -> PairingStateView:
         pairing: PairingWindow = app.state.pairing_window
-        return PairingStateView.model_validate(pairing.close())
+        pairing.close()
+        return PairingStateView.model_validate(pairing.state())
 
     @app.post("/optimizer/run-now", tags=["operations"], dependencies=[Depends(require_device_token)])
     async def optimizer_run_now(
@@ -681,7 +674,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             )
         except BriefingModelUnavailable as error:
             raise HTTPException(status_code=503, detail=str(error)) from error
-        except (BriefingModelFailed, BriefingModelInvalid) as error:
+        except BriefingError as error:
             raise HTTPException(status_code=502, detail=str(error)) from error
 
         app.state.agent_store.save_briefing(

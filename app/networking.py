@@ -53,3 +53,12 @@ def local_lan_ip() -> str:
         return "127.0.0.1"
     finally:
         probe.close()
+
+
+def tank_pairing_url() -> str:
+    """The address a phone pairs against.
+
+    One definition so the kiosk QR and the status payload can never advertise
+    different addresses for the same Tank.
+    """
+    return f"http://{local_lan_ip()}:8000"

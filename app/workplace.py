@@ -162,12 +162,15 @@ class BrowserSandbox:
         return session
 
     def _is_url_allowed(self, url: str) -> bool:
-        if not is_public_http_url(url):
-            return False
+        # Allowlist first: it is pure string work, so a URL that is not on the
+        # list never pays for a DNS resolution.
         host = (urlparse(url.strip()).hostname or "").lower()
-        if host in self.allowed_domains:
-            return True
-        return any(host == domain or host.endswith(f".{domain}") for domain in self.allowed_domains)
+        if not host:
+            return False
+        on_allowlist = any(
+            host == domain or host.endswith(f".{domain}") for domain in self.allowed_domains
+        )
+        return on_allowlist and is_public_http_url(url)
 
     async def _fetch_title(self, url: str) -> str:
         try:

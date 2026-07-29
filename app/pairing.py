@@ -43,13 +43,11 @@ class PairingWindow:
         self.ttl_seconds = ttl_seconds
         self._expires_at: float | None = None
 
-    def open(self) -> dict[str, object]:
+    def open(self) -> None:
         self._expires_at = time.monotonic() + self.ttl_seconds
-        return self.state()
 
-    def close(self) -> dict[str, object]:
+    def close(self) -> None:
         self._expires_at = None
-        return self.state()
 
     def is_open(self) -> bool:
         if self._expires_at is None:
@@ -61,15 +59,10 @@ class PairingWindow:
             return False
         return True
 
-    def expires_in_seconds(self) -> int | None:
-        if not self.is_open():
-            return None
-        assert self._expires_at is not None
-        return max(0, round(self._expires_at - time.monotonic()))
-
     def state(self) -> dict[str, object]:
+        remaining = round(self._expires_at - time.monotonic()) if self.is_open() else None
         return {
-            "open": self.is_open(),
-            "expires_in_seconds": self.expires_in_seconds(),
+            "open": remaining is not None,
+            "expires_in_seconds": remaining,
             "ttl_seconds": self.ttl_seconds,
         }

@@ -156,7 +156,7 @@ def test_window_expires(monkeypatch) -> None:
 
     clock["now"] += 2
     assert window.is_open() is False
-    assert window.expires_in_seconds() is None
+    assert window.state()["expires_in_seconds"] is None
 
 
 # ------------------------------------------------------------------ #

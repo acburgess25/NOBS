@@ -92,11 +92,11 @@ def test_control_home_device_separates_security_risk(tmp_path: Path) -> None:
     tools = ToolRegistry(tmp_path, home_assistant=client)
 
     # Standard tool should reject secure devices (lock/alarm/cover)
-    with pytest.raises(ValueError, match="not permitted to control secure devices"):
+    with pytest.raises(ValueError, match="must go through control_secure_home_device"):
         tools.execute("control_home_device", {"entity_id": "lock.front_door", "service": "unlock"})
 
     # Secure tool should reject standard devices (light/switch/climate)
-    with pytest.raises(ValueError, match="only permitted to control secure devices"):
+    with pytest.raises(ValueError, match="must go through control_home_device"):
         tools.execute(
             "control_secure_home_device", {"entity_id": "light.kitchen", "service": "turn_on"}
         )
