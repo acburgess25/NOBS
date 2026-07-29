@@ -112,6 +112,13 @@ final class AppModel: ObservableObject {
     func start() async {
         profile = profileStore.load()
         routingPreferences = routingPreferencesStore.load()
+#if DEBUG
+        if let previewSection = ProcessInfo.processInfo.environment["NOBS_PREVIEW_SECTION"],
+           let section = AppSection.allCases.first(where: { $0.rawValue.lowercased() == previewSection.lowercased() })
+        {
+            self.section = section
+        }
+#endif
         refreshPCCQuotaStatus()
         if briefing == nil, let cached: DailyBriefing = try? AppGroupStore.readJSON(DailyBriefing.self, from: AppGroupStore.latestBriefingFile) {
             briefing = cached
@@ -192,10 +199,22 @@ final class AppModel: ObservableObject {
 
     func signInWithApple(userIdentifier: String, identityToken: String?) async {
         isSigningIn = true
-        tankConnectStatus = "Connecting to Tank…"
+        tankConnectStatus = "Finding your Tank…"
         defer { isSigningIn = false }
 
         TankConfiguration.saveAppleUserID(userIdentifier)
+
+        if TankConfiguration.currentURL?.host != "api.nobsdash.com" {
+            do {
+                let discoveredURL = try await TankDiscovery().findFirstTank()
+                tankAddress = discoveredURL.absoluteString
+                TankConfiguration.saveAddress(tankAddress)
+            } catch {
+                tankConnectStatus = "Couldn’t find Tank automatically."
+                lastError = "NOBS couldn’t find your Tank nearby. Check that Tank is on, then try again."
+                return
+            }
+        }
 
         guard prepareTankAddressForAuth() else { return }
 

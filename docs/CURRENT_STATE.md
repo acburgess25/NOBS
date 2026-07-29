@@ -27,6 +27,10 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 - Configurable Tank address, KeychainAccess-backed device token storage, and
   shared app-root model ownership so onboarding, sign-in, and privacy flows
   stay in sync.
+- Tank pairing now uses Bonjour discovery: Tank advertises `_nobs._tcp` without
+  exposing a token, and the iPhone finds it before Sign in with Apple exchanges
+  its device credential. Manual address and QR entry remain advanced recovery
+  paths rather than the normal setup flow.
 - Authenticated Tank chat with visible Local/Tank/Apple Cloud routing and privacy receipts via `ModelRouter`.
 - Policy-driven chat routing: Tank when home; conversational Tank-offline preferences (`stay local`, `use apple cloud`, `wait for tank`, `use nobscloud`); Apple Cloud (PCC) and NOBScloud paths behind feature flags.
 - `AppleModelProvider` wraps Foundation Models on-device + `PrivateCloudComputeLanguageModel` (iOS 27+); honesty gate hides Apple Cloud badge until entitlement QA (`PCCFeatureFlags`).
