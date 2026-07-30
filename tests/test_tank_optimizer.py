@@ -36,14 +36,15 @@ def test_optimizer_idle_requires_quiet_api_and_low_cpu() -> None:
 
 
 def test_record_api_activity_ignores_health_and_dashboard() -> None:
-    optimizer = TankOptimizer(Settings())
-    before = optimizer._last_api_activity
-    optimizer.record_api_activity("/health")
-    optimizer.record_api_activity("/dashboard/status")
-    optimizer.record_api_activity("/optimizer/status")
-    assert optimizer._last_api_activity == before
-    optimizer.record_api_activity("/chat")
-    assert optimizer._last_api_activity > before
+    with patch("app.tank_optimizer.time.monotonic", side_effect=[100.0, 100.0, 101.0]):
+        optimizer = TankOptimizer(Settings())
+        before = optimizer._last_api_activity
+        optimizer.record_api_activity("/health")
+        optimizer.record_api_activity("/dashboard/status")
+        optimizer.record_api_activity("/optimizer/status")
+        assert optimizer._last_api_activity == before
+        optimizer.record_api_activity("/chat")
+        assert optimizer._last_api_activity > before
 
 
 def test_optimizer_status_payload() -> None:
