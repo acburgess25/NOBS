@@ -4,5 +4,5 @@
   "donateMonthly": "",
   "supportInApp": true,
   "cardProcessor": "square",
-  "_comment": "githubSponsors is empty on purpose: github.com/sponsors/acburgess25 is a plain profile page with no sponsor button (verified 2026-07-31), so showing it would be a dead link. Paste the URL back only after github.com/settings/sponsorship enrollment is complete and the profile page actually shows a Sponsor button. donateOneTime is the live Square Payment Link. Add donateMonthly when a recurring Square link exists. cardProcessor drives website labels. In-app digital goods stay on Apple IAP only."
+  "_comment": "githubSponsors is empty on purpose: github.com/sponsors/acburgess25 is a plain profile page with no sponsor button (verified 2026-07-31), so showing it would be a dead link. Paste the URL back only after enrolling via GitHub's Your sponsors page (github.com/sponsors/accounts) and the profile page actually shows a Sponsor button. donateOneTime is the live Square Payment Link. Add donateMonthly when a recurring Square link exists. cardProcessor drives website labels. In-app digital goods stay on Apple IAP only."
 }

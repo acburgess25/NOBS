@@ -139,13 +139,13 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 - mDNS (`tank.local`) may not resolve on every LAN; clients can use the Tank host IP directly (for example `http://192.168.1.100:8000`).
 - Physical iPhone validation and TestFlight upload remain pending (simulator build verified; archive requires home signing). See [`docs/CI_TROUBLESHOOTING.md`](CI_TROUBLESHOOTING.md) for current CI failure modes.
 - Website one-time Square Payment Link is live in `website/public/support.json` (`donateOneTime`); a recurring `donateMonthly` link still needs to be created in the Square Dashboard and pasted in.
-- GitHub Sponsors is **not** enabled — `github.com/sponsors/acburgess25` is a plain profile page with no Sponsor button (verified July 31, 2026). `support.json` intentionally leaves `githubSponsors` empty and the website hides that CTA rather than show a dead link. Re-add the URL only after enrolling at `github.com/settings/sponsorship` and confirming the profile page shows an actual Sponsor button.
+- GitHub Sponsors is **not** enabled — `github.com/sponsors/acburgess25` is a plain profile page with no Sponsor button (verified July 31, 2026). `support.json` intentionally leaves `githubSponsors` empty and the website hides that CTA rather than show a dead link. Re-add the URL only after enrolling via GitHub → **Your sponsors** (`github.com/sponsors/accounts`) and confirming the profile page shows an actual Sponsor button.
 
 ## Recommended next vertical slice
 
 **Get money into a stranger’s hands and verify the paid fallback on device** (see [`MONETIZATION_AND_GROWTH.md`](MONETIZATION_AND_GROWTH.md)):
 
-1. Web: create a recurring Square Payment Link and paste into `website/public/support.json` (`donateMonthly`); enroll in GitHub Sponsors at `github.com/settings/sponsorship`, confirm the profile page shows a Sponsor button, then paste the URL back into `githubSponsors`.
+1. Web: create a recurring Square Payment Link and paste into `website/public/support.json` (`donateMonthly`); enroll in GitHub Sponsors via **Your sponsors** (`github.com/sponsors/accounts`), confirm the profile page shows a Sponsor button, then paste the URL back into `githubSponsors`.
 2. App Store Connect: Paid Apps agreement, tax/banking, and IAP product IDs ([`APP_STORE_IAP_SETUP.md`](APP_STORE_IAP_SETUP.md)).
 3. Fix distribution signing for app + widget; archive with `./scripts/stage-testflight-ipa.sh`.
 4. After PCC entitlement QA, enable `NOBSPCC*` Info.plist flags so subscribed Tank-offline users get Apple Cloud fallback ([`PCC_ENTITLEMENT_CHECKLIST.md`](PCC_ENTITLEMENT_CHECKLIST.md)).
