@@ -44,8 +44,8 @@ Paid layers sit **above** that floor.
 |-------|--------|-------------------|
 | iPhone app (chat, Today, widget, Tank optional) | Simulator-verified prototype | Can delight early users once TestFlight ships |
 | StoreKit tip jar + NOBScloud monthly | Code + local StoreKit config ready | Needs Paid Apps agreement + ASC products + live build |
-| Website `nobsdash.com` | Live | Can take Square Payment Links / Sponsors today |
-| GitHub Sponsors | URL wired (`acburgess25`); listing may still need enabling | Usable once Sponsors is activated |
+| Website `nobsdash.com` | Live | Can take Square Payment Links today; Sponsors CTA hidden until enrolled |
+| GitHub Sponsors | **Not enabled** — `github.com/sponsors/acburgess25` is a plain profile with no Sponsor button (verified July 31, 2026); CTA hidden on site/README until enrolled | Needs enrollment at `github.com/settings/sponsorship` |
 | Square / card Payment Links | Empty in `support.json` (`cardProcessor: square`) | Fastest card checkout for web |
 | Stripe Payment Links | Optional alternative | Helper script still available |
 | NOBScloud backend entitlements | On-device StoreKit only; PCC paid fallback coded | Do not claim hosted NOBScloud servers yet |
@@ -61,7 +61,7 @@ Goal: open every cash path that does not depend on shipping unfinished cloud fea
 
 ### 0A. Web support (same day)
 
-1. Confirm GitHub Sponsors is active and linked from the site (`website/public/support.json` → `githubSponsors`).
+1. Enroll in GitHub Sponsors at `github.com/settings/sponsorship`. It is not active today — the profile page has no Sponsor button — so `support.json` leaves `githubSponsors` empty and the site hides that CTA. Paste the URL back into `githubSponsors` only after the profile page shows a working Sponsor button.
 2. Create **Square** Payment Links for one-time tip and optional monthly support (Square Dashboard → Payment Links).
 3. Fill `donateOneTime` / `donateMonthly` in `support.json` (`cardProcessor` already `"square"`), rebuild and deploy the site.
 4. Put a single clear CTA on the homepage and README: **Support the free local core** → Sponsors / tip / (soon) in-app Support.
@@ -212,8 +212,9 @@ Until then: Mac NOBSTank + DIY Ubuntu Tank are the proof that local NOBS works w
 
 ### Today / this week (home + ops)
 
-- [ ] Square Payment Links → `support.json` → deploy site
-- [ ] Confirm Sponsors CTA visible on site and README
+- [x] Square one-time Payment Link → `support.json` → deploy site (`donateOneTime` live)
+- [ ] Square monthly Payment Link → `support.json` (`donateMonthly` still empty)
+- [ ] Enroll in GitHub Sponsors (`github.com/settings/sponsorship`); currently not enabled, so the CTA stays hidden on site and README
 - [ ] Paid Apps + tax/banking in App Store Connect
 - [ ] Create IAP product IDs; sandbox test Support screen
 - [ ] Fix App ID capabilities; upload TestFlight build
