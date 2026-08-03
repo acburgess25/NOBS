@@ -23,7 +23,7 @@ Tips do not unlock features. NOBScloud subscription unlocks Apple private cloud 
 
 ## Website and GitHub (optional)
 
-- **GitHub Sponsors** — `.github/FUNDING.yml` and `website/public/support.json` (enable the listing at github.com/sponsors/YOUR_HANDLE; until active the URL may redirect to your profile).
+- **GitHub Sponsors** — `.github/FUNDING.yml` and `website/public/support.json` (enable the listing at github.com/sponsors/YOUR_HANDLE; until active the URL may redirect to your profile). Keep the `github:` key in `FUNDING.yml` commented out while `githubSponsors` is empty in `support.json` — a populated `FUNDING.yml` makes GitHub render a native "Sponsor" button on the repo page, so an unenrolled handle there is the same dead-link problem as showing it on the website.
 - **Square Payment Links** — preferred web card tips for NOBS today; not used for in-app digital goods (App Store rules). Create links in the Square Dashboard → Payment Links, then paste into `support.json`.
 - **Stripe Payment Links** — still supported if you prefer; helper: `scripts/setup_stripe_support_links.py`. Set `"cardProcessor": "stripe"` so the site labels match.
 

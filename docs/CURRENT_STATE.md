@@ -139,6 +139,7 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 - mDNS (`tank.local`) may not resolve on every LAN; clients can use the Tank host IP directly (for example `http://192.168.1.100:8000`).
 - Physical iPhone validation and TestFlight upload remain pending (simulator build verified; archive requires home signing). See [`docs/CI_TROUBLESHOOTING.md`](CI_TROUBLESHOOTING.md) for current CI failure modes.
 - Website Square Payment Links in `website/public/support.json` are still empty until the owner pastes live Square Dashboard Payment Link URLs. GitHub Sponsors CTA is wired; enable the Sponsors listing if the URL still redirects to the profile.
+- `.github/FUNDING.yml` intentionally leaves the `github:` key commented out: GitHub renders a native "Sponsor" button on the repo page from that file regardless of the website CTA, and `github.com/sponsors/acburgess25` is still a plain profile with no Sponsor button (not enrolled). Re-add `github: acburgess25` only once enrollment is confirmed, at the same time `githubSponsors` is re-added to `website/public/support.json`.
 
 ## Recommended next vertical slice
 
