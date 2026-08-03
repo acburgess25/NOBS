@@ -22,7 +22,7 @@ The in-app Support screen, when App Store Connect products weren't loaded yet, w
 The device token that authenticates every request to Tank — chat, agent tools, approvals, all of it — was showing up in places it shouldn't: an unauthenticated dashboard status endpoint, and a pairing flow that would accept the wrong kind of Apple ID and hand the token back. Both are closed now. The dashboard status endpoint tells you the Tank address and whether a token is configured — nothing more — and the token itself only comes back through a pairing endpoint that checks who's asking first. This is the kind of fix that doesn't come with a screenshot, but it's exactly the kind of thing "local-first" has to mean in practice, not just in a pitch.
 
 **4. The website stopped looking like a placeholder.**
-Rebuilt nobsdash.com around a calmer full-viewport hero, warmer cream/sage color washes, and a real tip CTA using Square Payment Links (no Stripe account needed to get that live). It's hosted straight off `main` via GitHub Pages now instead of a separate deploy step, so the site and the code can't drift out of sync.
+Rebuilt nobsdash.com around a calmer full-viewport hero, warmer cream/sage color washes, and a tip CTA wired up for Square Payment Links (no Stripe account needed once the links go live). It's hosted straight off `main` via GitHub Pages now instead of a separate deploy step, so the site and the code can't drift out of sync.
 
 **What's still not true:** TestFlight isn't public yet — that's still the single biggest unlock (App Store Connect signing + tax/banking are the remaining blockers, not code). Long-term Memory, unified smart-home control, and hosted NOBScloud servers are all still "coming soon," not "coming."
 
