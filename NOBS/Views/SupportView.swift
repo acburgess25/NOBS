@@ -36,6 +36,11 @@ struct SupportView: View {
     @ViewBuilder
     private var emptyState: some View {
         VStack(alignment: .leading, spacing: 8) {
+            if store.hasNOBScloud {
+                Text("NOBScloud is active — thank you. Support options are still loading.")
+                    .font(.footnote)
+                    .foregroundStyle(accent)
+            }
             if store.loadFailed {
                 Text("Couldn't load support options from the App Store right now. This may be a connection issue or a temporary App Store problem.")
                     .font(.footnote)

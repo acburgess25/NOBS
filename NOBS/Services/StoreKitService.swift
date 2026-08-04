@@ -21,6 +21,11 @@ final class StoreKitService: ObservableObject {
 
     init() {
         updatesTask = Task { [weak self] in
+            // Check entitlements from the local transaction cache immediately
+            // so a paying NOBScloud subscriber gets their entitlement (and the
+            // Apple PCC fallback it unlocks) from app launch, not only after
+            // they happen to open Privacy → Support NOBS in that session.
+            await self?.updateEntitlements()
             await self?.listenForTransactions()
         }
     }
