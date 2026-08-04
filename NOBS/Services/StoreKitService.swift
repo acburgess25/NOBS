@@ -18,20 +18,26 @@ final class StoreKitService: ObservableObject {
     @Published var purchaseState: PurchaseState = .idle
 
     private var updatesTask: Task<Void, Never>?
+    private var entitlementsTask: Task<Void, Never>?
 
     init() {
+        // Start the long-running listener immediately so no StoreKit lifecycle
+        // update (renewal, refund, Ask-to-Buy) delivered during launch is missed.
         updatesTask = Task { [weak self] in
-            // Check entitlements from the local transaction cache immediately
-            // so a paying NOBScloud subscriber gets their entitlement (and the
-            // Apple PCC fallback it unlocks) from app launch, not only after
-            // they happen to open Privacy → Support NOBS in that session.
-            await self?.updateEntitlements()
             await self?.listenForTransactions()
+        }
+        // Snapshot entitlements from the local transaction cache concurrently,
+        // so a paying NOBScloud subscriber gets their entitlement (and the
+        // Apple PCC fallback it unlocks) from app launch, not only after they
+        // happen to open Privacy → Support NOBS in that session.
+        entitlementsTask = Task { [weak self] in
+            await self?.updateEntitlements()
         }
     }
 
     deinit {
         updatesTask?.cancel()
+        entitlementsTask?.cancel()
     }
 
     func refresh() async {
