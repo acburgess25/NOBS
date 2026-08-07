@@ -62,7 +62,7 @@ Templates live in [`docs/app-store/`](app-store/).
 | **Marketing URL** | `https://nobsdash.com` | |
 | **Copyright** | © 2026 Alexander Burgess | |
 | **Age rating** | 4+ expected | No unrestricted web, no gambling |
-| **App Privacy questionnaire** | See `privacy-nutrition.md` | Calendar, Reminders, Device ID (SIWA), optional local network |
+| **App Privacy questionnaire** | See `privacy-nutrition.md` | Calendar, Reminders, Device ID (SIWA), optional local network, StoreKit purchase history, optional Apple Private Cloud Compute (paid NOBScloud fallback) |
 
 ### In-app purchases (optional for beta)
 - [ ] Create products matching `NOBS/NOBS.storekit` and `StoreProducts.swift`:

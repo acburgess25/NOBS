@@ -18,6 +18,7 @@ Complete these steps in App Store Connect and the Apple Developer portal before 
   ```
 - Set `NOBSPCCRoutingEnabled` to `YES` in the NOBS target Info.plist only after TestFlight validation on a physical Apple Intelligence device.
 - Set `NOBSPCCEntitlementConfigured` to `YES` when the portal entitlement is active.
+- Set `NOBSPCCShowBadge` to `YES` in the same build. `ProcessingRoute.displayLabel(showPCCBadge:)` falls back to showing "Local" for a PCC-routed reply whenever this flag is off, even with routing and entitlement both enabled — shipping without it means PCC requests execute while the top-level badge silently misreports them as local. The detailed privacy receipt is unaffected (it always shows the true destination), but the honesty gate is about the badge users actually see.
 
 ## Debug toggles (Simulator / development)
 
@@ -37,5 +38,6 @@ Do not ship with `NOBSPCCRoutingEnabled` until:
 - Physical-device chat tested on iOS 27+
 - [`ModelRouterTests`](../NOBSTests/ModelRouterTests.swift) passing
 - Privacy receipts verified in PrivacyView
+- `NOBSPCCShowBadge` is also `YES` — routing enabled without the badge flag lets PCC run while the UI still labels the reply "Local"
 
 See [PCC_INTEGRATION.md](PCC_INTEGRATION.md) for the full integration design.
