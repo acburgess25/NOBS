@@ -58,6 +58,17 @@ class Settings(BaseSettings):
     # warms the M-series GPU for the high-volume background passes — still $0.
     mlx_base_url: str = "http://127.0.0.1:8081/v1"
     venture_model: str = "mlx-community/Qwen2.5-1.5B-Instruct-4bit"
+
+    # OpenRouter-powered brainstorm: when a key + models are set, NOBS runs the
+    # idea council through your OpenRouter key on frontier/"expert" models for
+    # the topic, instead of the local small model. Everything else stays local.
+    openrouter_api_key: SecretStr | None = None
+    openrouter_base_url: str = "https://openrouter.ai/api/v1"
+    # comma-separated OpenRouter model ids used for the brainstorm council
+    brainstorm_models: str = (
+        "anthropic/claude-sonnet-4.5,openai/gpt-4.1-mini,deepseek/deepseek-chat-v3.1"
+    )
+    brainstorm_openrouter: bool = True
     dashboard_name: str = Field(default="Tank", min_length=1, max_length=40)
     advertised_address: str | None = None
     homeassistant_url: str = Field(default="")

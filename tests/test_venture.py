@@ -392,3 +392,25 @@ def test_discover_connectors_tool_is_read_only_and_searchable(tmp_path: Path) ->
     assert any(c["name"] == "mail" for c in mail)
     # description-sensitive search matches
     assert search("git")
+
+
+def test_search_nobs_docs_handles_quotes_safely(tmp_path: Path) -> None:
+    """FTS search must not break out of a quoted phrase via embedded quotes."""
+    import sqlite3
+
+    from app.agent_tools import ToolRegistry
+    from app.agent_store import AgentStore
+
+    store = AgentStore(tmp_path / "agent.db")
+    brain = tmp_path / "brain.db"
+    reg = ToolRegistry(tmp_path, store=store, settings=Settings(brain_db_path=brain))
+    db = sqlite3.connect(brain)
+    db.execute("CREATE VIRTUAL TABLE IF NOT EXISTS docs USING fts5(path UNINDEXED, title, body)")
+    db.execute("INSERT INTO docs (path,title,body) VALUES (?,?,?)",
+               ("a.md", "hello", "the quick brown fox"))
+    db.commit()
+    db.close()
+    res = reg._search_nobs_docs({"query": 'quick" OR 1=1--', "limit": 5})
+    assert res.get("error") is None
+    assert isinstance(res.get("matches"), list)  # injection attempt yields no rows
+    assert res.get("count", -1) == 0

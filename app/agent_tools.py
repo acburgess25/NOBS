@@ -767,7 +767,7 @@ class ToolRegistry:
         words = [w for w in re.split(r"[\s:/]+", query) if w]
         if not words:
             return {"error": "query is required"}
-        fts_query = " AND ".join(f'"{w}"' for w in words)
+        fts_query = " AND ".join(f'"{w.replace(chr(34), chr(34)*2)}"' for w in words)
         try:
             connection = sqlite3.connect(f"file:{brain_path}?mode=ro", uri=True)
             try:
