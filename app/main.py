@@ -20,6 +20,8 @@ from app.agent import (
     AgentTaskResponse,
     ApprovalDecision,
     ApprovalView,
+    BrainstormRequest,
+    IdeaView,
     TankAgent,
 )
 from app.agent_store import AgentStore
@@ -791,6 +793,46 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             raise HTTPException(status_code=404, detail="Proposal not found") from error
         except ValueError as error:
             raise HTTPException(status_code=409, detail=str(error)) from error
+
+    @app.get(
+        "/agent/ideas",
+        response_model=list[IdeaView],
+        tags=["agent"],
+        dependencies=[Depends(require_device_token)],
+    )
+    async def list_agent_ideas(
+        idea_status: str | None = Query(default=None),
+    ) -> list[IdeaView]:
+        return [
+            IdeaView.model_validate(item)
+            for item in app.state.agent_store.list_ideas(idea_status)
+        ]
+
+    @app.post(
+        "/agent/brainstorm",
+        response_model=list[IdeaView],
+        tags=["agent"],
+        dependencies=[Depends(require_device_token)],
+    )
+    async def brainstorm_ideas(request: BrainstormRequest) -> list[IdeaView]:
+        agent = TankAgent(
+            settings=settings,
+            store=app.state.agent_store,
+            tools=app.state.agent_tools,
+            transport=getattr(app.state, "ollama_transport", None),
+        )
+        try:
+            return await agent.brainstorm(
+                request.topic,
+                context=request.context,
+                n_candidates=request.n_candidates,
+                take_top=request.take_top,
+            )
+        except AgentModelError as error:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Tank model is unavailable",
+            ) from error
 
     @app.post(
         "/schedules",

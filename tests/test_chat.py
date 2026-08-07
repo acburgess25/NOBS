@@ -19,6 +19,10 @@ def client(
         agent_database_path=Path(":memory:"),
         agent_workspace_path=workspace or Path(tempfile.mkdtemp()),
         agent_project_path=project or Path.cwd(),
+        # Deterministic unit tests: the end-of-run auto-improve reflection pass
+        # issues an extra model call that would surprise strict MockTransports.
+        # Dedicated tests enable it explicitly.
+        auto_improve_enabled=False,
     )
     app = create_app(settings)
     if transport is not None:

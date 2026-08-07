@@ -20,12 +20,38 @@ class Settings(BaseSettings):
     ollama_base_url: str = "http://127.0.0.1:11434"
     ollama_model: str = "qwen3:8b"
     coding_model: str = "qwen2.5-coder:14b"
+    # LLM backend: "ollama" (default) or "openai". The openai backend targets any
+    # OpenAI-compatible /v1 endpoint, including a local mlx-lm server on the same
+    # host, which keeps model inference free and on-device.
+    llm_backend: str = "ollama"
+    llm_base_url: str = ""  # e.g. http://127.0.0.1:8081/v1 for a local mlx-lm server
+    llm_model: str | None = None  # overrides ollama_model when backend is "openai"
+    llm_api_key: SecretStr | None = None
+    # Path to the NOBS docs knowledge brain (SQLite FTS5 index built by
+    # `nobs-brain build`). Defaults to ~/.local/share/nobs-brain/brain.db.
+    brain_db_path: Path | None = None
     ollama_timeout_seconds: float = Field(default=45.0, gt=0, le=300)
     device_token: SecretStr | None = None
     agent_database_path: Path = Path("data/nobs-agent.db")
     agent_workspace_path: Path = Path("data/agent-workspace")
     agent_project_path: Path = Path(".")
     agent_max_steps: int = Field(default=4, ge=1, le=8)
+    # Self-improvement: at the end of each completed run, a lightweight local pass
+    # distills the run into a durable insight and, when reusable, a draft skill
+    # surfaced as a proposal. Purely best-effort.
+    auto_improve_enabled: bool = True
+    auto_improve_model: str | None = None  # defaults to the assistant model
+    # Only reflect on runs that produced at least this many chars of output or
+    # used tools, so trivial exchanges don't spawn self-improvement work.
+    auto_improve_min_message_chars: int = Field(default=40, ge=0, le=4000)
+    # Venture / idea engine: a brainstorm'd idea scoring at or above this
+    # threshold is 'validated' and surfaced as a reviewable proposal.
+    venture_validate_score: float = Field(default=7.0, ge=0.0, le=10.0)
+    # Offload lightweight ideation + self-improvement onto a local Apple-Silicon
+    # MLX server (OpenAI-compatible /v1). This keeps heavy chat on Ollama and
+    # warms the M-series GPU for the high-volume background passes — still $0.
+    mlx_base_url: str = "http://127.0.0.1:8081/v1"
+    venture_model: str = "mlx-community/Qwen2.5-1.5B-Instruct-4bit"
     dashboard_name: str = Field(default="Tank", min_length=1, max_length=40)
     advertised_address: str | None = None
     homeassistant_url: str = Field(default="")

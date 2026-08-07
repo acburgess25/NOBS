@@ -154,6 +154,42 @@ class AgentStore:
                     created_at TEXT NOT NULL,
                     decided_at TEXT
                 );
+                CREATE TABLE IF NOT EXISTS skills (
+                    id TEXT PRIMARY KEY,
+                    name TEXT NOT NULL,
+                    description TEXT NOT NULL,
+                    instructions TEXT NOT NULL,
+                    tags TEXT NOT NULL DEFAULT '',
+                    status TEXT NOT NULL DEFAULT 'draft',
+                    source TEXT NOT NULL DEFAULT 'manual',
+                    run_id TEXT,
+                    usage_count INTEGER NOT NULL DEFAULT 0,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL,
+                    last_used_at TEXT
+                );
+                CREATE TABLE IF NOT EXISTS insights (
+                    id TEXT PRIMARY KEY,
+                    run_id TEXT NOT NULL,
+                    insight TEXT NOT NULL,
+                    kind TEXT NOT NULL DEFAULT 'observation',
+                    detail_json TEXT NOT NULL DEFAULT '{}',
+                    created_at TEXT NOT NULL
+                );
+                CREATE TABLE IF NOT EXISTS ideas (
+                    id TEXT PRIMARY KEY,
+                    title TEXT NOT NULL,
+                    description TEXT NOT NULL,
+                    status TEXT NOT NULL DEFAULT 'raw',
+                    score REAL NOT NULL DEFAULT 0,
+                    rationale TEXT NOT NULL DEFAULT '',
+                    strategy TEXT NOT NULL DEFAULT '',
+                    tags TEXT NOT NULL DEFAULT '',
+                    source TEXT NOT NULL DEFAULT 'manual',
+                    run_id TEXT,
+                    created_at TEXT NOT NULL,
+                    updated_at TEXT NOT NULL
+                );
                 """
             )
         return self._connection
@@ -406,6 +442,330 @@ class AgentStore:
                     (status,),
                 ).fetchall()
         return [self._proposal_dict(row) for row in rows]
+
+    @staticmethod
+    def _skill_dict(row: sqlite3.Row) -> dict[str, Any]:
+        return {
+            "id": row["id"],
+            "name": row["name"],
+            "description": row["description"],
+            "instructions": row["instructions"],
+            "tags": row["tags"].split(",") if row["tags"] else [],
+            "status": row["status"],  # draft | active | retired
+            "source": row["source"],  # manual | auto
+            "run_id": row["run_id"],
+            "usage_count": row["usage_count"],
+            "created_at": row["created_at"],
+            "updated_at": row["updated_at"],
+            "last_used_at": row["last_used_at"],
+        }
+
+    @staticmethod
+    def _insight_dict(row: sqlite3.Row) -> dict[str, Any]:
+        return {
+            "id": row["id"],
+            "run_id": row["run_id"],
+            "insight": row["insight"],
+            "kind": row["kind"],  # observation | recommendation
+            "detail": json.loads(row["detail_json"] or "{}"),
+            "created_at": row["created_at"],
+        }
+
+    def create_skill(
+        self,
+        name: str,
+        description: str,
+        instructions: str,
+        *,
+        tags: list[str] | None = None,
+        status: str = "draft",
+        source: str = "manual",
+        run_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Persist a reusable NOBS skill (a named instruction set the agent can
+        load into future runs). Defaults to ``draft`` so an auto-generated skill
+        is surfaced for review before it begins influencing future runs."""
+        skill_id = str(uuid4())
+        created_at = _now()
+        tags_csv = ",".join(tags or [])
+        with self._lock:
+            connection = self._connect()
+            connection.execute(
+                "INSERT INTO skills VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                (
+                    skill_id,
+                    name,
+                    description,
+                    instructions,
+                    tags_csv,
+                    status,
+                    source,
+                    run_id,
+                    0,
+                    created_at,
+                    created_at,
+                    None,
+                ),
+            )
+            connection.commit()
+        return self.get_skill(skill_id)
+
+    def get_skill(self, skill_id: str) -> dict[str, Any]:
+        with self._lock:
+            row = (
+                self._connect()
+                .execute("SELECT * FROM skills WHERE id = ?", (skill_id,))
+                .fetchone()
+            )
+        if row is None:
+            raise KeyError(skill_id)
+        return self._skill_dict(row)
+
+    def get_skill_by_name(self, name: str) -> dict[str, Any] | None:
+        with self._lock:
+            row = (
+                self._connect()
+                .execute(
+                    "SELECT * FROM skills WHERE lower(name) = lower(?) ORDER BY created_at DESC LIMIT 1",
+                    (name,),
+                )
+                .fetchone()
+            )
+        return self._skill_dict(row) if row else None
+
+    def list_skills(self, status: str | None = None) -> list[dict[str, Any]]:
+        with self._lock:
+            connection = self._connect()
+            if status is None:
+                rows = connection.execute(
+                    "SELECT * FROM skills ORDER BY usage_count DESC, created_at DESC"
+                ).fetchall()
+            else:
+                rows = connection.execute(
+                    "SELECT * FROM skills WHERE status = ? ORDER BY usage_count DESC, created_at DESC",
+                    (status,),
+                ).fetchall()
+        return [self._skill_dict(row) for row in rows]
+
+    def update_skill(self, skill_id: str, **fields: Any) -> dict[str, Any]:
+        """Update mutable skill fields (name, description, instructions, tags,
+        status). Returns the refreshed skill."""
+        allowed = {"name", "description", "instructions", "tags", "status"}
+        updates = {k: v for k, v in fields.items() if k in allowed}
+        if not updates:
+            return self.get_skill(skill_id)
+        if isinstance(updates.get("tags"), list):
+            updates["tags"] = ",".join(updates["tags"])
+        sets = ", ".join(f"{k} = ?" for k in updates)
+        values = list(updates.values()) + [_now(), skill_id]
+        with self._lock:
+            connection = self._connect()
+            connection.execute(f"UPDATE skills SET {sets}, updated_at = ? WHERE id = ?", values)
+            connection.commit()
+        return self.get_skill(skill_id)
+
+    def record_skill_usage(self, skill_id: str | None) -> None:
+        if not skill_id:
+            return
+        with self._lock:
+            connection = self._connect()
+            connection.execute(
+                "UPDATE skills SET usage_count = usage_count + 1, last_used_at = ? WHERE id = ?",
+                (_now(), skill_id),
+            )
+            connection.commit()
+
+    def record_insight(
+        self,
+        run_id: str,
+        insight: str,
+        *,
+        kind: str = "observation",
+        detail: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Record a single durable finding/insight from an agent run. ``kind`` is
+        ``observation`` (general finding) or ``recommendation`` (a suggested
+        improvement/skill). These feed the auto-improve summary surfaced to the
+        user."""
+        insight_id = str(uuid4())
+        created_at = _now()
+        with self._lock:
+            connection = self._connect()
+            connection.execute(
+                "INSERT INTO insights VALUES (?, ?, ?, ?, ?, ?)",
+                (insight_id, run_id, insight, kind, json.dumps(detail or {}), created_at),
+            )
+            connection.commit()
+        return self._insight_dict(
+            connection.execute("SELECT * FROM insights WHERE id = ?", (insight_id,)).fetchone()
+        )
+
+    def list_insights(self, kind: str | None = None, limit: int = 50) -> list[dict[str, Any]]:
+        with self._lock:
+            connection = self._connect()
+            if kind is None:
+                rows = connection.execute(
+                    "SELECT * FROM insights ORDER BY created_at DESC LIMIT ?", (limit,)
+                ).fetchall()
+            else:
+                rows = connection.execute(
+                    "SELECT * FROM insights WHERE kind = ? ORDER BY created_at DESC LIMIT ?",
+                    (kind, limit),
+                ).fetchall()
+        return [self._insight_dict(row) for row in rows]
+
+    def _active_skills(self) -> list[dict[str, Any]]:
+        """Skills with ``status='active'``, used to enrich the system prompt so
+        NOBS actually applies what it has learned."""
+        return self.list_skills(status="active")
+
+    # ------------------------------------------------------------------ #
+    # Ideas / venture pipeline                                           #
+    # ------------------------------------------------------------------ #
+
+    _IDEA_STATUSES = (
+        "raw",
+        "deliberating",
+        "validated",
+        "building",
+        "shipped",
+        "discarded",
+    )
+
+    @staticmethod
+    def _idea_dict(row: sqlite3.Row) -> dict[str, Any]:
+        return {
+            "id": row["id"],
+            "title": row["title"],
+            "description": row["description"],
+            "status": row["status"],
+            "score": row["score"],
+            "rationale": row["rationale"],
+            "strategy": row["strategy"],
+            "tags": json.loads(row["tags"] or "[]"),
+            "source": row["source"],
+            "run_id": row["run_id"],
+            "created_at": row["created_at"],
+            "updated_at": row["updated_at"],
+        }
+
+    def create_idea(
+        self,
+        title: str,
+        description: str,
+        *,
+        strategy: str = "",
+        score: float = 0.0,
+        rationale: str = "",
+        tags: list[str] | None = None,
+        source: str = "manual",
+        run_id: str | None = None,
+        status: str = "raw",
+    ) -> dict[str, Any]:
+        title, description = (title or "").strip(), (description or "").strip()
+        if not title or not description:
+            raise ValueError("title and description are required")
+        if status not in self._IDEA_STATUSES:
+            raise ValueError(f"Invalid idea status: {status}")
+        idea_id = str(uuid4())
+        now = _now()
+        with self._lock:
+            connection = self._connect()
+            connection.execute(
+                """
+                INSERT INTO ideas
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    idea_id,
+                    title,
+                    description,
+                    status,
+                    float(score),
+                    rationale,
+                    strategy,
+                    json.dumps(tags or []),
+                    source,
+                    run_id,
+                    now,
+                    now,
+                ),
+            )
+            connection.commit()
+        return self.get_idea(idea_id)
+
+    def get_idea(self, idea_id: str) -> dict[str, Any]:
+        with self._lock:
+            connection = self._connect()
+            row = connection.execute(
+                "SELECT * FROM ideas WHERE id = ?", (idea_id,)
+            ).fetchone()
+        if row is None:
+            raise KeyError(idea_id)
+        return self._idea_dict(row)
+
+    def get_idea_by_title(self, title: str) -> dict[str, Any] | None:
+        with self._lock:
+            connection = self._connect()
+            row = connection.execute(
+                "SELECT * FROM ideas WHERE LOWER(title) = LOWER(?) LIMIT 1",
+                (title.strip(),),
+            ).fetchone()
+        return self._idea_dict(row) if row is not None else None
+
+    def list_ideas(self, status: str | None = None) -> list[dict[str, Any]]:
+        with self._lock:
+            connection = self._connect()
+            if status is None:
+                rows = connection.execute(
+                    "SELECT * FROM ideas ORDER BY score DESC, created_at DESC"
+                ).fetchall()
+            else:
+                rows = connection.execute(
+                    "SELECT * FROM ideas WHERE status = ? ORDER BY score DESC, created_at DESC",
+                    (status,),
+                ).fetchall()
+        return [self._idea_dict(row) for row in rows]
+
+    def update_idea(
+        self,
+        idea_id: str,
+        *,
+        status: str | None = None,
+        score: float | None = None,
+        rationale: str | None = None,
+        strategy: str | None = None,
+    ) -> dict[str, Any]:
+        fields: list[str] = []
+        values: list[Any] = []
+        if status is not None:
+            if status not in self._IDEA_STATUSES:
+                raise ValueError(f"Invalid idea status: {status}")
+            fields.append("status = ?")
+            values.append(status)
+        if score is not None:
+            fields.append("score = ?")
+            values.append(float(score))
+        if rationale is not None:
+            fields.append("rationale = ?")
+            values.append(rationale.strip())
+        if strategy is not None:
+            fields.append("strategy = ?")
+            values.append(strategy.strip())
+        if not fields:
+            raise ValueError("Nothing to update")
+        fields.append("updated_at = ?")
+        values.append(_now())
+        with self._lock:
+            connection = self._connect()
+            cursor = connection.execute(
+                f"UPDATE ideas SET {', '.join(fields)} WHERE id = ?",
+                (*values, idea_id),
+            )
+            connection.commit()
+        if cursor.rowcount != 1:
+            raise KeyError(idea_id)
+        return self.get_idea(idea_id)
 
     def decide_proposal(self, proposal_id: str, decision: str) -> dict[str, Any]:
         if decision not in {"approved", "dismissed"}:

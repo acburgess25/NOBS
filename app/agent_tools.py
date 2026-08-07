@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import platform
 import re
+import sqlite3
 from typing import Any
 from urllib.parse import urlparse
 
@@ -105,6 +106,25 @@ class ToolRegistry:
                     risk=ToolRisk.READ_ONLY,
                     parameters={"type": "object", "properties": {}, "additionalProperties": False},
                     handler=self._get_tank_status,
+                ),
+                ToolDefinition(
+                    name="search_nobs_docs",
+                    description=(
+                        "Search the NOBS knowledge brain (product docs, private docs, and "
+                        "iCloud notes) by keyword. Returns ranked matching file paths with "
+                        "short snippets. Useful for answering questions about NOBS itself."
+                    ),
+                    risk=ToolRisk.READ_ONLY,
+                    parameters={
+                        "type": "object",
+                        "required": ["query"],
+                        "properties": {
+                            "query": {"type": "string", "minLength": 1, "maxLength": 200},
+                            "limit": {"type": "integer", "minimum": 1, "maximum": 10, "default": 5},
+                        },
+                        "additionalProperties": False,
+                    },
+                    handler=self._search_nobs_docs,
                 ),
                 ToolDefinition(
                     name="list_workspace_files",
@@ -291,6 +311,95 @@ class ToolRegistry:
                     handler=self._run_home_scene,
                 ),
                 ToolDefinition(
+                    name="capture_idea",
+                    description=(
+                        "Record a money-making idea into the NOBS idea bank (pipeline: raw -> "
+                        "deliberating -> validated -> building -> shipped). Takes a title, "
+                        "description, optional execution/monetization strategy, optional tags. "
+                        "Use this any time you notice an idea worth working through."
+                    ),
+                    risk=ToolRisk.CHANGE,
+                    parameters={
+                        "type": "object",
+                        "required": ["title", "description"],
+                        "properties": {
+                            "title": {"type": "string", "minLength": 2, "maxLength": 120},
+                            "description": {"type": "string", "minLength": 1, "maxLength": 1000},
+                            "strategy": {
+                                "type": "string",
+                                "maxLength": 2000,
+                                "description": "Execution / monetization path.",
+                            },
+                            "tags": {
+                                "type": "array",
+                                "items": {"type": "string", "maxLength": 30},
+                            },
+                        },
+                        "additionalProperties": False,
+                    },
+                    handler=self._capture_idea,
+                ),
+                ToolDefinition(
+                    name="list_ideas",
+                    description=(
+                        "List ideas in the NOBS idea bank, highest-scored first, optionally "
+                        "filtered by pipeline status (raw, deliberating, validated, building, "
+                        "shipped, discarded). Use to see what NOBS is working through."
+                    ),
+                    risk=ToolRisk.READ_ONLY,
+                    parameters={
+                        "type": "object",
+                        "properties": {
+                            "status": {
+                                "type": "string",
+                                "enum": [
+                                    "raw",
+                                    "deliberating",
+                                    "validated",
+                                    "building",
+                                    "shipped",
+                                    "discarded",
+                                ],
+                            },
+                        },
+                        "additionalProperties": False,
+                    },
+                    handler=self._list_ideas,
+                ),
+                ToolDefinition(
+                    name="update_idea",
+                    description=(
+                        "Advance or score an idea in the NOBS idea bank (status, score, "
+                        "rationale, strategy). Mark ideas validated when vetted, building when "
+                        "an agent is executing them, or shipped when delivered. This changes "
+                        "local state and requires approval."
+                    ),
+                    risk=ToolRisk.CHANGE,
+                    parameters={
+                        "type": "object",
+                        "required": ["idea_id"],
+                        "properties": {
+                            "idea_id": {"type": "string"},
+                            "status": {
+                                "type": "string",
+                                "enum": [
+                                    "raw",
+                                    "deliberating",
+                                    "validated",
+                                    "building",
+                                    "shipped",
+                                    "discarded",
+                                ],
+                            },
+                            "score": {"type": "number", "minimum": 0, "maximum": 10},
+                            "rationale": {"type": "string", "maxLength": 1000},
+                            "strategy": {"type": "string", "maxLength": 2000},
+                        },
+                        "additionalProperties": False,
+                    },
+                    handler=self._update_idea,
+                ),
+                ToolDefinition(
                     name="propose_idea",
                     description=(
                         "Propose a conceptual recommendation or optimization idea (like a new routine "
@@ -312,6 +421,91 @@ class ToolRegistry:
                         "additionalProperties": False,
                     },
                     handler=self._propose_idea,
+                ),
+                ToolDefinition(
+                    name="list_skills",
+                    description=(
+                        "List the durable skills NOBS has learned (named instruction sets the "
+                        "agent loads into future runs), newest first, optionally filtered by "
+                        "status (draft, active, retired). Use this to see what NOBS already "
+                        "knows how to do before proposing or creating new skills."
+                    ),
+                    risk=ToolRisk.READ_ONLY,
+                    parameters={
+                        "type": "object",
+                        "properties": {
+                            "status": {
+                                "type": "string",
+                                "enum": ["draft", "active", "retired"],
+                            },
+                        },
+                        "additionalProperties": False,
+                    },
+                    handler=self._list_skills,
+                ),
+                ToolDefinition(
+                    name="read_skill",
+                    description=(
+                        "Read the full instructions of one durable NOBS skill by name or id. "
+                        "Use this to review what a skill teaches before applying or refining it."
+                    ),
+                    risk=ToolRisk.READ_ONLY,
+                    parameters={
+                        "type": "object",
+                        "required": ["skill"],
+                        "properties": {
+                            "skill": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 120,
+                                "description": "Skill name or id.",
+                            },
+                        },
+                        "additionalProperties": False,
+                    },
+                    handler=self._read_skill,
+                ),
+                ToolDefinition(
+                    name="create_skill",
+                    description=(
+                        "Create a durable skill — a reusable named instruction set that NOBS "
+                        "loads into future runs. Save a generalizable lesson you noticed so "
+                        "future runs benefit from it. When auto-improve produces a draft skill, "
+                        "activating it here teaches NOBS the new behavior. This changes local "
+                        "agent state and requires approval."
+                    ),
+                    risk=ToolRisk.CHANGE,
+                    parameters={
+                        "type": "object",
+                        "required": ["name", "description", "instructions"],
+                        "properties": {
+                            "name": {
+                                "type": "string",
+                                "minLength": 2,
+                                "maxLength": 80,
+                                "description": "Short, unique skill name (e.g. 'Weekly Planning').",
+                            },
+                            "description": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 300,
+                                "description": "One line on what this skill teaches and when to use it.",
+                            },
+                            "instructions": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 4000,
+                                "description": "Step-by-step Markdown instructions the agent follows.",
+                            },
+                            "tags": {
+                                "type": "array",
+                                "items": {"type": "string", "maxLength": 30},
+                                "description": "Optional comma-style categories for the skill.",
+                            },
+                        },
+                        "additionalProperties": False,
+                    },
+                    handler=self._create_skill,
                 ),
                 ToolDefinition(
                     name="web_search",
@@ -520,6 +714,58 @@ class ToolRegistry:
                 result["gpu"] = "unavailable"
 
         return result
+
+    def _brain_db_path(self) -> Path | None:
+        if self.settings is not None:
+            configured = getattr(self.settings, "brain_db_path", None)
+            if configured:
+                return Path(configured).expanduser()
+        default = Path.home() / ".local" / "share" / "nobs-brain" / "brain.db"
+        return default if default.exists() else None
+
+    def _search_nobs_docs(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        query = str(arguments.get("query", "")).strip()
+        if not query:
+            return {"error": "query is required"}
+        try:
+            limit = int(arguments.get("limit", 5))
+        except (TypeError, ValueError):
+            limit = 5
+        limit = max(1, min(limit, 10))
+
+        brain_path = self._brain_db_path()
+        if brain_path is None or not brain_path.exists():
+            return {
+                "error": (
+                    "NOBS brain index is not available on this host; run "
+                    "`nobs-brain build` where the index lives "
+                    "(~/.local/share/nobs-brain/brain.db) and point "
+                    "NOBS_BRAIN_DB_PATH at it."
+                )
+            }
+
+        words = [w for w in re.split(r"[\s:/]+", query) if w]
+        if not words:
+            return {"error": "query is required"}
+        fts_query = " AND ".join(f'"{w}"' for w in words)
+        try:
+            connection = sqlite3.connect(f"file:{brain_path}?mode=ro", uri=True)
+            try:
+                rows = connection.execute(
+                    "SELECT path, rank, snippet(docs,2,'<<<','>>>','...',14) "
+                    "FROM docs WHERE docs MATCH ? ORDER BY rank LIMIT ?",
+                    (fts_query, limit),
+                ).fetchall()
+            finally:
+                connection.close()
+        except sqlite3.Error as error:
+            return {"error": f"brain search failed: {error}"}
+
+        matches = [
+            {"path": row[0], "score": round(float(row[1]), 2), "snippet": row[2]}
+            for row in rows
+        ]
+        return {"query": query, "count": len(matches), "matches": matches}
 
     def _context_path(self, context: str) -> Path:
         if context not in {"personal", "business", "shared"}:
@@ -814,6 +1060,120 @@ class ToolRegistry:
             return {"status": "success", "proposal_id": prop["id"]}
         except (OSError, ValueError, RuntimeError) as error:
             return {"error": f"Failed to save proposal: {error}"}
+
+    def _idea_store(self) -> AgentStore:
+        if not self.store:
+            raise ValueError("Agent store is not available.")
+        return self.store
+
+    def _capture_idea(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        self._require_argument_keys(arguments, {"title", "description", "strategy", "tags"})
+        title = str(arguments.get("title") or "").strip()
+        description = str(arguments.get("description") or "").strip()
+        strategy = str(arguments.get("strategy") or "").strip()
+        tags = arguments.get("tags")
+        if not title or not description:
+            raise ValueError("title and description are required")
+        if not isinstance(tags, list):
+            tags = None
+        else:
+            tags = [str(t).strip() for t in tags if str(t).strip()]
+        try:
+            idea = self._idea_store().create_idea(
+                title, description, strategy=strategy, tags=tags
+            )
+            return {"status": "success", "idea_id": idea["id"]}
+        except (OSError, ValueError) as error:
+            return {"error": f"Failed to capture idea: {error}"}
+
+    def _list_ideas(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        self._require_argument_keys(arguments, {"status"})
+        try:
+            ideas = self._idea_store().list_ideas(status=arguments.get("status"))
+        except (OSError, ValueError) as error:
+            return {"error": f"Failed to list ideas: {error}"}
+        return {"ideas": ideas}
+
+    def _update_idea(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        self._require_argument_keys(
+            arguments, {"idea_id", "status", "score", "rationale", "strategy"}
+        )
+        idea_id = str(arguments.get("idea_id") or "").strip()
+        if not idea_id:
+            raise ValueError("idea_id is required")
+        try:
+            idea = self._idea_store().update_idea(
+                idea_id,
+                status=arguments.get("status"),
+                score=arguments.get("score"),
+                rationale=arguments.get("rationale"),
+                strategy=arguments.get("strategy"),
+            )
+            return {"status": "success", "idea": idea}
+        except KeyError:
+            return {"error": "No idea found with that id."}
+        except (OSError, ValueError) as error:
+            return {"error": f"Failed to update idea: {error}"}
+
+    # ------------------------------------------------------------------ #
+    # Skill tools (durable, self-taught capabilities)                    #
+    # ------------------------------------------------------------------ #
+
+    def _skills(self) -> AgentStore:
+        if not self.store:
+            raise ValueError("Agent store is not available.")
+        return self.store
+
+    def _list_skills(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        self._require_argument_keys(arguments, {"status"})
+        try:
+            skills = self._skills().list_skills(status=arguments.get("status"))
+        except (OSError, ValueError) as error:
+            return {"error": f"Failed to list skills: {error}"}
+        return {"skills": [{k: v for k, v in s.items() if k != "instructions"} for s in skills]}
+
+    def _read_skill(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        self._require_argument_keys(arguments, {"skill"})
+        store = self._skills()
+        try:
+            skill = store.get_skill_by_name(str(arguments["skill"]))
+        except (OSError, ValueError) as error:
+            return {"error": f"Failed to read skill: {error}"}
+        if skill is None:
+            return {"error": "No skill found with that name or id."}
+        store.record_skill_usage(skill["id"])
+        return {"skill": skill}
+
+    def _create_skill(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        self._require_argument_keys(arguments, {"name", "description", "instructions", "tags"})
+        name = str(arguments.get("name") or "").strip()
+        description = str(arguments.get("description") or "").strip()
+        instructions = str(arguments.get("instructions") or "").strip()
+        tags = arguments.get("tags")
+        if not name or not description or not instructions:
+            raise ValueError("name, description, and instructions are required")
+        if not isinstance(tags, list):
+            tags = None
+        else:
+            tags = [str(t).strip() for t in tags if str(t).strip()]
+        try:
+            skill = self._skills().create_skill(
+                name,
+                description,
+                instructions,
+                tags=tags,
+                status="draft",
+                source="manual",
+            )
+        except (OSError, ValueError) as error:
+            return {"error": f"Failed to create skill: {error}"}
+        return {
+            "status": "success",
+            "skill_id": skill["id"],
+            "message": (
+                f"Skill '{name}' created as draft. It will not influence runs until activated."
+            ),
+        }
 
     @staticmethod
     def _require_argument_keys(arguments: dict[str, Any], allowed: set[str]) -> None:
