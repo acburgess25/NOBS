@@ -134,12 +134,14 @@
     <section class="waitlist" id="waitlist">
       <h2>Be first to try the self-improving AI manager</h2>
       <p>Launching soon. Founders' pricing for the first 100 — join the list and we'll email you the invite.</p>
-      <!-- TODO: swap to a real Formspree action (free tier) once you have the key.
-           Until then, this opens the visitor's mail client out-of-the-box. -->
+      <!-- Captures into NOBS Tank (POST /waitlist). Works when the visitor can reach
+             Tank (localhost / LAN / a tunnel). If no reachable host, falls back to
+             opening the mail client via #waitlist-form's JS. -->
       <form id="waitlist-form">
         <input type="email" name="email" placeholder="you@example.com" required>
         <button type="submit" class="btn btn-primary">Join the waitlist</button>
       </form>
+      <p id="waitlist-note" style="color:var(--accent2);font-size:13px;min-height:18px"></p>
     </section>
 
     <footer>
@@ -153,10 +155,24 @@
   if (f) f.addEventListener('submit', function (e) {
     e.preventDefault();
     var email = (new FormData(f).get('email') || '').trim();
-    if (!email) return;
-    var href = 'mailto:hello@nobs.app?subject=NOBS%20Waitlist&body=' +
-      encodeURIComponent(email + '\n\nSign me up for NOBS founders pricing.');
-    window.location.href = href;
+    var note = document.getElementById('waitlist-note');
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { note.textContent = 'Please enter a valid email.'; return; }
+    var endpoint = 'http://127.0.0.1:8000/waitlist';
+    note.textContent = 'Adding you…';
+    fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email, source: 'landing' })
+    }).then(function (r) { return r.json().then(function (d) { return { r: r, d: d }; }); })
+      .then(function (x) {
+        if (x.r.ok && x.d.ok) note.textContent = 'You are on the list. Welcome aboard ✓';
+        else note.textContent = 'Server busy — emailing instead.';
+        // fallback: also offer mail out if server unreachable
+        if (!x.r.ok) window.location.href = 'mailto:hello@nobs.app?subject=NOBS%20Waitlist&body=' + encodeURIComponent(email);
+      })
+      .catch(function () {
+        window.location.href = 'mailto:hello@nobs.app?subject=NOBS%20Waitlist&body=' + encodeURIComponent(email);
+      });
   });
 </script>
 </body>

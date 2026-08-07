@@ -60,6 +60,12 @@ class AgentStore:
                     detail_json TEXT NOT NULL,
                     created_at TEXT NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS waitlist (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    email TEXT NOT NULL UNIQUE,
+                    source TEXT NOT NULL DEFAULT 'landing',
+                    created_at TEXT NOT NULL
+                );
                 CREATE TABLE IF NOT EXISTS briefings (
                     date TEXT PRIMARY KEY,
                     content_json TEXT NOT NULL,
@@ -613,6 +619,44 @@ class AgentStore:
                     (kind, limit),
                 ).fetchall()
         return [self._insight_dict(row) for row in rows]
+
+    def _add_waiter(self, email: str, source: str = "landing") -> dict[str, Any]:
+        email = (email or "").strip().lower()
+        if not email or "@" not in email or "." not in email.split("@")[-1]:
+            raise ValueError("Invalid email address")
+        now = _now()
+        with self._lock:
+            connection = self._connect()
+            connection.execute(
+                "INSERT OR IGNORE INTO waitlist (email, source, created_at) "
+                "VALUES (?, ?, ?)",
+                (email, source, now),
+            )
+        connection.commit()
+        return self._get_waiter(email)
+
+    def _get_waiter(self, email: str) -> dict[str, Any] | None:
+        email = (email or "").strip().lower()
+        row = self._connect().execute(
+            "SELECT email, source, created_at FROM waitlist WHERE email = ?",
+            (email,),
+        ).fetchone()
+        if not row:
+            return None
+        return {"email": row[0], "source": row[1], "created_at": row[2]}
+
+    def _list_waiters(self) -> list[dict[str, Any]]:
+        rows = self._connect().execute(
+            "SELECT email, source, created_at FROM waitlist ORDER BY id"
+        ).fetchall()
+        return [
+            {"email": r[0], "source": r[1], "created_at": r[2]} for r in rows
+        ]
+
+    def _count_waiters(self) -> int:
+        return self._connect().execute(
+            "SELECT COUNT(*) FROM waitlist"
+        ).fetchone()[0]
 
     def _active_skills(self) -> list[dict[str, Any]]:
         """Skills with ``status='active'``, used to enrich the system prompt so

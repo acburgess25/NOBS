@@ -51,6 +51,11 @@ class ChatMessage(BaseModel):
     content: str = Field(min_length=1, max_length=20_000)
 
 
+class WaitlistRequest(BaseModel):
+    email: str
+    source: str = "landing"
+
+
 class ChatRequest(BaseModel):
     messages: list[ChatMessage] = Field(min_length=1, max_length=40)
 
@@ -793,6 +798,32 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             raise HTTPException(status_code=404, detail="Proposal not found") from error
         except ValueError as error:
             raise HTTPException(status_code=409, detail=str(error)) from error
+
+    @app.post(
+        "/waitlist",
+        tags=["landing"],
+    )
+    async def join_waitlist(
+        request: WaitlistRequest, response: Response
+    ) -> dict[str, Any]:
+        try:
+            waiter = app.state.agent_store._add_waiter(request.email, request.source)
+        except ValueError as error:
+            response.status_code = 422
+            return {"ok": False, "detail": str(error)}
+        except Exception:
+            response.status_code = 500
+            return {"ok": False, "detail": "waitlist unavailable"}
+        return {"ok": True, "email": waiter["email"]}
+
+    @app.get(
+        "/waitlist",
+        tags=["landing"],
+        dependencies=[Depends(require_device_token)],
+    )
+    async def list_waitlist() -> dict[str, Any]:
+        waiters = app.state.agent_store._list_waiters()
+        return {"count": app.state.agent_store._count_waiters(), "waiters": waiters}
 
     @app.get(
         "/agent/ideas",

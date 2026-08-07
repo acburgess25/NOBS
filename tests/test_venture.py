@@ -264,3 +264,44 @@ def test_ideas_endpoint_lists(tmp_path: Path) -> None:
 
     filtered = client.get("/agent/ideas?idea_status=raw", headers=auth())
     assert [i["title"] for i in filtered.json()] == ["B"]
+
+# --------------------------------------------------------------------------- #
+# Waitlist (landing capture into Tank)                                        #
+# --------------------------------------------------------------------------- #
+
+
+def test_waitlist_capture_and_list(tmp_path: Path) -> None:
+    from app.main import create_app  # noqa: F811
+    from fastapi.testclient import TestClient  # noqa: F811
+
+    store = AgentStore(tmp_path / "agent.db")
+    settings = Settings(
+        device_token=TOKEN,
+        agent_database_path=tmp_path / "agent.db",
+        agent_workspace_path=tmp_path / "workspace",
+        agent_project_path=tmp_path,
+    )
+    client = TestClient(create_app(settings))
+
+    # public capture — no auth
+    resp = client.post(
+        "/waitlist", json={"email": "hello@example.com", "source": "landing"}
+    )
+    assert resp.status_code == 200
+    assert resp.json() == {"ok": True, "email": "hello@example.com"}
+
+    # duplicate is idempotent
+    client.post("/waitlist", json={"email": "hello@example.com"})
+    assert store._count_waiters() == 1
+
+    # invalid email rejected
+    bad = client.post("/waitlist", json={"email": "not-an-email"})
+    assert bad.status_code == 422
+
+    # listing requires the device token
+    listed = client.get("/waitlist")
+    assert listed.status_code == 401 or listed.status_code == 403
+    auth_listed = client.get("/waitlist", headers=auth())
+    assert auth_listed.status_code == 200
+    assert auth_listed.json()["count"] == 1
+    assert auth_listed.json()["waiters"][0]["email"] == "hello@example.com"
