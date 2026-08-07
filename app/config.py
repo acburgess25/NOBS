@@ -44,6 +44,12 @@ class Settings(BaseSettings):
     # Only reflect on runs that produced at least this many chars of output or
     # used tools, so trivial exchanges don't spawn self-improvement work.
     auto_improve_min_message_chars: int = Field(default=40, ge=0, le=4000)
+
+    # Hard safety rule: any action that SENDS or EXTERNALIZES to a connected
+    # account (Google, school, mail, calendar...) MUST wait for explicit user
+    # approval. There is no auto-send path while this is true. Keeping this on
+    # is non-negotiable for the "never send anything without permission" promise.
+    send_requires_approval: bool = True
     # Venture / idea engine: a brainstorm'd idea scoring at or above this
     # threshold is 'validated' and surfaced as a reviewable proposal.
     venture_validate_score: float = Field(default=7.0, ge=0.0, le=10.0)

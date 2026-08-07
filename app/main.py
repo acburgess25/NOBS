@@ -51,6 +51,13 @@ class ChatMessage(BaseModel):
     content: str = Field(min_length=1, max_length=20_000)
 
 
+class ConnectionRegister(BaseModel):
+    provider: str
+    label: str = ""
+    account: str = ""
+    status: str = "needs_oauth"
+
+
 class WaitlistRequest(BaseModel):
     email: str
     source: str = "landing"
@@ -824,6 +831,39 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def list_waitlist() -> dict[str, Any]:
         waiters = app.state.agent_store._list_waiters()
         return {"count": app.state.agent_store._count_waiters(), "waiters": waiters}
+
+    @app.get(
+        "/agent/connections",
+        tags=["connections"],
+        dependencies=[Depends(require_device_token)],
+    )
+    async def list_connections() -> dict[str, Any]:
+        conns = app.state.agent_store._list_connections()
+        return {
+            "count": app.state.agent_store._count_connections(),
+            "required_approval": "Any send to a connected account always "
+            "requires explicit approval (no exceptions).",
+            "connections": conns,
+        }
+
+    @app.post(
+        "/agent/connections",
+        tags=["connections"],
+        dependencies=[Depends(require_device_token)],
+    )
+    async def register_connection(
+        request: ConnectionRegister,
+    ) -> dict[str, Any]:
+        try:
+            connection = app.state.agent_store._register_connection(
+                request.provider,
+                request.label,
+                request.account,
+                request.status,
+            )
+        except ValueError as error:
+            raise HTTPException(status_code=422, detail=str(error)) from error
+        return connection
 
     @app.get(
         "/agent/ideas",

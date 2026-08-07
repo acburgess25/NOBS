@@ -691,6 +691,9 @@ class TankAgent:
             "active context is shared. Use only the supplied tools. Read-only tools may run now. "
             "Any tool that changes state will be queued for explicit user approval. Never claim a "
             "queued action happened. Briefly explain what you learned or what approval is needed."
+            " Connected accounts (Google/school/mail/calendar) are strictly gated: you must NEVER "
+            "send, post, email, or externalize anything to them without explicit user approval. "
+            "There is no auto-send. If in doubt, queue it for approval."
         )
         if mode == "developer":
             prompt += (

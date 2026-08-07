@@ -60,6 +60,15 @@ class AgentStore:
                     detail_json TEXT NOT NULL,
                     created_at TEXT NOT NULL
                 );
+                CREATE TABLE IF NOT EXISTS connectors (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    provider TEXT NOT NULL,
+                    label TEXT NOT NULL DEFAULT '',
+                    account TEXT NOT NULL DEFAULT '',
+                    status TEXT NOT NULL DEFAULT 'needs_oauth',
+                    send_requires_approval INTEGER NOT NULL DEFAULT 1,
+                    created_at TEXT NOT NULL
+                );
                 CREATE TABLE IF NOT EXISTS waitlist (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     email TEXT NOT NULL UNIQUE,
@@ -656,6 +665,79 @@ class AgentStore:
     def _count_waiters(self) -> int:
         return self._connect().execute(
             "SELECT COUNT(*) FROM waitlist"
+        ).fetchone()[0]
+
+    def _register_connection(
+        self,
+        provider: str,
+        label: str = "",
+        account: str = "",
+        status: str = "needs_oauth",
+    ) -> dict[str, Any]:
+        _PROVIDERS = {"google", "google_workspace", "school", "calendar", "mail"}
+        provider = (provider or "").strip().lower()
+        if provider not in _PROVIDERS:
+            raise ValueError(f"Unsupported provider: {provider!r}")
+        now = _now()
+        with self._lock:
+            connection = self._connect()
+            cur = connection.execute(
+                "INSERT INTO connectors (provider, label, account, status, "
+                "send_requires_approval, created_at) VALUES (?, ?, ?, ?, 1, ?)",
+                (provider, label.strip(), account.strip(), status, now),
+            )
+            connection.commit()
+            new_id = cur.lastrowid
+        return self._get_connection(new_id)
+
+    def _get_connection(self, connection_id: int) -> dict[str, Any] | None:
+        row = self._connect().execute(
+            "SELECT id, provider, label, account, status, send_requires_approval, "
+            "created_at FROM connectors WHERE id = ?",
+            (connection_id,),
+        ).fetchone()
+        if not row:
+            return None
+        return {
+            "id": row[0],
+            "provider": row[1],
+            "label": row[2],
+            "account": row[3],
+            "status": row[4],
+            "send_requires_approval": bool(row[5]),
+            "created_at": row[6],
+        }
+
+    def _list_connections(self) -> list[dict[str, Any]]:
+        rows = self._connect().execute(
+            "SELECT id, provider, label, account, status, send_requires_approval, "
+            "created_at FROM connectors ORDER BY id"
+        ).fetchall()
+        return [
+            {
+                "id": r[0],
+                "provider": r[1],
+                "label": r[2],
+                "account": r[3],
+                "status": r[4],
+                "send_requires_approval": bool(r[5]),
+                "created_at": r[6],
+            }
+            for r in rows
+        ]
+
+    def _remove_connection(self, connection_id: int) -> bool:
+        with self._lock:
+            connection = self._connect()
+            cur = connection.execute(
+                "DELETE FROM connectors WHERE id = ?", (connection_id,)
+            )
+            connection.commit()
+        return cur.rowcount > 0
+
+    def _count_connections(self) -> int:
+        return self._connect().execute(
+            "SELECT COUNT(*) FROM connectors"
         ).fetchone()[0]
 
     def _active_skills(self) -> list[dict[str, Any]]:

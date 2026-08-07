@@ -305,3 +305,50 @@ def test_waitlist_capture_and_list(tmp_path: Path) -> None:
     assert auth_listed.status_code == 200
     assert auth_listed.json()["count"] == 1
     assert auth_listed.json()["waiters"][0]["email"] == "hello@example.com"
+
+
+# --------------------------------------------------------------------------- #
+# Connections (Google / school) — never send without approval                 #
+# --------------------------------------------------------------------------- #
+
+
+def test_register_and_list_connections(tmp_path: Path) -> None:
+    from fastapi.testclient import TestClient  # noqa: F811
+
+    settings = Settings(
+        device_token=TOKEN,
+        agent_database_path=tmp_path / "agent.db",
+        agent_workspace_path=tmp_path / "workspace",
+        agent_project_path=tmp_path,
+    )
+    client = TestClient(create_app(settings))
+
+    # auth required
+    assert client.get("/agent/connections").status_code in (401, 403)
+
+    for provider, label, account in (
+        ("google", "Gmail", "me@gmail.com"),
+        ("google_workspace", "School", "me@school.edu"),
+        ("calendar", "Calendar", "me@gmail.com"),
+    ):
+        r = client.post(
+            "/agent/connections",
+            json={"provider": provider, "label": label, "account": account},
+            headers=auth(),
+        )
+        assert r.status_code == 200, r.text
+        assert r.json()["send_requires_approval"] is True
+
+    # unsupported provider defaults to 422
+    bad = client.post(
+        "/agent/connections", json={"provider": "facebook"}, headers=auth()
+    )
+    assert bad.status_code == 422
+
+    conns = client.get("/agent/connections", headers=auth()).json()
+    assert conns["count"] == 3
+    assert conns["required_approval"].startswith("Any send")
+    assert all(c["send_requires_approval"] is True for c in conns["connections"])
+    assert {c["provider"] for c in conns["connections"]} >= {
+        "google", "google_workspace", "calendar"
+    }
