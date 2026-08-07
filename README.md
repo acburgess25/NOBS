@@ -12,7 +12,7 @@ A local-first personal assistant that turns a chaotic day into a realistic plan�
 [![Backend CI](https://img.shields.io/github/actions/workflow/status/acburgess25/NOBS/backend-ci.yml?branch=main&style=flat-square&label=backend%20CI)](https://github.com/acburgess25/NOBS/actions/workflows/backend-ci.yml)
 [![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-6d7f68?style=flat-square)](LICENSE)
 
-[Explore the project](https://nobsdash.com) · [Sponsor the build](https://github.com/sponsors/acburgess25) · [See what works](#what-works-today) · [Contribute](CONTRIBUTING.md)
+[Explore the project](https://nobsdash.com) · [See what works](#what-works-today) · [Contribute](CONTRIBUTING.md)
 
 </div>
 
@@ -26,9 +26,9 @@ NOBS is a privacy-first assistant for iPhone, iPad, Mac, and a private **Tank** 
 
 Optional support keeps the local-first build going:
 
-1. **[GitHub Sponsors](https://github.com/sponsors/acburgess25)** — fastest path today (enable the listing if the link redirects to your profile).
-2. **Square card tips** — create Payment Links in the Square Dashboard, paste into `website/public/support.json` (`donateOneTime` / `donateMonthly`). Phone-friendly; no home Mac required.
-3. **In-app tips + NOBScloud** — StoreKit products in the app; needs App Store Connect Paid Apps + a TestFlight/App Store build.
+1. **Square card tips** — one-time tip link is live on [nobsdash.com](https://nobsdash.com/#support); a monthly link is next.
+2. **In-app tips + NOBScloud** — StoreKit products in the app; needs App Store Connect Paid Apps + a TestFlight/App Store build.
+3. **GitHub Sponsors** — not live yet. `github.com/sponsors/acburgess25` currently shows a plain profile with no Sponsor button, so the CTA is hidden until the listing is actually enrolled.
 
 Do not put morning briefing or local chat behind a paywall.
 
