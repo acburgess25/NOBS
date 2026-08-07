@@ -26,6 +26,8 @@ def _resolves_to(*addresses: str):
     """
 
     def fake_getaddrinfo(host, port, *args, **kwargs):
+        if not addresses:
+            raise socket.gaierror(-2, "Name or service not known")
         return [
             (socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", (address, port or 80))
             for address in addresses
