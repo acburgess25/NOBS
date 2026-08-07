@@ -833,6 +833,23 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return {"count": app.state.agent_store._count_waiters(), "waiters": waiters}
 
     @app.get(
+        "/agent/connectors",
+        tags=["connections"],
+        dependencies=[Depends(require_device_token)],
+    )
+    async def connector_catalog() -> dict[str, Any]:
+        from app.connectors import catalog_by_category
+
+        grouped = catalog_by_category()
+        return {
+            "note": "Connector library. Connect any of these; sending always waits "
+                    "for your explicit approval. Adding live use needs that service's "
+                    "OAuth client/credentials (yours to create).",
+            "count": sum(len(v) for v in grouped.values()),
+            "catalog": grouped,
+        }
+
+    @app.get(
         "/agent/connections",
         tags=["connections"],
         dependencies=[Depends(require_device_token)],

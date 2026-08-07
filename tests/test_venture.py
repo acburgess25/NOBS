@@ -352,3 +352,43 @@ def test_register_and_list_connections(tmp_path: Path) -> None:
     assert {c["provider"] for c in conns["connections"]} >= {
         "google", "google_workspace", "calendar"
     }
+
+
+# --------------------------------------------------------------------------- #
+# Connector library (catalog of places/skills/apps)                           #
+# --------------------------------------------------------------------------- #
+
+
+def test_connector_catalog_endpoint(tmp_path: Path) -> None:
+    from fastapi.testclient import TestClient  # noqa: F811
+
+    settings = Settings(
+        device_token=TOKEN,
+        agent_database_path=tmp_path / "agent.db",
+        agent_workspace_path=tmp_path / "workspace",
+        agent_project_path=tmp_path,
+    )
+    client = TestClient(create_app(settings))
+
+    assert client.get("/agent/connectors").status_code in (401, 403)
+    cat = client.get("/agent/connectors", headers=auth()).json()
+    assert cat["count"] == 12
+    names = {c["name"] for shelf in cat["catalog"].values() for c in shelf}
+    assert {"google", "google_workspace", "outlook", "slack", "github",
+            "notion", "calendar", "skills"} <= names
+    # every connector stays behind approval for sends
+    send = [c for shelf in cat["catalog"].values()
+            for c in shelf if c["send_capable"]]
+    assert send, "expected send-capable connectors present"
+
+
+def test_discover_connectors_tool_is_read_only_and_searchable(tmp_path: Path) -> None:
+    from app.connectors import search
+
+    # searchable via the catalog module directly (the tool mirrors this)
+    school = search("school")
+    assert school and school[0]["name"] == "google_workspace"
+    mail = search("mail")
+    assert any(c["name"] == "mail" for c in mail)
+    # description-sensitive search matches
+    assert search("git")

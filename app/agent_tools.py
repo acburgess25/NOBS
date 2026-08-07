@@ -127,6 +127,25 @@ class ToolRegistry:
                     handler=self._search_nobs_docs,
                 ),
                 ToolDefinition(
+                    name="discover_connectors",
+                    description=(
+                        "Search the NOBS connector library (Google, school/Workspace, mail, "
+                        "calendar, Slack, Notion, GitHub, Spotify, Home, skills). Returns "
+                        "matching connectors with what auth they need and what skills they "
+                        "unlock. Use it to find what can be connected before registering one."
+                    ),
+                    risk=ToolRisk.READ_ONLY,
+                    parameters={
+                        "type": "object",
+                        "properties": {
+                            "query": {"type": "string", "minLength": 1, "maxLength": 100},
+                        },
+                        "required": ["query"],
+                        "additionalProperties": False,
+                    },
+                    handler=self._discover_connectors,
+                ),
+                ToolDefinition(
                     name="list_workspace_files",
                     description=(
                         "List files in the private NOBS agent workspace for one context. "
@@ -727,6 +746,7 @@ class ToolRegistry:
         query = str(arguments.get("query", "")).strip()
         if not query:
             return {"error": "query is required"}
+            return {"error": "query is required"}
         try:
             limit = int(arguments.get("limit", 5))
         except (TypeError, ValueError):
@@ -1060,6 +1080,31 @@ class ToolRegistry:
             return {"status": "success", "proposal_id": prop["id"]}
         except (OSError, ValueError, RuntimeError) as error:
             return {"error": f"Failed to save proposal: {error}"}
+
+    def _discover_connectors(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from app.connectors import search
+
+        query = str(arguments.get("query", "")).strip()
+        try:
+            matches = search(query)
+        except Exception as exc:
+            return {"error": f"connector lookup failed: {exc}"}
+        if not matches:
+            return {"query": query, "found": False}
+        # Never leak scopes/URLs verbatim is not an issue; summarize for the loop.
+        result = []
+        for m in matches:
+            result.append(
+                {
+                    "name": m["name"],
+                    "category": m["category"],
+                    "auth": m["auth_type"],
+                    "description": m["description"].split(".")[0],
+                    "skills_enabled": list(m["skills_enabled"]),
+                    "send_capable": m["send_capable"],
+                }
+            )
+        return {"query": query, "found": True, "connectors": result}
 
     def _idea_store(self) -> AgentStore:
         if not self.store:
