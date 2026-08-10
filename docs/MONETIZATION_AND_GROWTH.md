@@ -46,7 +46,7 @@ Paid layers sit **above** that floor.
 | StoreKit tip jar + NOBScloud monthly | Code + local StoreKit config ready | Needs Paid Apps agreement + ASC products + live build |
 | Website `nobsdash.com` | Live | Can take Square Payment Links / Sponsors today |
 | GitHub Sponsors | URL wired (`acburgess25`); listing may still need enabling | Usable once Sponsors is activated |
-| Square / card Payment Links | Empty in `support.json` (`cardProcessor: square`) | Fastest card checkout for web |
+| Square / card Payment Links | One-time tip link live in `support.json` (`cardProcessor: square`); monthly link not created yet | Fastest card checkout for web |
 | Stripe Payment Links | Optional alternative | Helper script still available |
 | NOBScloud backend entitlements | On-device StoreKit only; PCC paid fallback coded | Do not claim hosted NOBScloud servers yet |
 | Hosted Tank / NOBSbox / paid skills | Planned | Later revenue, not day-one |
@@ -212,7 +212,8 @@ Until then: Mac NOBSTank + DIY Ubuntu Tank are the proof that local NOBS works w
 
 ### Today / this week (home + ops)
 
-- [ ] Square Payment Links → `support.json` → deploy site
+- [x] Square one-time tip link → `support.json` → deployed site
+- [ ] Square monthly (recurring) Payment Link → `support.json` → deploy site
 - [ ] Confirm Sponsors CTA visible on site and README
 - [ ] Paid Apps + tax/banking in App Store Connect
 - [ ] Create IAP product IDs; sandbox test Support screen

@@ -138,7 +138,7 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 - No arbitrary MCP server is trusted or installed by the NOBS agent.
 - mDNS (`tank.local`) may not resolve on every LAN; clients can use the Tank host IP directly (for example `http://192.168.1.100:8000`).
 - Physical iPhone validation and TestFlight upload remain pending (simulator build verified; archive requires home signing). See [`docs/CI_TROUBLESHOOTING.md`](CI_TROUBLESHOOTING.md) for current CI failure modes.
-- Website Square Payment Links in `website/public/support.json` are still empty until the owner pastes live Square Dashboard Payment Link URLs. GitHub Sponsors CTA is wired; enable the Sponsors listing if the URL still redirects to the profile.
+- Website Square Payment Link for one-time tips is live in `website/public/support.json` (`donateOneTime`); the recurring monthly link (`donateMonthly`) is still empty until the owner creates it in the Square Dashboard. GitHub Sponsors CTA is wired; enable the Sponsors listing if the URL still redirects to the profile.
 
 ## Recommended next vertical slice
 
