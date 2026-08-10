@@ -29,7 +29,7 @@ Small fix, disproportionately important: the Privacy → Support screen used to 
 
 ### The Tank research agent now rotates
 
-Tank's overnight research worker went from a single fixed job to a rotating local research team — multiple angles on a topic get worked on idle capacity instead of one thread doing everything serially. Ties directly into the Research Library described in `PRODUCT_DECISIONS.md` §13: the point was never one summary, it's comparing evidence and keeping disagreements visible instead of smoothing them into false certainty.
+Tank's overnight research worker went from a single fixed job to a rotating local research team — multiple angles on a topic get worked on idle capacity instead of one thread doing everything serially. Ties directly into the Research Library described in `docs/PRODUCT_DECISIONS.md` §13: the point was never one summary, it's comparing evidence and keeping disagreements visible instead of smoothing them into false certainty.
 
 Also quietly fixed in the same window: web search was failing *silently* — returning empty results without surfacing that anything had gone wrong. That's now a visible failure instead of a quiet one, which matters a lot for something that's supposed to keep working while you're not watching it.
 
@@ -39,7 +39,7 @@ The repo now ships an "Axiom" agent setup — a set of specialized audit skills 
 
 ### The website got a real redesign, and a page that can take money
 
-`nobsdash.com` moved off the placeholder look to an editorial, oversized-type, scroll-driven design that actually matches the "Human Companion" brand direction from `PRODUCT_DECISIONS.md` §3 — and it's now built and deployed straight from `main` via GitHub Pages instead of a manual step. Alongside the redesign, the site picked up a real services/support page wired for Square Payment Links (once the owner fills them in) and a GitHub Sponsors CTA. Nothing is live-charging yet without those links filled in, but the plumbing is real, not a mockup.
+`nobsdash.com` moved off the placeholder look to an editorial, oversized-type, scroll-driven design that actually matches the "Human Companion" brand direction from `docs/PRODUCT_DECISIONS.md` §3 — and it's now built and deployed straight from `main` via GitHub Pages instead of a manual step. Alongside the redesign, the site picked up a real services/support page wired for Square Payment Links (once the owner fills them in) and a GitHub Sponsors CTA. Nothing is live-charging yet without those links filled in, but the plumbing is real, not a mockup.
 
 ### Smaller but worth knowing about
 
@@ -56,4 +56,4 @@ The repo now ships an "Axiom" agent setup — a set of specialized audit skills 
 ## Notes before publishing
 
 - Cross-check `docs/CURRENT_STATE.md` at publish time — if TestFlight or Square links have gone live since this was drafted, update the "what's still not true" section before posting anywhere.
-- Keep the PCC explanation exactly this precise if reused elsewhere: subscription-gated, on-device entitlement, routes through Apple's infrastructure, not a hosted NOBS backend. Getting this fuzzy is the fastest way to violate the honesty rule in `PRODUCT_DECISIONS.md` §19.
+- Keep the PCC explanation exactly this precise if reused elsewhere: subscription-gated, on-device entitlement, routes through Apple's infrastructure, not a hosted NOBS backend. Getting this fuzzy is the fastest way to violate the honesty rule in `docs/PRODUCT_DECISIONS.md` §19.
