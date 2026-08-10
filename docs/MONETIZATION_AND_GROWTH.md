@@ -62,8 +62,8 @@ Goal: open every cash path that does not depend on shipping unfinished cloud fea
 ### 0A. Web support (same day)
 
 1. Confirm GitHub Sponsors is active and linked from the site (`website/public/support.json` → `githubSponsors`).
-2. Create **Square** Payment Links for one-time tip and optional monthly support (Square Dashboard → Payment Links).
-3. Fill `donateOneTime` / `donateMonthly` in `support.json` (`cardProcessor` already `"square"`), rebuild and deploy the site.
+2. Done: one-time Square tip link is created and filled in as `donateOneTime`. Remaining: create a monthly/recurring **Square** Payment Link (Square Dashboard → Payment Links).
+3. Fill `donateMonthly` in `support.json` (`cardProcessor` already `"square"`), rebuild and deploy the site.
 4. Put a single clear CTA on the homepage and README: **Support the free local core** → Sponsors / tip / (soon) in-app Support.
 
 Rules:
