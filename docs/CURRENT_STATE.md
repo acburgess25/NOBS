@@ -144,7 +144,7 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 
 **Get money into a stranger’s hands and verify the paid fallback on device** (see [`MONETIZATION_AND_GROWTH.md`](MONETIZATION_AND_GROWTH.md)):
 
-1. Web: paste Square Payment Links into `website/public/support.json` and deploy; enable GitHub Sponsors if the listing is still inactive.
+1. Web: paste a monthly Square Payment Link into `website/public/support.json` (`donateMonthly`) and deploy — the one-time link is already live; enable GitHub Sponsors if the listing is still inactive.
 2. App Store Connect: Paid Apps agreement, tax/banking, and IAP product IDs ([`APP_STORE_IAP_SETUP.md`](APP_STORE_IAP_SETUP.md)).
 3. Fix distribution signing for app + widget; archive with `./scripts/stage-testflight-ipa.sh`.
 4. After PCC entitlement QA, enable `NOBSPCC*` Info.plist flags so subscribed Tank-offline users get Apple Cloud fallback ([`PCC_ENTITLEMENT_CHECKLIST.md`](PCC_ENTITLEMENT_CHECKLIST.md)).
