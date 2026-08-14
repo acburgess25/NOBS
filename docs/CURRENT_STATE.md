@@ -2,7 +2,7 @@
 
 For full codebase reference see [`CODEBASE_REFERENCE.md`](CODEBASE_REFERENCE.md).
 
-**Last updated:** July 29, 2026 (NOBScloud paid fallback via Apple PCC; web tips via Square Payment Links when filled)
+**Last updated:** July 31, 2026 (GitHub Sponsors confirmed not yet enabled; website hides that CTA instead of showing a dead link)
 **Purpose:** Tool-neutral handoff for any contributor entering without prior chat history.
 
 This records implementation state, not product direction. [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md) remains the approved product source of truth. Verify the branch, tests, and live services before treating deployment facts as current.
@@ -33,7 +33,7 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
   paths rather than the normal setup flow.
 - Authenticated Tank chat with visible Local/Tank/Apple Cloud routing and privacy receipts via `ModelRouter`.
 - Policy-driven chat routing: Tank when home; conversational Tank-offline preferences (`stay local`, `use apple cloud`, `wait for tank`, `use nobscloud`); Apple Cloud (PCC) and NOBScloud paths behind feature flags.
-- **NOBScloud paid fallback (on-device entitlement):** StoreKit 2 tip jar + monthly subscription in Privacy → Account & support. An active subscription with `cloudOk` privacy comfort routes Tank-offline work through Apple Private Cloud Compute when PCC flags/entitlement/device allow it. Privacy receipts label this as Apple PCC under NOBScloud paid fallback—not a separate NOBS host. If PCC is unavailable, chat stays local with an honest explanation (no “coming soon” dead end). Backend entitlement sync is still not shipped.
+- **NOBScloud paid fallback (on-device entitlement):** StoreKit 2 tip jar + monthly subscription in Privacy → Account & support. An active subscription with `cloudOk` privacy comfort routes Tank-offline work through Apple Private Cloud Compute when PCC flags/entitlement/device allow it. Privacy receipts label this as Apple PCC under NOBScloud paid fallback—not a separate NOBS host. If PCC is unavailable, chat stays local with an honest explanation (no “coming soon” dead end). `StoreKitService` now checks `Transaction.currentEntitlements` at app launch (not only when the user opens Privacy → Support NOBS), so a subscriber's paid fallback is available from the start of a session. Backend entitlement sync is still not shipped.
 - `AppleModelProvider` wraps Foundation Models on-device + `PrivateCloudComputeLanguageModel` (iOS 27+); honesty gate hides Apple Cloud badge until entitlement QA (`PCCFeatureFlags`).
 - PCC quota UX in chat composer and Privacy (`PCCQuotaStatusView`); see `docs/PCC_INTEGRATION.md` and `docs/PCC_ENTITLEMENT_CHECKLIST.md`.
 - Honest local fallback when Tank is unavailable, without permanently marking
@@ -138,14 +138,14 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 - No arbitrary MCP server is trusted or installed by the NOBS agent.
 - mDNS (`tank.local`) may not resolve on every LAN; clients can use the Tank host IP directly (for example `http://192.168.1.100:8000`).
 - Physical iPhone validation and TestFlight upload remain pending (simulator build verified; archive requires home signing). See [`docs/CI_TROUBLESHOOTING.md`](CI_TROUBLESHOOTING.md) for current CI failure modes.
-- Website Square Payment Links in `website/public/support.json` are still empty until the owner pastes live Square Dashboard Payment Link URLs. GitHub Sponsors CTA is wired; enable the Sponsors listing if the URL still redirects to the profile.
-- `.github/FUNDING.yml` intentionally leaves the `github:` key commented out, separately from the website/README CTA above: GitHub renders its own native "Sponsor" button on the repo page straight from that file, regardless of what the site shows. `github.com/sponsors/acburgess25` is still a plain profile with no Sponsor button (not enrolled) — as of this note, the website and README above still link to that same unenrolled profile too, so the dead link isn't fully closed yet; only GitHub's own repo-page button has been disabled here. Re-add `github: acburgess25` only once enrollment is confirmed and the profile page actually shows a working Sponsor button.
+- Website one-time Square Payment Link is live in `website/public/support.json` (`donateOneTime`); a recurring `donateMonthly` link still needs to be created in the Square Dashboard and pasted in.
+- GitHub Sponsors is **not** enabled — `github.com/sponsors/acburgess25` is a plain profile page with no Sponsor button (re-verified August 14, 2026). Both surfaces that could point at it are now closed: `support.json` leaves `githubSponsors` empty so the website hides that CTA, and `.github/FUNDING.yml` leaves the `github:` key commented out so GitHub does not render its own native "Sponsor" button on the repo page. These are separate mechanisms — the repo-page button comes straight from `FUNDING.yml` regardless of what the site shows. Re-enable both only after enrolling via GitHub → **Your sponsors** (`github.com/sponsors/accounts`) and confirming the profile page shows an actual Sponsor button.
 
 ## Recommended next vertical slice
 
 **Get money into a stranger’s hands and verify the paid fallback on device** (see [`MONETIZATION_AND_GROWTH.md`](MONETIZATION_AND_GROWTH.md)):
 
-1. Web: paste Square Payment Links into `website/public/support.json` and deploy; enable GitHub Sponsors if the listing is still inactive.
+1. Web: create a recurring Square Payment Link and paste into `website/public/support.json` (`donateMonthly`); enroll in GitHub Sponsors via **Your sponsors** (`github.com/sponsors/accounts`), confirm the profile page shows a Sponsor button, then paste the URL back into `githubSponsors`.
 2. App Store Connect: Paid Apps agreement, tax/banking, and IAP product IDs ([`APP_STORE_IAP_SETUP.md`](APP_STORE_IAP_SETUP.md)).
 3. Fix distribution signing for app + widget; archive with `./scripts/stage-testflight-ipa.sh`.
 4. After PCC entitlement QA, enable `NOBSPCC*` Info.plist flags so subscribed Tank-offline users get Apple Cloud fallback ([`PCC_ENTITLEMENT_CHECKLIST.md`](PCC_ENTITLEMENT_CHECKLIST.md)).
