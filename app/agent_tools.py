@@ -1,12 +1,12 @@
 from __future__ import annotations
 
+import os
+import platform
+import re
 from collections.abc import Callable
 from dataclasses import dataclass
 from enum import StrEnum
-import os
 from pathlib import Path
-import platform
-import re
 from typing import Any
 
 import feedparser

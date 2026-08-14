@@ -1,8 +1,8 @@
 """Pairing must require someone at the Tank, not merely someone on the network."""
 
-from fastapi.testclient import TestClient
 import httpx
 import pytest
+from fastapi.testclient import TestClient
 
 from app.config import Settings
 from app.main import create_app

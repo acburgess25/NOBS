@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import Any, ClassVar
 from unittest.mock import MagicMock, patch
 
 import httpx
@@ -95,7 +95,7 @@ class TestWebSearch:
 
 
 class TestGetWeather:
-    _MOCK_RESPONSE = {
+    _MOCK_RESPONSE: ClassVar[dict[str, Any]] = {
         "timezone": "America/Chicago",
         "current": {
             "temperature_2m": 72.5,
@@ -157,7 +157,9 @@ class TestReadNewsFeeds:
         feed_mock = MagicMock()
         feed_mock.feed.get.return_value = "Test Feed"
         feed_mock.entries = [
-            MagicMock(**{"get.side_effect": lambda k, d="": e.get(k, d)}) for e in entries
+            # Bind `e` per iteration: without the default argument every lambda
+            # closes over the same variable and reads the last entry.
+            MagicMock(**{"get.side_effect": lambda k, d="", e=e: e.get(k, d)}) for e in entries
         ]
         return feed_mock
 
@@ -256,11 +258,9 @@ class TestReadUrl:
         with (
             patch("app.agent_tools.is_public_http_url", return_value=False),
             patch("app.agent_tools.httpx.Client") as mock_fetch,
+            pytest.raises(ValueError, match="private network"),
         ):
-            with pytest.raises(ValueError, match="private network"):
-                _registry().execute(
-                    "read_url", {"url": "http://127.0.0.1:8000/dashboard/pairing"}
-                )
+            _registry().execute("read_url", {"url": "http://127.0.0.1:8000/dashboard/pairing"})
         mock_fetch.assert_not_called()
 
     def test_http_error_gives_error(self) -> None:

@@ -4,7 +4,7 @@ scheduler's task runner, and the REST surface."""
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from unittest.mock import patch
 
@@ -135,9 +135,9 @@ def test_overnight_window_simple_range() -> None:
         overnight_window_start="01:00",
         overnight_window_end="05:00",
     )
-    assert is_overnight_window(settings, datetime(2026, 7, 8, 3, 0, tzinfo=timezone.utc))
-    assert not is_overnight_window(settings, datetime(2026, 7, 8, 12, 0, tzinfo=timezone.utc))
-    assert not is_overnight_window(settings, datetime(2026, 7, 8, 5, 0, tzinfo=timezone.utc))
+    assert is_overnight_window(settings, datetime(2026, 7, 8, 3, 0, tzinfo=UTC))
+    assert not is_overnight_window(settings, datetime(2026, 7, 8, 12, 0, tzinfo=UTC))
+    assert not is_overnight_window(settings, datetime(2026, 7, 8, 5, 0, tzinfo=UTC))
 
 
 def test_overnight_window_wraps_midnight() -> None:
@@ -146,10 +146,10 @@ def test_overnight_window_wraps_midnight() -> None:
         overnight_window_start="23:00",
         overnight_window_end="06:00",
     )
-    assert is_overnight_window(settings, datetime(2026, 7, 8, 23, 30, tzinfo=timezone.utc))
-    assert is_overnight_window(settings, datetime(2026, 7, 8, 2, 0, tzinfo=timezone.utc))
-    assert not is_overnight_window(settings, datetime(2026, 7, 8, 12, 0, tzinfo=timezone.utc))
-    assert not is_overnight_window(settings, datetime(2026, 7, 8, 6, 0, tzinfo=timezone.utc))
+    assert is_overnight_window(settings, datetime(2026, 7, 8, 23, 30, tzinfo=UTC))
+    assert is_overnight_window(settings, datetime(2026, 7, 8, 2, 0, tzinfo=UTC))
+    assert not is_overnight_window(settings, datetime(2026, 7, 8, 12, 0, tzinfo=UTC))
+    assert not is_overnight_window(settings, datetime(2026, 7, 8, 6, 0, tzinfo=UTC))
 
 
 def test_overnight_window_respects_configured_timezone() -> None:
@@ -159,8 +159,8 @@ def test_overnight_window_respects_configured_timezone() -> None:
         overnight_window_start="23:00",
         overnight_window_end="06:00",
     )
-    assert is_overnight_window(settings, datetime(2026, 7, 9, 4, 30, tzinfo=timezone.utc))
-    assert not is_overnight_window(settings, datetime(2026, 7, 8, 18, 0, tzinfo=timezone.utc))
+    assert is_overnight_window(settings, datetime(2026, 7, 9, 4, 30, tzinfo=UTC))
+    assert not is_overnight_window(settings, datetime(2026, 7, 8, 18, 0, tzinfo=UTC))
 
 
 def test_overnight_window_falls_back_to_utc_for_unknown_timezone() -> None:
@@ -169,7 +169,7 @@ def test_overnight_window_falls_back_to_utc_for_unknown_timezone() -> None:
         overnight_window_start="23:00",
         overnight_window_end="06:00",
     )
-    assert is_overnight_window(settings, datetime(2026, 7, 8, 23, 30, tzinfo=timezone.utc))
+    assert is_overnight_window(settings, datetime(2026, 7, 8, 23, 30, tzinfo=UTC))
 
 
 def test_is_tank_idle_uses_configured_threshold() -> None:

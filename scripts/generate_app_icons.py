@@ -93,7 +93,7 @@ def generate_ios_icons() -> None:
     images: list[dict[str, str]] = []
 
     for idiom, size_str, pt, scale in IOS_SIZES:
-        px = int(round(pt * scale))
+        px = round(pt * scale)
         filename = (
             "icon-ios-marketing-1024x1024@1x.png"
             if idiom == "ios-marketing"

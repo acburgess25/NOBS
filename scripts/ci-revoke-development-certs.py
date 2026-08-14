@@ -65,6 +65,6 @@ def main() -> int:
 if __name__ == "__main__":
     try:
         raise SystemExit(main())
-    except Exception as exc:  # noqa: BLE001 - CI script should print a clear failure
+    except Exception as exc:
         print(f"Failed to revoke development certificates: {exc}", file=sys.stderr)
         raise

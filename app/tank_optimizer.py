@@ -10,11 +10,12 @@ import asyncio
 import json
 import logging
 import time
+from collections.abc import Callable, Coroutine
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Coroutine
+from typing import Any
 
 import httpx
 import psutil
@@ -148,9 +149,12 @@ class TankOptimizer:
         self._run_now_job = job_type
         self._run_now_event.set()
         for _ in range(200):
-            if self._last_result and self._last_result.job_type == (job_type or self._last_result.job_type):
-                if self._last_result.completed_at:
-                    return self._last_result
+            if (
+                self._last_result
+                and self._last_result.job_type == (job_type or self._last_result.job_type)
+                and self._last_result.completed_at
+            ):
+                return self._last_result
             await asyncio.sleep(0.05)
         return self._last_result
 

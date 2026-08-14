@@ -16,8 +16,8 @@ a forgotten open window cannot outlive the session that opened it.
 
 from __future__ import annotations
 
-from ipaddress import ip_address
 import time
+from ipaddress import ip_address
 
 
 def is_loopback_client(host: str | None) -> bool:

@@ -1,6 +1,7 @@
+import subprocess  # Import subprocess module
+
 import httpx
 from fastapi.testclient import TestClient
-import subprocess  # Import subprocess module
 
 from app.config import Settings
 from app.main import create_app

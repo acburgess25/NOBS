@@ -17,13 +17,13 @@ import pytest
 
 from app.agent import AgentTaskRequest, TankAgent
 from app.agent_store import AgentStore
-from app.config import Settings
 from app.agent_tools import (
     ToolRegistry,
     ToolRisk,
     home_domain_of,
     home_domains_for,
 )
+from app.config import Settings
 
 
 def _tools(tmp_path: Path) -> tuple[ToolRegistry, MagicMock]:
@@ -136,7 +136,7 @@ def test_unknown_domain_is_refused_rather_than_executed(tmp_path: Path) -> None:
 def test_malformed_entity_id_is_refused(tmp_path: Path) -> None:
     tools, home = _tools(tmp_path)
 
-    with pytest.raises(ValueError, match="domain.object_id"):
+    with pytest.raises(ValueError, match=r"domain\.object_id"):
         tools.execute("control_home_device", {"entity_id": "justaname", "service": "turn_on"})
 
     home.call_service.assert_not_called()

@@ -10,7 +10,12 @@ from fastapi.testclient import TestClient
 
 from app.config import Settings
 from app.main import create_app
-from app.workplace import BrowserSandbox, BrowserSandboxError, agent_visual_for, parse_allowed_domains
+from app.workplace import (
+    BrowserSandbox,
+    BrowserSandboxError,
+    agent_visual_for,
+    parse_allowed_domains,
+)
 
 TOKEN = "workplace-test-token"
 

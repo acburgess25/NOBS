@@ -24,7 +24,7 @@ dependencies = [
 dev = [
   "pytest>=9.0.3,<10",
   "qrcode>=7.4,<9",
-  "ruff>=0.9,<0.16",
+  "ruff>=0.16,<0.17",
 ]
 
 [tool.hatch.build.targets.wheel]
@@ -36,3 +36,25 @@ testpaths = ["tests"]
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+
+# Declare the rule set explicitly. Without a `select`, the enforced rules are
+# whatever ruff ships as its default, and that default changes between
+# releases -- 0.16 expanded it from roughly 20 rules to 413, which turned an
+# ordinary Dependabot bump into 61 new CI failures. Pinning the selection
+# means a ruff upgrade no longer silently changes what CI enforces.
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I", "UP", "B", "SIM", "FURB", "EXE", "RUF"]
+ignore = [
+  # `str, Enum` members serialize as their value; `StrEnum` changes `str()`
+  # output. These enums cross the API boundary, so migrating them would be a
+  # wire-format change, not a lint cleanup.
+  "UP042",
+  # The en dashes and curly quotes are deliberate typography in user-facing
+  # copy and comments, not typos.
+  "RUF001",
+  "RUF003",
+  # scripts/dev.py deliberately checks the interpreter version at runtime so a
+  # user on an unsupported Python gets a clear message. ruff assumes the floor
+  # from target-version and calls the guard dead code; it is not.
+  "UP036",
+]

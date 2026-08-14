@@ -1,11 +1,12 @@
-from contextlib import asynccontextmanager
 import asyncio
+import secrets
+import time
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from enum import Enum
-import secrets
 from pathlib import Path
-import time
-from typing import Any, AsyncIterator, Literal
+from typing import Any, Literal
 
 import httpx
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, status
@@ -38,21 +39,21 @@ from app.briefing import (
 from app.config import Settings, get_settings
 from app.dashboard import build_dashboard_status
 from app.dream_team import DreamTeamModelError, DreamTeamSandbox, LocalFirstPolicy
-from app.workplace import (
-    BrowserSandbox,
-    BrowserSandboxError,
-    build_workplace_status,
-    parse_allowed_domains,
-)
 from app.home_assistant import HomeAssistantClient
 from app.networking import tank_pairing_url
 from app.pairing import PairingWindow, is_loopback_client
 from app.scheduler import run_scheduler
 from app.tank_optimizer import (
-    TankOptimizer,
     _ALL_JOB_TYPES,
     _HEAVY_JOB_TYPES,
+    TankOptimizer,
     run_optimizer_loop,
+)
+from app.workplace import (
+    BrowserSandbox,
+    BrowserSandboxError,
+    build_workplace_status,
+    parse_allowed_domains,
 )
 
 
