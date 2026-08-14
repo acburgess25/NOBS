@@ -108,9 +108,32 @@ fi
 if ! has_valid_dist_identity; then
   echo "Creating Apple Distribution certificate via API..."
   if ! run_fastlane_cert false; then
-    echo "Distribution cert creation failed; revoking existing distribution certificates..."
-    python3 scripts/ci-revoke-distribution-certs.py
-    run_fastlane_cert false || true
+    # Do not revoke automatically. Creation fails almost entirely because the
+    # team is at Apple's distribution-certificate limit, and the previous
+    # behaviour here was to revoke *every* distribution certificate on the
+    # team and mint a replacement. Revocation is not local to CI: it
+    # invalidates that certificate everywhere it is installed, including a
+    # developer's own Mac, and it is not reversible. Destroying shared signing
+    # material to recover a build is the machine making a call that belongs to
+    # a person, so fail with instructions instead.
+    cat >&2 <<'MESSAGE'
+Could not create an Apple Distribution certificate.
+
+This usually means the team is at Apple's distribution-certificate limit
+(three on the standard Apple Developer Program). Note that this workflow
+creates a new certificate on every run, because the CI keychain is rebuilt
+empty each time and fastlane cannot find the existing private key.
+
+To recover, in Certificates, Identifiers & Profiles → Certificates:
+  1. Delete surplus Apple Distribution certificates, keeping the one in use.
+  2. Re-run this workflow.
+
+Certificates are deliberately NOT revoked automatically here: revoking
+invalidates the certificate on every machine that has it, and that is a
+decision for a person rather than for CI. To revoke intentionally, run
+scripts/ci-revoke-distribution-certs.py yourself.
+MESSAGE
+    exit 1
   fi
 fi
 

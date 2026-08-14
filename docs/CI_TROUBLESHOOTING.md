@@ -90,27 +90,30 @@ Successfully generated 6WR47HHPR4
 
 `ci-prepare-keychain.sh` builds an empty keychain on every run, so `fastlane cert` never finds the existing certificate's private key and issues a **new** Apple Distribution certificate each time. The standard Apple Developer Program allows **three**. That run took the team from two to three.
 
-This matters because of what happens at the limit. In [`ci-ensure-signing-certs.sh`](../scripts/ci-ensure-signing-certs.sh), a failed creation falls through to `ci-revoke-distribution-certs.py`, which revokes **every** distribution certificate on the team and issues a fresh one. Revocation is not local to CI — it invalidates that certificate everywhere, including the Xcode install on the developer's own Mac.
+**Until August 14, 2026 this had a destructive failure mode.** A failed creation fell through to `ci-revoke-distribution-certs.py`, which revoked **every** distribution certificate on the team. Revocation is not local to CI — it invalidates that certificate everywhere it is installed, including the Xcode install on a developer's own Mac, and it cannot be undone. So a run at the limit destroyed shared signing material to recover a build.
 
-So the sequence is: run at the limit → creation fails → all distribution certificates revoked.
+[`ci-ensure-signing-certs.sh`](../scripts/ci-ensure-signing-certs.sh) now fails with instructions instead. Revoking is still available deliberately by running `scripts/ci-revoke-distribution-certs.py` yourself.
 
-**Before running again:**
+**When it fails:**
 
-1. Check Certificates, Identifiers & Profiles → Certificates and delete surplus **Apple Distribution** certificates, keeping the one in active use.
-2. Treat a run at three certificates as unsafe until the keychain reuses an existing certificate instead of minting one.
+1. Open Certificates, Identifiers & Profiles → Certificates.
+2. Delete surplus **Apple Distribution** certificates, keeping the one in active use.
+3. Re-run the workflow.
 
-The durable fix is for the CI keychain to import an existing distribution certificate (the unused `DIST_CERT_P12` / `DIST_CERT_PASSWORD` secrets exist for exactly this) rather than generating a new one per run.
+The certificate count still grows by one per run. The durable fix is for the CI keychain to import an existing distribution certificate — the unused `DIST_CERT_P12` / `DIST_CERT_PASSWORD` secrets exist for exactly this — rather than generating a new one each time. Until that lands, check the count before dispatching.
 
-### Certificate selection mismatch
+### Certificate selection mismatch (fixed)
 
-The same run showed `fastlane` installing `6WR47HHPR4` into the CI keychain while [`ci-create-app-store-profiles.py`](../scripts/ci-create-app-store-profiles.py) selected a different certificate, `474FC3VL6X`, for the profiles:
+The same run installed `6WR47HHPR4` into the CI keychain while the profile script embedded a different certificate, `474FC3VL6X`:
 
 ```text
 Successfully generated 6WR47HHPR4        # imported into the CI keychain
 Using distribution certificate 474FC3VL6X # embedded in the profiles
 ```
 
-`_distribution_certificate_id` takes the first Apple Distribution certificate the API returns, which is not necessarily the one whose private key is in the keychain. A profile built around a certificate the signing keychain cannot use will fail at archive time even when both steps report success. Pin the profile to the certificate actually installed before trusting a green signing run.
+`_distribution_certificate_id` took the first Apple Distribution certificate the API returned, which need not be the one whose private key is present. A profile built around an unusable certificate fails at archive time even though every earlier step reports success.
+
+[`ci-create-app-store-profiles.py`](../scripts/ci-create-app-store-profiles.py) now matches candidates against the SHA-1 fingerprints reported by `security find-identity` for the CI keychain, which only lists identities whose private key is installed. If nothing matches it still proceeds, but prints a warning naming the certificate it fell back to — so a mismatch is visible in the log rather than surfacing later as an archive failure.
 
 ---
 
