@@ -30,30 +30,44 @@ code gap.
 | Privacy receipts + Local/Tank/cloud badges | Nothing comparable | **Keep custom.** |
 | Agent loop (`app/agent.py`, 274 lines) | LangChain/CrewAI-style frameworks; Letta runtime | **Keep custom.** 274 lines is smaller than any framework's adapter layer, and framework lock-in (especially Letta's runtime model) works against local-first portability. |
 | Tool registry (`app/agent_tools.py`, 1,139 lines) | MCP tool servers | **Hybrid.** Keep the registry + risk classes as the policy layer; let MCP servers become the supply of tools behind it. |
-| JSON parsing from Ollama (fence-stripping in `agent.py:261`, `dream_team.py:491`) | Ollama schema-constrained decoding (`format` = JSON Schema, XGrammar under the hood) | **Replace.** See below. |
+| JSON parsing from Ollama (`dream_team.py`, `briefing.py`, optimizer ping) | Ollama schema-constrained decoding (`format` = JSON Schema, XGrammar under the hood) | **Replace.** Done in #103. |
+| Agent tool-call fence-stripping (`agent.py:261`) | — | **Keep.** That call passes `tools` and must still be able to return prose, so it cannot be constrained to a schema. |
 | Memory approval flow (planned) | mem0 (bolt-on memory layer, minimal lock-in), Letta (runtime, heavy lock-in) | **Build the approval UX custom; consider mem0's extraction patterns as inspiration only.** Consent-first memory is a differentiator; no library ships it. |
 | Home Assistant bridge (`app/home_assistant.py`) | HA's native Ollama/conversation-agent integrations | **Keep ours for control; add the reverse direction** (Tank as HA Assist conversation agent) for voice endpoints. |
 | Custom skill pipeline (planned, PRODUCT_DECISIONS §14) | MCP server ecosystem + registries | **Reframe.** "Generate a custom integration" becomes "wrap or vet an existing MCP server" in most cases — cheaper to build, easier to scan. |
 
 ## Concrete simplification 1: Ollama structured outputs
 
-Since Ollama 0.3.0, the `format` parameter accepts a full JSON Schema and
-constrains decoding itself — no code fences, no explanatory prose, no manual
-cleanup. Today NOBS passes `"format": "json"` (unconstrained JSON mode) in
-three places and then compensates:
+**Status: implemented in #103.**
 
-- `app/agent.py:261` strips ``` fences by hand before `json.loads`.
-- `app/dream_team.py:491` does the same dance and raises
-  `DreamTeamModelError` on failure.
-- Tool-call arguments are validated after the fact rather than constrained
-  during generation.
+Ollama's `format` parameter accepts a full JSON Schema and constrains decoding
+itself — no code fences, no explanatory prose, no manual cleanup. NOBS was
+passing `"format": "json"` (unconstrained JSON mode) and compensating
+afterwards. Three call sites changed:
 
-Passing the actual schema per call deletes the fence-stripping, shrinks the
-malformed-output failure mode, and makes the existing malformed-model-output
-tests stronger (they can assert schema conformance instead of parse survival).
-`pydantic` is already a dependency via FastAPI, so schemas can come from the
-models we already define — no new dependency needed (skip Instructor unless we
-want its retry ergonomics later).
+- `app/briefing.py` now sends `BriefingSections.model_json_schema()` — the
+  schema it was already validating against. A model that drifts off-shape used
+  to mean a failed briefing for the user; that failure mode is gone rather
+  than merely reported.
+- `app/dream_team.py` sends schemas for its two JSON steps, so `_ollama_json`
+  no longer strips fences by hand.
+- The optimizer warm-up ping is constrained, so it measures model latency
+  rather than the model's willingness to answer in JSON. That site previously
+  called bare `json.loads` with no error handling.
+
+**One correction to the original draft of this note:** `Agent._parse_json_tool_call`
+cannot be replaced this way. That call passes `tools` and must still be able to
+return ordinary prose, so constraining it to a tool-call schema would break
+normal chat replies. Its fence-stripping stays.
+
+`pydantic` already ships with FastAPI, so schemas come from models we define —
+no new dependency (skip Instructor unless we later want its retry ergonomics).
+
+The security-relevant lesson, now pinned by a test: **a schema constrains shape,
+never permission.** `suggested_tools` is typed as an array of strings, so a
+model can name a state-changing tool and stay schema-valid. The
+`SANDBOX_READ_ONLY_TOOLS` allowlist is what rejects it, and it must keep
+running after generation.
 
 ## Concrete simplification 2: MCP as the integration standard
 
