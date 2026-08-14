@@ -46,7 +46,7 @@ Paid layers sit **above** that floor.
 | StoreKit tip jar + NOBScloud monthly | Code + local StoreKit config ready | Needs Paid Apps agreement + ASC products + live build |
 | Website `nobsdash.com` | Live | Can take Square Payment Links today; Sponsors CTA hidden until enrolled |
 | GitHub Sponsors | **Not enabled** — `github.com/sponsors/acburgess25` is a plain profile with no Sponsor button (verified July 31, 2026); CTA hidden on site/README until enrolled | Needs enrollment via GitHub → Your sponsors (`github.com/sponsors/accounts`) |
-| Square / card Payment Links | Empty in `support.json` (`cardProcessor: square`) | Fastest card checkout for web |
+| Square / card Payment Links | One-time tip link **live** in `support.json` (`donateOneTime`, `cardProcessor: square`); recurring `donateMonthly` not created yet | Fastest card checkout for web |
 | Stripe Payment Links | Optional alternative | Helper script still available |
 | NOBScloud backend entitlements | On-device StoreKit only; PCC paid fallback coded | Do not claim hosted NOBScloud servers yet |
 | Hosted Tank / NOBSbox / paid skills | Planned | Later revenue, not day-one |
@@ -61,10 +61,10 @@ Goal: open every cash path that does not depend on shipping unfinished cloud fea
 
 ### 0A. Web support (same day)
 
-1. Enroll in GitHub Sponsors via **Your sponsors** (`github.com/sponsors/accounts`). It is not active today — the profile page has no Sponsor button — so `support.json` leaves `githubSponsors` empty and the site hides that CTA. Paste the URL back into `githubSponsors` only after the profile page shows a working Sponsor button.
-2. Create **Square** Payment Links for one-time tip and optional monthly support (Square Dashboard → Payment Links).
-3. Fill `donateOneTime` / `donateMonthly` in `support.json` (`cardProcessor` already `"square"`), rebuild and deploy the site.
-4. Put a single clear CTA on the homepage and README: **Support the free local core** → Sponsors / tip / (soon) in-app Support.
+1. Enroll in GitHub Sponsors via **Your sponsors** (`github.com/sponsors/accounts`). It is not active today — the profile page has no Sponsor button — so `support.json` leaves `githubSponsors` empty and `.github/FUNDING.yml` leaves the `github:` key commented out. Paste the URL back into `githubSponsors` and re-enable the `FUNDING.yml` key only after the profile page shows a working Sponsor button.
+2. Done: one-time Square tip link is created and filled in as `donateOneTime`. Remaining: create a monthly/recurring **Square** Payment Link (Square Dashboard → Payment Links).
+3. Fill `donateMonthly` in `support.json` (`cardProcessor` already `"square"`), rebuild and deploy the site.
+4. Put a single clear CTA on the homepage and README: **Support the free local core** → tip / (soon) in-app Support, adding Sponsors only once it is enrolled.
 
 Rules:
 
