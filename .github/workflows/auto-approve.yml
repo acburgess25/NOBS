@@ -23,7 +23,7 @@ permissions:
 jobs:
   dependabot-metadata:
     if: github.actor == 'dependabot[bot]'
-    runs-on: [self-hosted, tank]
+    runs-on: ubuntu-latest
     outputs:
       update-type: ${{ steps.metadata.outputs.update-type }}
     steps:
@@ -39,7 +39,7 @@ jobs:
       github.actor == 'dependabot[bot]' &&
       (needs.dependabot-metadata.outputs.update-type == 'version-update:semver-patch' ||
        needs.dependabot-metadata.outputs.update-type == 'version-update:semver-minor')
-    runs-on: [self-hosted, tank]
+    runs-on: ubuntu-latest
     steps:
       - name: Approve patch/minor dependency update
         continue-on-error: true
@@ -54,7 +54,7 @@ jobs:
     if: >
       github.actor != 'dependabot[bot]' &&
       contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.pull_request.author_association)
-    runs-on: [self-hosted, tank]
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
         with:
