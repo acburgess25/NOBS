@@ -467,9 +467,16 @@ class DreamTeamSandbox:
         return schemas
 
     def _ensure_sandbox_dir(self, session_id: str) -> Path:
-        path = (self.sandbox_root / session_id).resolve()
-        self.sandbox_root.mkdir(parents=True, exist_ok=True)
-        if self.sandbox_root not in path.parents and path != self.sandbox_root:
+        # Resolve the root before comparing. The configured sandbox path is
+        # relative by default, and a relative root is never a parent of a
+        # resolved absolute child, so comparing the two rejected every valid
+        # session id. Creating the root first also keeps symlink resolution
+        # consistent between the root and the child (macOS /tmp, for example).
+        root = self.sandbox_root.resolve()
+        root.mkdir(parents=True, exist_ok=True)
+        root = root.resolve()
+        path = (root / session_id).resolve()
+        if root not in path.parents and path != root:
             raise ValueError("Sandbox path escapes root")
         path.mkdir(parents=True, exist_ok=True)
         return path

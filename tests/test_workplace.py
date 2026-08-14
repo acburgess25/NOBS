@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import json
+import socket
 from pathlib import Path
+from unittest.mock import patch
 
 import httpx
 from fastapi.testclient import TestClient
@@ -11,6 +13,27 @@ from app.main import create_app
 from app.workplace import BrowserSandbox, BrowserSandboxError, agent_visual_for, parse_allowed_domains
 
 TOKEN = "workplace-test-token"
+
+
+def _resolves_to(*addresses: str):
+    """Patch DNS so allowlisted-domain tests don't depend on live network access.
+
+    Mirrors `tests/test_url_guard.py`'s helper: `BrowserSandbox` allows a URL
+    only when it is both on the domain allowlist and resolves to a public
+    address (`app.networking.is_public_http_url`), so exercising the "allowed"
+    path for a real domain like wikipedia.org otherwise requires outbound DNS —
+    which a network-restricted CI runner does not have.
+    """
+
+    def fake_getaddrinfo(host, port, *args, **kwargs):
+        if not addresses:
+            raise socket.gaierror(-2, "Name or service not known")
+        return [
+            (socket.AF_INET, socket.SOCK_STREAM, socket.IPPROTO_TCP, "", (address, port or 80))
+            for address in addresses
+        ]
+
+    return patch("app.networking.socket.getaddrinfo", side_effect=fake_getaddrinfo)
 
 
 def make_client(tmp_path: Path) -> TestClient:
@@ -100,7 +123,8 @@ def test_browser_sandbox_allows_listed_domain(tmp_path: Path) -> None:
         allowed_domains=parse_allowed_domains("wikipedia.org"),
         screenshot_dir=tmp_path / "shots",
     )
-    session = sandbox.create_session("agent-1", "https://en.wikipedia.org/wiki/Main_Page")
+    with _resolves_to("93.184.216.34"):
+        session = sandbox.create_session("agent-1", "https://en.wikipedia.org/wiki/Main_Page")
     assert session["url"].startswith("https://")
     assert sandbox.screenshot_svg(session["id"]).startswith("<svg")
 
@@ -115,14 +139,15 @@ def test_browser_session_api_and_screenshot(tmp_path: Path) -> None:
     )
     assert blocked.status_code == 400
 
-    created = client.post(
-        "/workplace/browser/sessions",
-        headers=auth(),
-        json={
-            "agent_id": "agent-1",
-            "url": "https://en.wikipedia.org/wiki/Main_Page",
-        },
-    )
+    with _resolves_to("93.184.216.34"):
+        created = client.post(
+            "/workplace/browser/sessions",
+            headers=auth(),
+            json={
+                "agent_id": "agent-1",
+                "url": "https://en.wikipedia.org/wiki/Main_Page",
+            },
+        )
     assert created.status_code == 200
     session_id = created.json()["id"]
 
