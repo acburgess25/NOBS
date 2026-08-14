@@ -172,6 +172,6 @@ When documents disagree, `docs/PRODUCT_DECISIONS.md` is the product source of tr
 
 - Public collaboration codename: **Project Lantern**.
 - This repository is licensed under **AGPL-3.0-or-later** (`LICENSE`).
-- Contributions are accepted under `CONTRIBUTING.md` rules, including DCO sign-off (`git commit -s`).
+- Contributions are accepted under `CONTRIBUTING.md` rules; opening a pull request confirms you have the right to submit that work under the repository's license.
 - Report security issues per [`SECURITY.md`](SECURITY.md); do not file public issues for exploitable vulnerabilities.
 - Before making the repository public, follow [`docs/PUBLIC_RELEASE.md`](docs/PUBLIC_RELEASE.md).

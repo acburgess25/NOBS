@@ -43,7 +43,7 @@ git push origin --delete <branch>
 
 ## Legal and product
 
-- [ ] `LICENSE` (AGPL-3.0-or-later) and `CONTRIBUTING.md` DCO requirements are visible.
+- [ ] `LICENSE` (AGPL-3.0-or-later) and the `CONTRIBUTING.md` right-to-submit and licensing terms are visible.
 - [ ] `SECURITY.md` contact path is valid.
 - [ ] Privacy policy URL is ready before external TestFlight or App Store beta.
 - [ ] README and `docs/CURRENT_STATE.md` describe prototype boundaries honestly.

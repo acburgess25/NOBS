@@ -1,0 +1,40 @@
+name: Idea or feature request
+description: Suggest something NOBS should do.
+title: "[idea] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Ideas are welcome, including ones that contradict the current roadmap —
+        say so and make the case. NOBS has approved product decisions in
+        [`docs/PRODUCT_DECISIONS.md`](https://github.com/acburgess25/NOBS/blob/main/docs/PRODUCT_DECISIONS.md);
+        a proposal that conflicts with one needs that decision superseded, not
+        quietly reinterpreted.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: Describe the situation, not the solution. What is annoying or impossible today?
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What do you have in mind?
+    validations:
+      required: false
+  - type: checkboxes
+    id: principles
+    attributes:
+      label: Does it fit the product rules?
+      description: Tick what applies. An honest "no" is fine — it just means the idea needs discussion first.
+      options:
+        - label: Works without a paid cloud plan, or degrades honestly without one.
+          required: false
+        - label: Any action that changes state or sends something stays behind explicit approval.
+          required: false
+        - label: Does not require passwords or financial account access (categorically off-limits).
+          required: false
+        - label: Works on Linux, Windows/WSL2, and macOS — or names the boundary if not.
+          required: false
