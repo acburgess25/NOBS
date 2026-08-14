@@ -1,0 +1,71 @@
+name: Bug report
+description: Something behaves incorrectly or crashes.
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Never paste device tokens, `.env` contents, API keys, calendar or message
+        contents, or files from `data/`. Redact before pasting logs.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What should have happened?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Start Tank with ...
+        2. Send ...
+        3. Observe ...
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which part of NOBS?
+      options:
+        - Tank backend (app/)
+        - Tank agent, tools, or approvals
+        - iPhone app
+        - macOS Tank menu-bar app
+        - Dashboard or workplace
+        - Website
+        - Build, CI, or tooling
+        - Not sure
+    validations:
+      required: true
+  - type: input
+    id: platform
+    attributes:
+      label: Platform and versions
+      placeholder: Windows 11 / WSL2 Ubuntu 24.04, Python 3.12, Ollama 0.31.1, qwen3:8b
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant output
+      description: Error text or failing test output. Redact anything personal.
+      render: shell
+    validations:
+      required: false
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Before submitting
+      options:
+        - label: This report contains no secrets, tokens, or personal data.
+          required: true
+        - label: I checked docs/CURRENT_STATE.md in case this is a known gap rather than a bug.
+          required: false

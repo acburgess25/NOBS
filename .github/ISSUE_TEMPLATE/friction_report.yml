@@ -1,0 +1,55 @@
+name: Friction report
+description: Something was confusing, harder than it should have been, or did not work the way the docs said.
+title: "[friction] "
+labels: ["friction"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This is the most useful issue you can file. "Your README made no sense to me"
+        is a legitimate report — a setup step that only works in the author's head is
+        a real defect, and it is invisible to the one person who wrote it.
+
+        Do not include tokens, `.env` contents, personal calendar or message data,
+        or anything from `data/`.
+  - type: textarea
+    id: what
+    attributes:
+      label: What were you trying to do?
+      placeholder: Set up Tank on my Windows gaming PC and pair my phone with it.
+    validations:
+      required: true
+  - type: textarea
+    id: where
+    attributes:
+      label: Where did it get hard?
+      description: The step, command, doc line, or screen. Quote it if you can.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect to happen instead?
+    validations:
+      required: false
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Where were you working?
+      options:
+        - Tank on Linux
+        - Tank on Windows / WSL2
+        - Tank on macOS
+        - iPhone app
+        - Website
+        - Docs only
+        - Something else
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything else
+      description: Versions, error text, or a screenshot. Redact anything personal.
+    validations:
+      required: false
