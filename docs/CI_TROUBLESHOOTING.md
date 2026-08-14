@@ -79,6 +79,39 @@ No signing certificate "iOS Development" found … private key is not installed 
 
 Team: `K853LKQLAS` — Bundle IDs: `com.nobsdash.nobs`, `com.nobsdash.nobs.widgets`
 
+### ⚠️ Every run creates a new distribution certificate
+
+**Check the certificate count before dispatching this workflow.** Observed on the August 14, 2026 `refresh_signing_only` run:
+
+```text
+Couldn't find an existing certificate... creating a new one
+Successfully generated 6WR47HHPR4
+```
+
+`ci-prepare-keychain.sh` builds an empty keychain on every run, so `fastlane cert` never finds the existing certificate's private key and issues a **new** Apple Distribution certificate each time. The standard Apple Developer Program allows **three**. That run took the team from two to three.
+
+This matters because of what happens at the limit. In [`ci-ensure-signing-certs.sh`](../scripts/ci-ensure-signing-certs.sh), a failed creation falls through to `ci-revoke-distribution-certs.py`, which revokes **every** distribution certificate on the team and issues a fresh one. Revocation is not local to CI — it invalidates that certificate everywhere, including the Xcode install on the developer's own Mac.
+
+So the sequence is: run at the limit → creation fails → all distribution certificates revoked.
+
+**Before running again:**
+
+1. Check Certificates, Identifiers & Profiles → Certificates and delete surplus **Apple Distribution** certificates, keeping the one in active use.
+2. Treat a run at three certificates as unsafe until the keychain reuses an existing certificate instead of minting one.
+
+The durable fix is for the CI keychain to import an existing distribution certificate (the unused `DIST_CERT_P12` / `DIST_CERT_PASSWORD` secrets exist for exactly this) rather than generating a new one per run.
+
+### Certificate selection mismatch
+
+The same run showed `fastlane` installing `6WR47HHPR4` into the CI keychain while [`ci-create-app-store-profiles.py`](../scripts/ci-create-app-store-profiles.py) selected a different certificate, `474FC3VL6X`, for the profiles:
+
+```text
+Successfully generated 6WR47HHPR4        # imported into the CI keychain
+Using distribution certificate 474FC3VL6X # embedded in the profiles
+```
+
+`_distribution_certificate_id` takes the first Apple Distribution certificate the API returns, which is not necessarily the one whose private key is in the keychain. A profile built around a certificate the signing keychain cannot use will fail at archive time even when both steps report success. Pin the profile to the certificate actually installed before trusting a green signing run.
+
 ---
 
 ## NOBS | Default | Build - iOS (Xcode Cloud)
