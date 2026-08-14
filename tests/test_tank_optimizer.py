@@ -15,6 +15,7 @@ from app.config import Settings
 from app.dream_team import DreamTeamSandbox
 from app.tank_optimizer import (
     TankOptimizer,
+    _is_user_facing_path,
     job_briefing_index_light,
     job_model_ping,
     job_model_warmup,
@@ -44,6 +45,44 @@ def test_record_api_activity_ignores_health_and_dashboard() -> None:
     assert optimizer._last_api_activity == before
     optimizer.record_api_activity("/chat")
     assert optimizer._last_api_activity > before
+
+
+def test_every_route_is_classified_for_optimizer_idle_tracking() -> None:
+    """Walk the real route table instead of sample paths.
+
+    The idle clock only resets for paths matching ``_USER_FACING_PREFIXES``,
+    so a route family missing from that list keeps heavy background jobs
+    running while a user is actively waiting on the API. Every route must
+    either match a user-facing prefix or appear here as traffic that should
+    not keep the Tank awake.
+    """
+    background = {
+        "/health",
+        "/dashboard",
+        "/dashboard/status",
+        "/dashboard/assets",
+        # Pairing is kiosk-driven today. If open/close ever count as user
+        # presence, move them into _USER_FACING_PREFIXES instead of here.
+        "/dashboard/pairing",
+        "/dashboard/pairing/open",
+        "/dashboard/pairing/close",
+        "/optimizer/status",
+        "/optimizer/run-now",
+        "/tank/optimizer",
+        "/workplace",
+        "/workplace/status",
+        "/workplace/assets",
+        "/openapi.json",
+        "/docs",
+        "/docs/oauth2-redirect",
+        "/redoc",
+    }
+    unclassified = sorted(
+        route.path
+        for route in client().app.routes
+        if not _is_user_facing_path(route.path) and route.path not in background
+    )
+    assert unclassified == []
 
 
 def test_optimizer_status_payload() -> None:
