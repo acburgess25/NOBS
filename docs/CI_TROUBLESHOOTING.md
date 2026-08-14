@@ -79,16 +79,18 @@ No signing certificate "iOS Development" found … private key is not installed 
 
 Team: `K853LKQLAS` — Bundle IDs: `com.nobsdash.nobs`, `com.nobsdash.nobs.widgets`
 
-### ⚠️ Every run creates a new distribution certificate
+### ⚠️ A run without the private key creates a new distribution certificate
 
-**Check the certificate count before dispatching this workflow.** Observed on the August 14, 2026 `refresh_signing_only` run:
+**Check the certificate count before dispatching this workflow.** Observed on the first August 14, 2026 `refresh_signing_only` run:
 
 ```text
 Couldn't find an existing certificate... creating a new one
 Successfully generated 6WR47HHPR4
 ```
 
-`ci-prepare-keychain.sh` builds an empty keychain on every run, so `fastlane cert` never finds the existing certificate's private key and issues a **new** Apple Distribution certificate each time. The standard Apple Developer Program allows **three**. That run took the team from two to three.
+When the CI keychain has no distribution private key, `fastlane cert` cannot reuse the existing certificate and issues a **new** one. The standard Apple Developer Program allows **three**.
+
+This is not unconditional. A second run the same day reused `6WR47HHPR4` and created nothing, because the key was still in `~/.nobs-ci/signing.keychain-db` from the first run. The risk is therefore concentrated on runs where that keychain is absent or wiped — a rebuilt runner, a cleaned home directory, or a different machine — and each such run costs one certificate slot.
 
 **Until August 14, 2026 this had a destructive failure mode.** A failed creation fell through to `ci-revoke-distribution-certs.py`, which revoked **every** distribution certificate on the team. Revocation is not local to CI — it invalidates that certificate everywhere it is installed, including the Xcode install on a developer's own Mac, and it cannot be undone. So a run at the limit destroyed shared signing material to recover a build.
 
@@ -101,6 +103,21 @@ Successfully generated 6WR47HHPR4
 3. Re-run the workflow.
 
 The certificate count still grows by one per run. The durable fix is for the CI keychain to import an existing distribution certificate — the unused `DIST_CERT_P12` / `DIST_CERT_PASSWORD` secrets exist for exactly this — rather than generating a new one each time. Until that lands, check the count before dispatching.
+
+### Signing is verified working (August 14, 2026)
+
+A `refresh_signing_only` dispatch on `main` after the two fixes below completed green:
+
+```text
+Using distribution certificate 6WR47HHPR4 (Alexander Burgess) — private key present in the signing keychain
+Created profile com.nobsdash.nobs AppStore
+Created profile com.nobsdash.nobs.widgets AppStore
+  App Groups: group.com.nobsdash.nobs
+```
+
+Both App Store profiles build, the widget profile carries its App Groups entitlement, and no new certificate was minted. **Certificates, profiles, and the App Store Connect credentials are not blockers.** The only thing standing between this and a TestFlight build is the toolchain gate described below.
+
+Note what the App Group line means: the group existed and was correctly assigned the whole time, while `ci-enable-bundle-capabilities.py` printed "resource ID not found via API" on every run. That message described an unreadable endpoint, not a missing group, and reading it as a finding cost real time. Its wording has been corrected.
 
 ### Certificate selection mismatch (fixed)
 
