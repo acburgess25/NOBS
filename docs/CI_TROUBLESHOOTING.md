@@ -102,13 +102,28 @@ Team: `K853LKQLAS` — Bundle IDs: `com.nobsdash.nobs`, `com.nobsdash.nobs.widge
 
 ---
 
-## Toolchain: why TestFlight is gated, and the Xcode 26.5 route
+## Toolchain: why TestFlight is gated
 
-**The gate.** The Mac runner builds with Xcode-beta 27.0, which is the only Xcode installed on it. App Store Connect rejects uploads built with a beta toolchain, so `testflight.yml` is `workflow_dispatch`-only by design. Xcode 27 was still in beta as of August 2026; the current released toolchain is Xcode 26.5.
+**The gate.** The Mac runner builds with Xcode-beta 27.0, the only Xcode installed on it. App Store Connect rejects uploads built with a beta toolchain, so `testflight.yml` is `workflow_dispatch`-only by design. As of August 2026 Xcode 27 is still beta; the released toolchain is Xcode 26.5, and Apple has required Xcode 26 or later with current platform SDKs since April 28, 2026.
 
-**Xcode 27 beta stays the primary development toolchain.** NOBS deliberately builds against the newest Apple frameworks — Foundation Models, Private Cloud Compute, and the rest of the iOS 27 SDK. Nothing below is a reason to stop doing that, and no iOS 27 capability should be removed to make distribution easier.
+**Xcode 27 beta stays the primary development toolchain.** NOBS deliberately builds against the newest Apple frameworks — Foundation Models, Private Cloud Compute, and the rest of the iOS 27 SDK. Nothing here is a reason to stop doing that, and no iOS 27 capability should be removed to make distribution easier.
 
-**The theory worth testing.** The app may not actually *need* the beta SDK to produce a shippable build:
+### Recommended: wait for the Xcode 27 release candidate
+
+App Store Connect accepts RC-built uploads. iOS 27's RC is expected in **early-to-mid September 2026** (third-party prediction, not an Apple announcement — Apple confirms at its September event), with general release shortly after. Building with the Xcode 27 RC ships the **full iOS 27 SDK compiled in**, needs no second toolchain, and requires no code changes. That is the intended path.
+
+The wait costs nothing on the critical path, because the two things that must happen before a TestFlight build is useful are **not** toolchain-gated:
+
+- **Physical iPhone validation needs no upload at all.** Build and run on a device straight from Xcode 27 beta with a development profile. This is a TestFlight prerequisite and can be done today.
+- **The PCC entitlement is still pending Apple's approval** (`docs/PCC_ENTITLEMENT_CHECKLIST.md`), independent of any toolchain.
+
+External TestFlight also requires beta review, which is its own queue after upload.
+
+### Fallback only: the Xcode 26.5 route
+
+Use this **only** if the RC slips or a build must ship before it lands. It costs a second multi-gigabyte Xcode install and produces an artifact with Foundation Models compiled out. It is not the default and should not be set up on spec.
+
+The app may not actually *need* the beta SDK to produce a shippable build:
 
 - `IPHONEOS_DEPLOYMENT_TARGET` is **18.0**, not 27.
 - Every `import FoundationModels` in the iPhone app is wrapped in `#if canImport(FoundationModels)`, and iOS 27 APIs sit behind `@available(iOS 27.0, *)` guards.
@@ -126,9 +141,11 @@ DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
 
 **What would disprove it:** any compile error naming an iOS 27 symbol *outside* a `canImport`/`@available` guard. Fix by adding the guard, not by lowering ambition — the feature should still compile and run under the beta toolchain.
 
-**Known trap:** `NOBSTankMac/LocalAssistant.swift` previously imported `FoundationModels` unguarded, unlike every iOS counterpart. That is fixed, and the macOS target is verified to still build under Xcode 27 beta with the guard in place. Watch for the same pattern in new files.
+### Keep the guards intact either way
 
-When Xcode 27 reaches a released toolchain, this whole section becomes unnecessary: build everything with it and upload directly.
+`NOBSTankMac/LocalAssistant.swift` previously imported `FoundationModels` unguarded, unlike every iOS counterpart, which made it the one file that could only ever compile against a beta SDK. That is fixed, and the macOS target is verified to still build under Xcode 27 beta with the guard in place. Watch for the same pattern in new files — the guards cost nothing under the beta toolchain and are what keep the fallback available.
+
+Once Xcode 27 ships as an RC or release, the fallback section above stops mattering: build everything with it and upload directly.
 
 ---
 
