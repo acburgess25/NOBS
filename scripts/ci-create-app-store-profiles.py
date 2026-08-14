@@ -4,8 +4,10 @@
 from __future__ import annotations
 
 import base64
+import hashlib
 import os
 import plistlib
+import re
 import subprocess
 import sys
 import tempfile
@@ -93,16 +95,67 @@ def _bundle_id(client: ASCClient, identifier: str) -> str:
     return data[0]["id"]
 
 
+def _keychain_identity_fingerprints() -> set[str]:
+    """SHA-1 fingerprints of the code-signing identities in the CI keychain.
+
+    `security find-identity` only lists identities whose private key is
+    present, which is exactly the set a profile can usefully be built around.
+    """
+    keychain = os.environ.get("CI_KEYCHAIN")
+    command = ["security", "find-identity", "-v", "-p", "codesigning"]
+    if keychain:
+        command.append(keychain)
+    try:
+        result = subprocess.run(command, capture_output=True, text=True, check=True)
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return set()
+    return {match.upper() for match in re.findall(r"\b([0-9A-Fa-f]{40})\b", result.stdout)}
+
+
 def _distribution_certificate_id(client: ASCClient) -> str:
+    """Pick a distribution certificate the signing keychain can actually use.
+
+    Taking the first certificate the API returns is not safe: an account can
+    hold several distribution certificates, and only the one whose private key
+    is in the keychain can sign. Embedding any other one produces a profile
+    that fails at archive time while every earlier step reports success — the
+    August 14, 2026 run installed 6WR47HHPR4 and built profiles around
+    474FC3VL6X. Match on the certificate's SHA-1 fingerprint, which is what
+    the keychain indexes identities by.
+    """
+    installed = _keychain_identity_fingerprints()
+    candidates: list[dict[str, Any]] = []
     for cert_type in ("IOS_DISTRIBUTION", "DISTRIBUTION"):
         for item in client.paginate("/certificates", params={"filter[certificateType]": cert_type}):
-            if item.get("attributes", {}).get("expirationDate"):
+            attributes = item.get("attributes", {})
+            if not attributes.get("expirationDate"):
+                continue
+            candidates.append(item)
+            content = attributes.get("certificateContent")
+            if not content or not installed:
+                continue
+            # SHA-1 is not a security choice here: it is the fingerprint format
+            # the keychain reports identities by, so it is what must be matched.
+            fingerprint = hashlib.sha1(base64.b64decode(content)).hexdigest().upper()
+            if fingerprint in installed:
                 print(
                     "Using distribution certificate "
-                    f"{item['id']} ({item.get('attributes', {}).get('displayName', '?')})"
+                    f"{item['id']} ({attributes.get('displayName', '?')}) "
+                    "— private key present in the signing keychain"
                 )
                 return item["id"]
-    raise RuntimeError("No Apple Distribution certificate found in App Store Connect")
+
+    if not candidates:
+        raise RuntimeError("No Apple Distribution certificate found in App Store Connect")
+
+    fallback = candidates[0]
+    print(
+        "WARNING: no distribution certificate in App Store Connect matches an identity in the "
+        "signing keychain. Falling back to "
+        f"{fallback['id']} ({fallback.get('attributes', {}).get('displayName', '?')}); "
+        "the archive step will fail if its private key is missing."
+    )
+    return fallback["id"]
 
 
 def _delete_existing_profiles(client: ASCClient, profile_name: str) -> None:
