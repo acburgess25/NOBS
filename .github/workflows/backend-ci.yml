@@ -1,5 +1,17 @@
 name: Backend CI
 
+# Backend CI runs on GitHub-hosted runners so a pull request is never blocked
+# by whether a particular machine in the house happens to be awake. The repo is
+# public, so hosted minutes are free.
+#
+# The matrix is the cross-platform contract from docs/AI_WORKFLOW.md: shared
+# backend code must pass on Linux, macOS, and Windows. Python 3.11 is the
+# supported floor (pyproject requires-python = ">=3.11"), so it is exercised
+# alongside the primary 3.12 interpreter.
+#
+# Only the iOS job stays on the self-hosted Mac: it needs the Xcode 27 beta
+# toolchain, which hosted macOS images do not carry.
+
 on:
   pull_request:
   push:
@@ -10,52 +22,42 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: backend-ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  backend-linux:
-    name: Python ${{ matrix.python-version }} on Tank
-    runs-on: [self-hosted, tank]
+  backend:
+    name: Python ${{ matrix.python-version }} on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: ["3.12"]
+        include:
+          # Guard the supported floor without tripling the whole matrix.
+          - os: ubuntu-latest
+            python-version: "3.11"
 
     steps:
       - uses: actions/checkout@v7
 
       - name: Set up Python ${{ matrix.python-version }}
-        run: |
-          if ! command -v "python${{ matrix.python-version }}" >/dev/null; then
-            echo "python${{ matrix.python-version }} not found on Tank runner host" >&2
-            exit 1
-          fi
-          echo "PYTHON=python${{ matrix.python-version }}" >> "$GITHUB_ENV"
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
 
       - name: Set up NOBS
-        run: "$PYTHON scripts/dev.py setup"
+        run: python scripts/dev.py setup
 
       - name: Test and lint
-        run: "$PYTHON scripts/dev.py check"
-
-  backend-macos:
-    name: Python ${{ matrix.python-version }} on Mac runner
-    runs-on: [self-hosted, macOS, ARM64]
-    strategy:
-      fail-fast: false
-      matrix:
-        python-version: ["3.12"]
-
-    steps:
-      - uses: actions/checkout@v7
-
-      - name: Set up NOBS
-        run: /opt/homebrew/bin/python3.13 scripts/dev.py setup
-
-      - name: Test and lint
-        run: /opt/homebrew/bin/python3.13 scripts/dev.py check
+        run: python scripts/dev.py check
 
   ios-macos:
     name: NOBSTests on Mac runner
     runs-on: [self-hosted, macOS, ARM64]
+
     env:
       DEVELOPER_DIR: /Applications/Xcode-beta.app/Contents/Developer
 
