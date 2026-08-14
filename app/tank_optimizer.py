@@ -72,7 +72,7 @@ class TankOptimizer:
 
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
-        self._last_api_activity = time.monotonic()
+        self._last_api_activity = time.perf_counter()
         self._current_job: str | None = None
         self._current_kind: OptimizerJobKind | None = None
         self._running_count = 0
@@ -89,7 +89,7 @@ class TankOptimizer:
     def record_api_activity(self, path: str) -> None:
         if not _is_user_facing_path(path):
             return
-        self._last_api_activity = time.monotonic()
+        self._last_api_activity = time.perf_counter()
 
     def _intensity_scale(self) -> float:
         return _INTENSITY_SCALE.get(self.settings.optimizer_intensity.lower(), 1.0)
@@ -104,7 +104,7 @@ class TankOptimizer:
         return self.settings.optimizer_min_idle_seconds * self._intensity_scale()
 
     def seconds_since_api_activity(self) -> float:
-        return time.monotonic() - self._last_api_activity
+        return time.perf_counter() - self._last_api_activity
 
     def cpu_percent(self) -> float | None:
         try:
