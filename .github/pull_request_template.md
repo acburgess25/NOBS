@@ -9,4 +9,4 @@
 ## Contributor attestation
 
 - [ ] I confirm this PR contains no confidential or third-party restricted material.
-- [ ] I confirm all commits are signed off (`git commit -s`) for DCO compliance.
+- [ ] I confirm I have the right to submit this work under the repository's AGPL-3.0-or-later license.

@@ -73,11 +73,11 @@ These are product rules, not style preferences:
 
 ## Ground rules (free protection baseline)
 
-1. **No confidential submissions.** Only contribute code/content you are allowed to share publicly.
-2. **Developer Certificate of Origin (DCO).** Every commit must include sign-off:
-   - `git commit -s -m "your message"`
-3. **Respect repository boundaries.** Keep private/proprietary integrations out of public contributions.
-4. **No secrets or personal data.** Never commit keys, tokens, private logs, or personal user data.
+1. **Only submit work you have the right to submit.** Contribute code and
+   content you are allowed to share publicly, and that you either wrote or can
+   redistribute under this repository's license.
+2. **Respect repository boundaries.** Keep private/proprietary integrations out of public contributions.
+3. **No secrets or personal data.** Never commit keys, tokens, private logs, or personal user data.
 
 ## Pull request checklist
 
@@ -85,8 +85,16 @@ These are product rules, not style preferences:
 2. Use the public codename **Project Lantern** when discussing sensitive roadmap items in public threads.
 3. Include tests or explain why tests are not needed.
 4. Ensure local checks pass (`python3 scripts/dev.py check` for backend changes).
-5. Confirm each commit includes `Signed-off-by: Your Name <email>`.
 
 ## License
 
-By contributing, you agree your contributions are provided under this repository's AGPL-3.0-or-later license.
+By opening a pull request you confirm you have the right to submit that work,
+and you agree your contributions are provided under this repository's
+AGPL-3.0-or-later license.
+
+Per-commit `Signed-off-by` sign-off is not required. It was previously listed
+as mandatory while nothing in the project actually used it, which asked
+newcomers to follow a rule the repository itself did not follow. The
+right-to-submit confirmation above is what carries that intent now. Sign-off
+is still welcome if you prefer it — `git commit -s` — it is simply not a
+condition of merging.
