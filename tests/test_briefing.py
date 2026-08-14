@@ -4,7 +4,6 @@ import httpx
 
 from tests.test_chat import auth, client
 
-
 REQUEST = {
     "date": "2026-07-04",
     "calendar": [

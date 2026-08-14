@@ -184,7 +184,7 @@ class BrowserSandbox:
             ) as client:
                 response = await client.get(url, headers={"User-Agent": "NOBS-Workplace-Sandbox/1.0"})
                 response.raise_for_status()
-                match = re.search(r"<title[^>]*>([^<]+)</title>", response.text[:8000], re.I)
+                match = re.search(r"<title[^>]*>([^<]+)</title>", response.text[:8000], re.IGNORECASE)
                 if match:
                     return match.group(1).strip()[:120]
         except (httpx.HTTPError, ValueError):

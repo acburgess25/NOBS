@@ -1,9 +1,9 @@
 import os
+import secrets
+import socket
 from pathlib import Path
 
 import qrcode
-import secrets
-import socket
 from dotenv import load_dotenv, set_key
 
 

@@ -3,7 +3,6 @@ import sqlite3
 from app.agent_store import AgentStore
 from tests.test_chat import auth, client
 
-
 CALENDAR_PAYLOAD = {
     "events": [
         {

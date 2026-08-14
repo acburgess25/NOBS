@@ -1,12 +1,12 @@
 from __future__ import annotations
 
 import os
-import subprocess
-from datetime import UTC, datetime
 import shutil
+import subprocess
 import time
-from typing import Any
+from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 import httpx
 
@@ -193,6 +193,7 @@ def _gpu_status() -> dict[str, int] | None:
             timeout=2,
             capture_output=True,
             text=True,
+            check=False,  # returncode is inspected below; a missing GPU is not an error
         )
         if result.returncode != 0:
             return None

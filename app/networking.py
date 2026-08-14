@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from ipaddress import ip_address
 import socket
+from ipaddress import ip_address
 from urllib.parse import urlparse
 
 

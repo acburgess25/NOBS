@@ -12,9 +12,9 @@ one.
 
 from __future__ import annotations
 
+import json
 from datetime import UTC, date, datetime
 from enum import Enum
-import json
 
 import httpx
 from pydantic import BaseModel, Field

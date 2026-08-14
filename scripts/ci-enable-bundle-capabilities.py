@@ -280,6 +280,6 @@ def main() -> int:
 if __name__ == "__main__":
     try:
         raise SystemExit(main())
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         print(f"Failed to enable bundle capabilities: {exc}", file=sys.stderr)
         raise
