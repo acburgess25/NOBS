@@ -20,6 +20,29 @@ def test_briefing_routes_require_authentication() -> None:
     assert test_client.get("/briefing/latest").status_code == 401
 
 
+def test_briefing_constrains_decoding_to_the_schema_it_validates() -> None:
+    """The request must carry the briefing schema, not free-form JSON mode.
+
+    Asking for `"format": "json"` and validating afterwards turns a model that
+    drifts off-shape into a failed briefing for the user. Sending the schema
+    Ollama should constrain against removes that failure mode, so the schema
+    travelling with the request is the behaviour worth pinning.
+    """
+    seen: dict = {}
+
+    def ollama_response(request: httpx.Request) -> httpx.Response:
+        seen.update(json.loads(request.content))
+        return httpx.Response(200, json={"message": {"content": "not json"}})
+
+    transport = httpx.MockTransport(ollama_response)
+    client(transport=transport).post("/briefing", json=REQUEST, headers=auth())
+
+    schema = seen.get("format")
+    assert isinstance(schema, dict), "briefing must send a JSON Schema, not 'json'"
+    assert schema.get("type") == "object"
+    assert "topline" in schema.get("properties", {})
+
+
 def test_briefing_returns_sections_and_persists_latest() -> None:
     def ollama_response(request: httpx.Request) -> httpx.Response:
         payload = json.loads(request.content)

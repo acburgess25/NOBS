@@ -41,6 +41,12 @@ _USER_FACING_PREFIXES = (
     "/auth",
 )
 
+_MODEL_PING_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {"status": {"type": "string"}, "service": {"type": "string"}},
+    "required": ["status", "service"],
+}
+
 _LIGHT_JOB_TYPES = ("briefing_index_light", "model_ping", "dream_team_scoring")
 _HEAVY_JOB_TYPES = ("dream_team_batch", "briefing_index_refresh", "model_warmup")
 _ALL_JOB_TYPES = _LIGHT_JOB_TYPES + _HEAVY_JOB_TYPES
@@ -389,7 +395,9 @@ async def job_model_warmup(settings: Settings, transport: Any) -> dict[str, Any]
                 ),
             }
         ],
-        "format": "json",
+        # Schema-constrained so the warm-up check measures model latency rather
+        # than the model's willingness to answer in the requested shape.
+        "format": _MODEL_PING_SCHEMA,
     }
     started = time.monotonic()
     async with httpx.AsyncClient(

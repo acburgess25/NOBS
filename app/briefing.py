@@ -116,7 +116,11 @@ async def generate_briefing(
         "model": settings.ollama_model,
         "stream": False,
         "think": False,
-        "format": "json",
+        # Constrain decoding to the schema we are about to validate against,
+        # rather than asking for free-form JSON and rejecting it afterwards.
+        # A briefing that misses a required field is a failed briefing for the
+        # user, and this removes that failure mode instead of reporting it.
+        "format": BriefingSections.model_json_schema(),
         "messages": [
             {"role": "system", "content": _BRIEFING_SYSTEM_PROMPT},
             {"role": "user", "content": json.dumps(request.model_dump(mode="json"))},

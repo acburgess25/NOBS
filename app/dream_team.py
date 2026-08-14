@@ -48,6 +48,52 @@ EXTERNAL_API_TOOLS = frozenset(
 
 LOCAL_PROCESSING_LABEL = "Tank local Ollama (no cloud quota)"
 
+# Schemas handed to Ollama's `format` parameter so decoding is constrained to
+# the shape each step already expects. `suggested_tools` is still filtered
+# against SANDBOX_READ_ONLY_TOOLS after generation: a schema controls shape,
+# never permission, and the model must not be able to widen its own sandbox
+# by naming a tool here.
+_PERSONA_PROPERTIES: dict[str, Any] = {
+    "tone": {"type": "string"},
+    "specialty": {"type": "string"},
+    "suggested_tools": {"type": "array", "items": {"type": "string"}},
+    "sample_objective": {"type": "string"},
+}
+
+AGENT_DRAFTS_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "agents": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "name": {"type": "string"},
+                    "role": {"type": "string"},
+                    **_PERSONA_PROPERTIES,
+                },
+                "required": ["name", "role", "tone", "specialty", "sample_objective"],
+            },
+        }
+    },
+    "required": ["agents"],
+}
+
+PERSONA_REFINEMENT_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "properties": {
+        "persona": {
+            "type": "object",
+            "properties": {
+                **_PERSONA_PROPERTIES,
+                "system_prompt": {"type": "string"},
+            },
+            "required": ["tone", "specialty", "sample_objective", "system_prompt"],
+        }
+    },
+    "required": ["persona"],
+}
+
 
 class DreamTeamModelError(RuntimeError):
     pass
@@ -201,7 +247,7 @@ class DreamTeamSandbox:
             "suggested_tools must be from: get_tank_status, list_workspace_files, read_workspace_file. "
             "Keep personas concise and practical."
         )
-        raw = await self._ollama_json(prompt)
+        raw = await self._ollama_json(prompt, AGENT_DRAFTS_SCHEMA)
         llm_calls += 1
         agents = raw.get("agents", [])
         if not isinstance(agents, list) or not agents:
@@ -336,7 +382,7 @@ class DreamTeamSandbox:
             f"Sandbox response: {test_result.get('response', '')}\n"
             f"Iteration: {iteration}"
         )
-        raw = await self._ollama_json(prompt)
+        raw = await self._ollama_json(prompt, PERSONA_REFINEMENT_SCHEMA)
         llm_calls += 1
         persona = raw.get("persona", {})
         if not isinstance(persona, dict):
@@ -481,16 +527,21 @@ class DreamTeamSandbox:
         path.mkdir(parents=True, exist_ok=True)
         return path
 
-    async def _ollama_json(self, prompt: str) -> dict[str, Any]:
+    async def _ollama_json(self, prompt: str, schema: dict[str, Any]) -> dict[str, Any]:
+        """Ask the local model for one JSON object shaped by `schema`.
+
+        The schema is handed to Ollama as the `format` parameter, so decoding
+        itself is constrained (Ollama 0.5+). The model cannot emit markdown
+        fences or commentary around the object, which is why nothing here
+        strips them. A malformed body now means the request genuinely failed
+        rather than the model having wandered off-format.
+        """
         messages = [
-            {"role": "system", "content": "Return valid JSON only. No markdown fences."},
+            {"role": "system", "content": "Return valid JSON only."},
             {"role": "user", "content": prompt},
         ]
-        response = await self._ollama_chat(messages, tools=[], json_mode=True)
+        response = await self._ollama_chat(messages, tools=[], json_format=schema)
         content = (response.get("message", {}).get("content") or "").strip()
-        if content.startswith("```"):
-            lines = content.splitlines()
-            content = "\n".join(lines[1:-1] if lines[-1].startswith("```") else lines[1:])
         try:
             data = json.loads(content)
             return data if isinstance(data, dict) else {}
@@ -501,7 +552,7 @@ class DreamTeamSandbox:
         self,
         messages: list[dict[str, Any]],
         tools: list[dict[str, Any]],
-        json_mode: bool = False,
+        json_format: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         payload: dict[str, Any] = {
             "model": self.model,
@@ -510,8 +561,8 @@ class DreamTeamSandbox:
             "messages": messages,
             "tools": tools,
         }
-        if json_mode:
-            payload["format"] = "json"
+        if json_format is not None:
+            payload["format"] = json_format
         try:
             async with httpx.AsyncClient(
                 timeout=self.settings.ollama_timeout_seconds,

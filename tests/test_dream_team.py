@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 
 from app.agent_store import AgentStore
 from app.config import Settings
-from app.dream_team import DreamTeamSandbox, LocalFirstPolicy
+from app.dream_team import SANDBOX_READ_ONLY_TOOLS, DreamTeamSandbox, LocalFirstPolicy
 from app.main import create_app
 
 TOKEN = "test-device-token"
@@ -116,16 +116,19 @@ def test_dream_team_policy_endpoint(tmp_path: Path) -> None:
 
 
 def test_dream_team_session_run_and_proposal(tmp_path: Path) -> None:
-    calls = 0
-
     def ollama_handler(request: httpx.Request) -> httpx.Response:
-        nonlocal calls
-        calls += 1
         payload = json.loads(request.content)
         messages = payload.get("messages", [])
-        if payload.get("format") == "json" and calls == 1:
+        # JSON steps now send a schema as `format`, so branch on which schema
+        # arrived rather than on call ordering. This also asserts the real
+        # contract: each step constrains decoding to the shape it parses.
+        requested_schema = payload.get("format")
+        schema_required = (
+            requested_schema.get("required", []) if isinstance(requested_schema, dict) else []
+        )
+        if schema_required == ["agents"]:
             return httpx.Response(200, json=_draft_ollama_response())
-        if payload.get("format") == "json":
+        if schema_required == ["persona"]:
             return httpx.Response(
                 200,
                 json={
@@ -197,6 +200,92 @@ def test_dream_team_session_run_and_proposal(tmp_path: Path) -> None:
     assert approve.status_code == 200
     assert approve.json()["active_manifests"] == 2
     assert (tmp_path / "active" / "planner.json").exists()
+
+
+def test_schema_does_not_let_the_model_widen_its_sandbox(tmp_path: Path) -> None:
+    """A schema constrains shape, never permission.
+
+    `suggested_tools` is typed as an array of strings, so a model is free to
+    name a state-changing tool there and stay schema-valid. The sandbox
+    allowlist is what must reject it, and that filter has to survive the move
+    to constrained decoding — otherwise the schema quietly becomes the only
+    gate on which tools a generated persona can reach for.
+    """
+    forbidden = "control_home_device"
+    assert forbidden not in SANDBOX_READ_ONLY_TOOLS
+
+    def ollama_handler(request: httpx.Request) -> httpx.Response:
+        payload = json.loads(request.content)
+        requested_schema = payload.get("format")
+        schema_required = (
+            requested_schema.get("required", []) if isinstance(requested_schema, dict) else []
+        )
+        if schema_required == ["agents"]:
+            return httpx.Response(
+                200,
+                json={
+                    "message": {
+                        "content": json.dumps(
+                            {
+                                "agents": [
+                                    {
+                                        "name": "Overreacher",
+                                        "role": "Home control",
+                                        "tone": "warm",
+                                        "specialty": "home",
+                                        "suggested_tools": [forbidden, "get_tank_status"],
+                                        "sample_objective": "Turn on the lights",
+                                    }
+                                ]
+                            }
+                        )
+                    }
+                },
+            )
+        if schema_required == ["persona"]:
+            return httpx.Response(
+                200,
+                json={
+                    "message": {
+                        "content": json.dumps(
+                            {
+                                "persona": {
+                                    "tone": "warm",
+                                    "specialty": "home",
+                                    # One forbidden, one allowed: the filter must
+                                    # be selective, not just clear the list.
+                                    "suggested_tools": [forbidden, "get_tank_status"],
+                                    "sample_objective": "Turn on the lights",
+                                    "system_prompt": "You are Overreacher.",
+                                }
+                            }
+                        )
+                    }
+                },
+            )
+        if any(m.get("role") == "tool" for m in payload.get("messages", [])):
+            return httpx.Response(200, json=_sandbox_done_response())
+        return httpx.Response(200, json=_sandbox_done_response())
+
+    test_client = make_client(tmp_path, transport=httpx.MockTransport(ollama_handler))
+    create = test_client.post(
+        "/dream-team/sessions",
+        json={"objective": "Run the house", "context": "personal"},
+        headers=auth(),
+    )
+    assert create.status_code == 200
+    run = test_client.post(
+        f"/dream-team/sessions/{create.json()['id']}/run", headers=auth()
+    )
+    assert run.status_code == 200
+
+    proposed_tools = [
+        tool
+        for draft in run.json()["drafts"]
+        for tool in draft["persona"].get("suggested_tools", [])
+    ]
+    assert forbidden not in proposed_tools
+    assert proposed_tools, "the allowed tool should have survived the filter"
 
 
 def test_dream_team_heuristic_score_without_extra_llm(tmp_path: Path) -> None:
