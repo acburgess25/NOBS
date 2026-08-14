@@ -1,6 +1,6 @@
 # CI troubleshooting
 
-**Last updated:** July 28, 2026
+**Last updated:** August 14, 2026
 
 Quick reference for red checks on NOBS pull requests and `main`.
 
@@ -13,7 +13,7 @@ Quick reference for red checks on NOBS pull requests and `main`.
 | **Python 3.12 on Tank** | Backend CI | Test/lint failure | Yes — run `python3 scripts/dev.py check` |
 | **Python 3.12 on Mac runner** | Backend CI | Same | Yes |
 | **docs-only-auto-approve** | Auto-approve safe PRs | Stale run on `ubuntu-latest`, or tank runner offline | Re-run after tank workflow on `main`; not an app bug |
-| **NOBS \| Default \| Build - iOS** | Xcode Cloud (App Store Connect) | Compile or signing on Apple’s builders | Maybe — check ASC build logs |
+| **NOBS \| Default \| Build - iOS** | Xcode Cloud (App Store Connect) | Fails on every PR; redundant with the self-hosted Mac | No — treat as noise, see below |
 | **TestFlight** | `.github/workflows/testflight.yml` | Development cert missing on CI keychain; distribution profiles | **Home** — runner + Apple Developer portal. Manual options: refresh signing only, upload staged IPA (`~/nobs-build/NOBS.ipa`), or account cleanup. |
 | **NOBSTests** | Backend CI `ios-macos` job | Swift compile or routing fixture drift | Yes — `bash scripts/test-ios.sh` |
 
@@ -85,10 +85,13 @@ Team: `K853LKQLAS` — Bundle IDs: `com.nobsdash.nobs`, `com.nobsdash.nobs.widge
 
 **What it is:** Apple’s Xcode Cloud build attached to the App Store Connect app — separate from GitHub Actions TestFlight.
 
+**As of August 14, 2026 it fails on every pull request, including documentation-only ones**, and it is deliberately excluded from required checks. It is configured in App Store Connect rather than in this repository (there is no `ci_scripts/`), so its logs are not reachable from the CLI or `gh`.
+
+**It is also redundant.** Everything it would do already runs on the self-hosted Mac: `NOBSTests on Mac runner` (Backend CI `ios-macos`) compiles and tests on every pull request and *is* a required check, and [`testflight.yml`](../.github/workflows/testflight.yml) does the full archive → sign → export → upload locally through App Store Connect API keys. Retiring the Xcode Cloud workflow in App Store Connect removes a permanently red check without losing coverage. Until someone does that, treat it as noise — **do not debug a pull request because of it**.
+
 **When it fails:**
 
 - Open the link in the check → App Store Connect → build logs.
-- PR #40 failed here while backend CI passed; PR #38 passed — compare Swift/project changes.
 - Common causes: new Swift files not added to `NOBS.xcodeproj`, widget target missing shared sources, signing on Apple’s side.
 
 **Simulator-only validation (no signing):**
@@ -96,6 +99,36 @@ Team: `K853LKQLAS` — Bundle IDs: `com.nobsdash.nobs`, `com.nobsdash.nobs.widge
 ```bash
 ./scripts/build-ios-simulator.sh
 ```
+
+---
+
+## Toolchain: why TestFlight is gated, and the Xcode 26.5 route
+
+**The gate.** The Mac runner builds with Xcode-beta 27.0, which is the only Xcode installed on it. App Store Connect rejects uploads built with a beta toolchain, so `testflight.yml` is `workflow_dispatch`-only by design. Xcode 27 was still in beta as of August 2026; the current released toolchain is Xcode 26.5.
+
+**Xcode 27 beta stays the primary development toolchain.** NOBS deliberately builds against the newest Apple frameworks — Foundation Models, Private Cloud Compute, and the rest of the iOS 27 SDK. Nothing below is a reason to stop doing that, and no iOS 27 capability should be removed to make distribution easier.
+
+**The theory worth testing.** The app may not actually *need* the beta SDK to produce a shippable build:
+
+- `IPHONEOS_DEPLOYMENT_TARGET` is **18.0**, not 27.
+- Every `import FoundationModels` in the iPhone app is wrapped in `#if canImport(FoundationModels)`, and iOS 27 APIs sit behind `@available(iOS 27.0, *)` guards.
+- Apple Cloud / PCC routing is already gated off in production (`NOBSPCC*` flags unset, entitlement not granted), so a build compiled without that SDK loses nothing a user can reach today.
+
+If that holds, installing **Xcode 26.5 alongside** the beta produces an upload App Store Connect accepts, with the iOS 27 features compiled out of that artifact only. The beta toolchain keeps building the full-featured app for development and simulator work. One source tree, two toolchains — which is what the `canImport` guards are for.
+
+**This is unverified.** It has not been compiled against 26.5. To test it:
+
+```bash
+DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer \
+  xcodebuild -project NOBS.xcodeproj -scheme NOBS \
+  -destination 'generic/platform=iOS' CODE_SIGNING_ALLOWED=NO build
+```
+
+**What would disprove it:** any compile error naming an iOS 27 symbol *outside* a `canImport`/`@available` guard. Fix by adding the guard, not by lowering ambition — the feature should still compile and run under the beta toolchain.
+
+**Known trap:** `NOBSTankMac/LocalAssistant.swift` previously imported `FoundationModels` unguarded, unlike every iOS counterpart. That is fixed, and the macOS target is verified to still build under Xcode 27 beta with the guard in place. Watch for the same pattern in new files.
+
+When Xcode 27 reaches a released toolchain, this whole section becomes unnecessary: build everything with it and upload directly.
 
 ---
 
