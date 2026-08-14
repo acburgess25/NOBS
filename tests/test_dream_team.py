@@ -253,3 +253,58 @@ def test_dream_team_run_requires_queued_session(tmp_path: Path) -> None:
     store.update_dream_team_session(session["id"], "proposed")
     response = client.post(f"/dream-team/sessions/{session['id']}/run", headers=auth())
     assert response.status_code == 409
+
+
+def _sandbox_for(tmp_path: Path, sandbox_path: Path) -> DreamTeamSandbox:
+    from app.agent_tools import ToolRegistry
+
+    settings = Settings(
+        device_token=TOKEN,
+        agent_database_path=tmp_path / "agent.db",
+        agent_workspace_path=tmp_path / "ws",
+        dream_team_sandbox_path=sandbox_path,
+        dream_team_active_path=tmp_path / "active",
+    )
+    store = AgentStore(tmp_path / "agent.db")
+    return DreamTeamSandbox(settings, store, tools=ToolRegistry(tmp_path / "ws"))
+
+
+def test_sandbox_dir_accepts_relative_root(tmp_path: Path, monkeypatch) -> None:
+    """A relative sandbox root must still resolve to a usable directory.
+
+    `dream_team_sandbox_path` defaults to the relative `data/dream-team-sandbox`,
+    so a guard that compared the unresolved root against a resolved child
+    rejected every valid session id in the default configuration.
+    """
+    monkeypatch.chdir(tmp_path)
+    sandbox = _sandbox_for(tmp_path, Path("data/dream-team-sandbox"))
+
+    path = sandbox._ensure_sandbox_dir("session-abc")
+
+    assert path.is_dir()
+    assert path.resolve() == (tmp_path / "data/dream-team-sandbox/session-abc").resolve()
+
+
+def test_sandbox_dir_accepts_absolute_root(tmp_path: Path) -> None:
+    sandbox = _sandbox_for(tmp_path, tmp_path / "sandbox")
+
+    path = sandbox._ensure_sandbox_dir("session-abc")
+
+    assert path.is_dir()
+    assert path.resolve() == (tmp_path / "sandbox/session-abc").resolve()
+
+
+def test_sandbox_dir_rejects_traversal(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    sandbox = _sandbox_for(tmp_path, Path("data/dream-team-sandbox"))
+
+    for escape in ("../escape", "../../escape", "a/../../escape"):
+        try:
+            sandbox._ensure_sandbox_dir(escape)
+        except ValueError as error:
+            assert "escapes root" in str(error)
+        else:
+            raise AssertionError(f"traversal not rejected: {escape}")
+
+    assert not (tmp_path / "escape").exists()
+    assert not (tmp_path / "data/escape").exists()
