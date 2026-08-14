@@ -2,7 +2,7 @@
 
 For full codebase reference see [`CODEBASE_REFERENCE.md`](CODEBASE_REFERENCE.md).
 
-**Last updated:** July 29, 2026 (NOBScloud paid fallback via Apple PCC; web tips via Square Payment Links when filled)
+**Last updated:** July 31, 2026 (GitHub Sponsors confirmed not yet enabled; website hides that CTA instead of showing a dead link)
 **Purpose:** Tool-neutral handoff for any contributor entering without prior chat history.
 
 This records implementation state, not product direction. [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md) remains the approved product source of truth. Verify the branch, tests, and live services before treating deployment facts as current.
@@ -138,13 +138,14 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 - No arbitrary MCP server is trusted or installed by the NOBS agent.
 - mDNS (`tank.local`) may not resolve on every LAN; clients can use the Tank host IP directly (for example `http://192.168.1.100:8000`).
 - Physical iPhone validation and TestFlight upload remain pending (simulator build verified; archive requires home signing). See [`docs/CI_TROUBLESHOOTING.md`](CI_TROUBLESHOOTING.md) for current CI failure modes.
-- Website Square Payment Links in `website/public/support.json` are still empty until the owner pastes live Square Dashboard Payment Link URLs. GitHub Sponsors CTA is wired; enable the Sponsors listing if the URL still redirects to the profile.
+- Website one-time Square Payment Link is live in `website/public/support.json` (`donateOneTime`); a recurring `donateMonthly` link still needs to be created in the Square Dashboard and pasted in.
+- GitHub Sponsors is **not** enabled — `github.com/sponsors/acburgess25` is a plain profile page with no Sponsor button (verified July 31, 2026). `support.json` intentionally leaves `githubSponsors` empty and the website hides that CTA rather than show a dead link. Re-add the URL only after enrolling via GitHub → **Your sponsors** (`github.com/sponsors/accounts`) and confirming the profile page shows an actual Sponsor button.
 
 ## Recommended next vertical slice
 
 **Get money into a stranger’s hands and verify the paid fallback on device** (see [`MONETIZATION_AND_GROWTH.md`](MONETIZATION_AND_GROWTH.md)):
 
-1. Web: paste Square Payment Links into `website/public/support.json` and deploy; enable GitHub Sponsors if the listing is still inactive.
+1. Web: create a recurring Square Payment Link and paste into `website/public/support.json` (`donateMonthly`); enroll in GitHub Sponsors via **Your sponsors** (`github.com/sponsors/accounts`), confirm the profile page shows a Sponsor button, then paste the URL back into `githubSponsors`.
 2. App Store Connect: Paid Apps agreement, tax/banking, and IAP product IDs ([`APP_STORE_IAP_SETUP.md`](APP_STORE_IAP_SETUP.md)).
 3. Fix distribution signing for app + widget; archive with `./scripts/stage-testflight-ipa.sh`.
 4. After PCC entitlement QA, enable `NOBSPCC*` Info.plist flags so subscribed Tank-offline users get Apple Cloud fallback ([`PCC_ENTITLEMENT_CHECKLIST.md`](PCC_ENTITLEMENT_CHECKLIST.md)).
