@@ -1,17 +1,25 @@
 import { useEffect, useState } from "react";
 import {
   ArrowRight,
+  Bug,
+  ChatCircleDots,
   Check,
   Cloud,
+  Code,
+  Cpu,
   DeviceMobile,
   Copy,
+  Flask,
   GithubLogo,
   HardDrives,
   Heart,
+  HouseLine,
   List,
-  LockKey,
-  Monitor,
+  PenNib,
+  Prohibit,
   Repeat,
+  Star,
+  Wrench,
   X,
 } from "@phosphor-icons/react";
 
@@ -20,39 +28,103 @@ const testflightUrl = "";
 const betaLive = Boolean(testflightUrl);
 
 const navItems = [
-  ["Vision", "vision"],
-  ["Architecture", "architecture"],
-  ["Work", "work"],
+  ["Why", "why"],
+  ["Status", "work"],
+  ["How", "architecture"],
   ["Roadmap", "roadmap"],
+  ["Contribute", "contribute"],
   ["Support", "support"],
 ];
 
-const milestones = [
+const whyStats = [
+  ["$240/yr", "renting ChatGPT Plus, forever", "https://www.wheresyoured.at/openai-projects-chatgpt-plus-subscriptions-to-drop-by-80-from-44-million-in-2025-to-9-million-in-2026-made-up-using-cheaper-subscriptions-somehow/"],
+  ["~$50–150/yr", "electricity to run local models hard", "https://codersera.com/blog/cheapest-way-to-run-local-llm-2026/"],
+  ["52M", "Ollama downloads a month, early 2026", "https://gudz.ai/posts/local-ai-llm-tools-2026"],
+];
+
+const statusGroups = [
   {
-    label: "iPhone app",
-    detail: "Chat-first SwiftUI shell with onboarding, Today briefing, widgets, and visible Local/Tank routing.",
+    tag: "Works today",
+    className: "works",
+    icon: Check,
+    note: "Running, tested, in the repo now.",
+    items: [
+      ["Tank — a server on your own PC or Mac", "FastAPI + Ollama chat with a tool-using agent, restricted to an allowlisted tool registry."],
+      ["Approval-gated actions", "Every state change waits in a stored, atomic, non-replayable approval queue, with a full audit log."],
+      ["Separate Personal, Business, and Shared contexts", "They never silently mix."],
+      ["Daily briefing with a privacy receipt", "Detects schedule conflicts and overloaded days, suggests reversible fixes."],
+      ["Home Assistant bridge", "Any state change still creates an approval."],
+      ["iPhone ↔ Tank pairing over Bonjour", "No port forwarding, no cloud account."],
+      ["The iPhone app", "Conversational onboarding, Today, Memory, Activity, Home, and Privacy — plus Siri, widgets, and a Lock Screen approval Live Activity."],
+      ["246 deterministic backend tests", "CI green on Linux, macOS, and Windows."],
+    ],
+  },
+  {
+    tag: "Built, being verified",
+    className: "verifying",
+    icon: Flask,
+    note: "The code exists and passes tests; it isn't in your hands yet.",
+    items: [
+      ["TestFlight beta", "The app is simulator-verified. TestFlight is opening soon — it is not live yet."],
+      ["NOBScloud paid fallback", "Coded (StoreKit 2 + Apple Private Cloud Compute routing), gated off pending an Apple entitlement. When live, it routes through Apple's infrastructure — there is no NOBS server farm, and there isn't going to be one."],
+    ],
+  },
+  {
+    tag: "Coming soon",
+    className: "coming",
+    icon: ArrowRight,
+    note: "Designed and documented, not built. Not a promise with a date.",
+    items: [
+      ["Google Home and Alexa unification", "The Home Assistant bridge works today; those two ecosystems don't yet."],
+      ["Tank Research Library", "Overnight research with citations."],
+      ["Custom skill generation", "Tank drafts, sandboxes, and scans new integrations."],
+      ["NOBSbox", "Plug-in home hardware."],
+    ],
+  },
+];
+
+const contributorRoles = [
+  {
+    label: "Swift / SwiftUI developers",
+    detail: "The app is the front door. Widgets, Live Activities, App Intents — and especially accessibility: Dynamic Type, VoiceOver, reduced motion, non-color state indicators.",
     icon: DeviceMobile,
   },
   {
-    label: "Day surface",
-    detail: "Home Screen and Lock Screen plan widget, Siri shortcuts, Focus-aware priorities, evening wrap-up.",
-    icon: DeviceMobile,
+    label: "Python / FastAPI developers",
+    detail: "Tank's agent, tool registry, and approval queue. 246 deterministic tests, CI green on three OSes. New tools need denial, replay, and path-boundary tests.",
+    icon: Code,
   },
   {
-    label: "Tank agent",
-    detail: "Allowlisted tools only. State changes wait for your approve or deny — atomic and audited.",
-    icon: HardDrives,
+    label: "Home Assistant people",
+    detail: "The bridge works; every state change creates an approval. It needs real, messy, multi-vendor houses telling me where it breaks.",
+    icon: HouseLine,
   },
   {
-    label: "Room dashboard",
-    detail: "Always-on status for a shared screen. Private details stay on the phone.",
-    icon: Monitor,
+    label: "People with spare hardware",
+    detail: "Tank must run well on Windows/WSL2 and Linux, not just the Mac I develop on. A box and an evening is genuinely one of the most useful gifts.",
+    icon: Cpu,
   },
   {
-    label: "Local contract",
-    detail: "Token-authenticated boundary. Anonymous requests rejected. Keys in the Keychain.",
-    icon: LockKey,
+    label: "Writers and designers",
+    detail: "Docs, onboarding words, the visual system. Making privacy-first feel warm rather than paranoid is an unsolved design problem.",
+    icon: PenNib,
   },
+];
+
+const smallAsks = [
+  [Star, "Star the repo — it's how anything gets found"],
+  [Bug, "Open an issue — including “your README made no sense”"],
+  [Wrench, "Try the Tank setup and tell me where it hurt"],
+  [ChatCircleDots, "Tell me what you'd want it to do"],
+];
+
+const neverList = [
+  ["Never sell your data.", "No ads, no ad tier, no “anonymized insights,” no brokers."],
+  ["Never sell your attention.", "Nothing here is optimized for engagement."],
+  ["Never lock you in.", "Open source, open formats, export everything and walk."],
+  ["Never touch passwords or financial accounts.", "Categorically off-limits. Not a setting."],
+  ["Never act without approval.", "State changes are stored, approved, executed once, logged."],
+  ["Never fake a feature.", "If it doesn't work, NOBS says so and offers what it can do."],
 ];
 
 const roadmap = [
@@ -202,9 +274,9 @@ export function App() {
           <div className="hero-copy">
             <p className="hero-kicker">Private by default · Built in the open</p>
             <h1>NOBS</h1>
-            <p className="hero-tagline">Your technology. Finally working for you.</p>
+            <p className="hero-tagline">Stop renting your AI.</p>
             <p className="hero-lede">
-              A local-first personal assistant for Apple devices — realistic daily plans without turning your life into someone else’s dataset.
+              A private, local-first assistant that runs on a gaming PC or Mac you already own — no ads, no tracking, no subscription required for the core. Open source, built in public by one person.
             </p>
             <div className="hero-cta">
               <a
@@ -235,10 +307,91 @@ export function App() {
           </div>
         </section>
 
+        <section className="why band" id="why" data-reveal>
+          <div className="band-intro split">
+            <div>
+              <p className="eyebrow">Why</p>
+              <h2>The math stopped making sense.</h2>
+            </div>
+            <p>Pay, or be the product. NOBS refuses both.</p>
+          </div>
+          <div className="stat-grid">
+            {whyStats.map(([value, label, source]) => (
+              <div className="stat-tile" key={value}>
+                <strong>{value}</strong>
+                <span>{label}</span>
+                <a href={source} target="_blank" rel="noreferrer">
+                  source
+                </a>
+              </div>
+            ))}
+          </div>
+          <div className="why-copy">
+            <p>
+              ChatGPT Plus is $20 a month — $240 a year, forever, to rent a model on someone else’s computer. And OpenAI is{" "}
+              <a href={whyStats[0][2]} target="_blank" rel="noreferrer">
+                reportedly projecting
+              </a>{" "}
+              most of those subscribers moving to an $8/month <em>ad-supported</em> tier. The mainstream answer to “I don’t want to pay” is now: <em>then watch ads.</em>
+            </p>
+            <p>
+              Meanwhile the alternative got genuinely good. Running a capable model at home stopped being a hobbyist stunt — a $500 GPU, or the Mac already on your desk, runs everyday models fine.
+            </p>
+            <p className="why-honest">
+              The honest ceiling: for everyday drafting, planning, and coding help, a good local model holds its own. For the hardest reasoning and the longest documents, frontier cloud models are still ahead. I’m not going to pretend otherwise.
+            </p>
+          </div>
+        </section>
+
+        <section className="work band" id="work" data-reveal>
+          <div className="band-intro split">
+            <div>
+              <p className="eyebrow">Status</p>
+              <h2>Exactly where this is.</h2>
+            </div>
+            <p>Three labels. Nothing on this page gets a fourth.</p>
+          </div>
+          <div className="status-columns">
+            {statusGroups.map(({ tag, className, icon: Icon, note, items }) => (
+              <div className={`status-group ${className}`} key={tag}>
+                <h3>
+                  <span className={`status-tag ${className}`}>
+                    <Icon weight="bold" aria-hidden="true" /> {tag}
+                  </span>
+                </h3>
+                <p className="status-note">{note}</p>
+                <ul>
+                  {items.map(([label, detail]) => (
+                    <li key={label}>
+                      <strong>{label}</strong>
+                      {detail && <span>{detail}</span>}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
+          </div>
+          <button className="terminal" onClick={copyHealth} aria-live="polite">
+            <div className="terminal-bar">
+              <span>Tank API</span>
+              <em>
+                <b /> Healthy
+              </em>
+            </div>
+            <code>
+              {"GET   /health              200 OK\nPOST  /chat     (no token) 401\nPOST  /chat     (with key) 200 OK"}
+            </code>
+            <span className="terminal-copy">
+              {copied ? <Check /> : <Copy />}
+              {copied ? "Copied" : "Copy health check"}
+            </span>
+          </button>
+        </section>
+
         <section className="architecture band" id="architecture" data-reveal>
           <div className="band-intro">
-            <p className="eyebrow">Architecture</p>
-            <h2>Local, by design.</h2>
+            <p className="eyebrow">How it works</p>
+            <h2>Three pieces. That’s the whole architecture.</h2>
             <p>Your data stays with you. Extra processing only when you choose it.</p>
           </div>
           <ol className="system-flow">
@@ -255,46 +408,12 @@ export function App() {
             <li>
               <Cloud />
               <h3>NOBScloud</h3>
-              <p>Optional capacity when Tank is away — never silently required.</p>
+              <p>Optional burst you approve — coded, gated off today. Never silently required.</p>
             </li>
           </ol>
-          <p className="band-aside">You’re always in control.</p>
-        </section>
-
-        <section className="work band" id="work" data-reveal>
-          <div className="band-intro split">
-            <div>
-              <p className="eyebrow">Work so far</p>
-              <h2>What exists today</h2>
-            </div>
-            <p>Real progress. Plain language. No vaporware.</p>
-          </div>
-          <ul className="work-list">
-            {milestones.map(({ label, detail, icon: Icon }) => (
-              <li key={label}>
-                <Icon />
-                <div>
-                  <h3>{label}</h3>
-                  <p>{detail}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
-          <button className="terminal" onClick={copyHealth} aria-live="polite">
-            <div className="terminal-bar">
-              <span>Tank API</span>
-              <em>
-                <b /> Healthy
-              </em>
-            </div>
-            <code>
-              {"GET   /health              200 OK\nPOST  /chat     (no token) 401\nPOST  /chat     (with key) 200 OK"}
-            </code>
-            <span className="terminal-copy">
-              {copied ? <Check /> : <Copy />}
-              {copied ? "Copied" : "Copy health check"}
-            </span>
-          </button>
+          <p className="band-aside">
+            Every response carries a Local, Tank, or cloud badge — tap it for a privacy receipt: what data was used, where it was processed, why.
+          </p>
         </section>
 
         <section className="roadmap band" id="roadmap" data-reveal>
@@ -331,6 +450,64 @@ export function App() {
               );
             })}
           </div>
+        </section>
+
+        <section className="contribute band" id="contribute" data-reveal>
+          <div className="band-intro split">
+            <div>
+              <p className="eyebrow">Contribute</p>
+              <h2>I’m one person. This is where you’d come in.</h2>
+            </div>
+            <p>The repo is the whole truth — including the parts that don’t work.</p>
+          </div>
+          <ul className="work-list">
+            {contributorRoles.map(({ label, detail, icon: Icon }) => (
+              <li key={label}>
+                <Icon />
+                <div>
+                  <h3>{label}</h3>
+                  <p>{detail}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+          <div className="ask-row">
+            {smallAsks.map(([Icon, label]) => (
+              <span className="ask-chip" key={label}>
+                <Icon aria-hidden="true" /> {label}
+              </span>
+            ))}
+          </div>
+          <a className="closing-link" href={githubUrl} target="_blank" rel="noreferrer">
+            <GithubLogo weight="fill" />
+            <span>
+              <strong>Start with docs/CURRENT_STATE.md</strong>
+              <small>The honest implemented-vs-planned boundary, written for someone with zero context</small>
+            </span>
+            <ArrowRight />
+          </a>
+        </section>
+
+        <section className="never band" data-reveal>
+          <div className="band-intro">
+            <p className="eyebrow">The short list</p>
+            <h2>What NOBS will never do.</h2>
+            <p>These aren’t preferences.</p>
+          </div>
+          <ul className="never-list">
+            {neverList.map(([rule, detail]) => (
+              <li key={rule}>
+                <Prohibit aria-hidden="true" />
+                <div>
+                  <strong>{rule}</strong>
+                  <span>{detail}</span>
+                </div>
+              </li>
+            ))}
+          </ul>
+          <p className="band-aside">
+            And the free part stays free: local chat, the daily briefing, privacy controls, and your own Tank hardware. Not free-tier-until-we-raise-a-round. Free.
+          </p>
         </section>
 
         {hasSupportLinks(supportLinks) && (
@@ -394,7 +571,7 @@ export function App() {
               <br />
               built in the open.
             </h2>
-            <p>I document decisions, share code as it’s ready, and welcome thoughtful feedback.</p>
+            <p>Your technology. Finally working for you. I document decisions, share code as it’s ready, and welcome thoughtful feedback.</p>
           </div>
           <a className="closing-link" href={githubUrl} target="_blank" rel="noreferrer">
             <GithubLogo weight="fill" />
@@ -404,6 +581,15 @@ export function App() {
             </span>
             <ArrowRight />
           </a>
+        </section>
+        <section className="fine-print" aria-label="Honest fine print">
+          <h2>Fine print, but the honest kind</h2>
+          <ul>
+            <li>TestFlight is not live. The iPhone app is simulator-verified; “opening soon” is the accurate phrasing.</li>
+            <li>NOBScloud is gated off pending an Apple entitlement. When it ships it means Apple’s Private Cloud Compute with an honest label — not NOBS-operated servers.</li>
+            <li>Google Home and Alexa are not unified yet. The Home Assistant bridge is what works today.</li>
+            <li>Support is a one-time tip link only for now.</li>
+          </ul>
         </section>
       </main>
 
