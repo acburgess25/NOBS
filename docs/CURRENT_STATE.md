@@ -2,7 +2,7 @@
 
 For full codebase reference see [`CODEBASE_REFERENCE.md`](CODEBASE_REFERENCE.md).
 
-**Last updated:** July 31, 2026 (GitHub Sponsors confirmed not yet enabled; website hides that CTA instead of showing a dead link)
+**Last updated:** August 14, 2026 (backend CI moved to GitHub-hosted Linux/macOS/Windows runners; Dream Team sandbox path guard fixed; PR backlog drained)
 **Purpose:** Tool-neutral handoff for any contributor entering without prior chat history.
 
 This records implementation state, not product direction. [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md) remains the approved product source of truth. Verify the branch, tests, and live services before treating deployment facts as current.
@@ -109,6 +109,14 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 - Persistent background scheduler implemented, managing autonomous jobs, recurring schedules, and proactive idea generation.
 - Basic API routes for synchronizing calendar and reminders (`/sync/calendar`, `/sync/reminders`) and managing briefing schedules (`/schedules`).
 
+### Continuous integration
+
+- **Backend CI runs on GitHub-hosted runners** (`.github/workflows/backend-ci.yml`): Python 3.12 on `ubuntu-latest`, `macos-latest`, and `windows-latest`, plus Python 3.11 on Linux to guard the `requires-python = ">=3.11"` floor. This is the cross-platform matrix `AI_WORKFLOW.md` requires; Windows had never actually been exercised before August 14, 2026.
+- Historically every job targeted the self-hosted `tank` runner. That runner is no longer registered, so those jobs queued until they were cancelled and **no pull request could report green** regardless of code quality. Moving to hosted runners removed the dependency on a particular machine being awake. The repository is public, so hosted minutes are free.
+- `NOBSTests on Mac runner` deliberately stays on the self-hosted Mac (`macbook`): it needs the Xcode 27 beta toolchain that hosted macOS images do not carry. It only runs when that Mac is online.
+- **Xcode Cloud (`NOBS | Default`) currently fails on every pull request**, including documentation-only ones. It is configured in App Store Connect rather than in this repository, so its logs are not visible from the CLI. Treat it as a known-red external check until someone opens the build in App Store Connect; it is not evidence that a given PR is broken.
+- Lint rules are pinned explicitly in `[tool.ruff.lint]`. Without that, the enforced rule set was whatever ruff shipped as default, which changed from roughly 20 rules to 413 in 0.16 and turned a routine version bump into 61 CI failures.
+
 ### Connected-screen dashboard
 
 - Tank-hosted, room-safe dashboard at `/dashboard` with 15-second refresh.
@@ -138,6 +146,8 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 - No arbitrary MCP server is trusted or installed by the NOBS agent.
 - mDNS (`tank.local`) may not resolve on every LAN; clients can use the Tank host IP directly (for example `http://192.168.1.100:8000`).
 - Physical iPhone validation and TestFlight upload remain pending (simulator build verified; archive requires home signing). See [`docs/CI_TROUBLESHOOTING.md`](CI_TROUBLESHOOTING.md) for current CI failure modes.
+- **The autonomous idea generator fails in practice on the reference Mac Tank.** `trigger_autonomous_idea` runs a multi-step agent turn against Ollama under `NOBS_OLLAMA_TIMEOUT_SECONDS` (default 45), and the local Tank error log recorded 188 `AgentModelError`s caused by `httpx.ReadTimeout`. Ollama, the configured `qwen3:8b` model, and the Tank API were all verified healthy at the time, so this is timeout tuning for multi-step agent runs on that hardware rather than a code defect — but scheduled idea generation should be treated as not working until the timeout is raised and re-measured.
+- The Dream Team sandbox was non-functional outside tests until August 14, 2026: the traversal guard in `_ensure_sandbox_dir` compared a resolved child path against an unresolved (relative by default) root, so it rejected every session id. Fixed, with regression coverage for the relative-root case that the previous tests missed by always passing an absolute `tmp_path`.
 - Website one-time Square Payment Link is live in `website/public/support.json` (`donateOneTime`); a recurring `donateMonthly` link still needs to be created in the Square Dashboard and pasted in.
 - GitHub Sponsors is **not** enabled — `github.com/sponsors/acburgess25` is a plain profile page with no Sponsor button (re-verified August 14, 2026). Both surfaces that could point at it are now closed: `support.json` leaves `githubSponsors` empty so the website hides that CTA, and `.github/FUNDING.yml` leaves the `github:` key commented out so GitHub does not render its own native "Sponsor" button on the repo page. These are separate mechanisms — the repo-page button comes straight from `FUNDING.yml` regardless of what the site shows. Re-enable both only after enrolling via GitHub → **Your sponsors** (`github.com/sponsors/accounts`) and confirming the profile page shows an actual Sponsor button.
 
