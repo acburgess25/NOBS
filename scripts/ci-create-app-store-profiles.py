@@ -106,14 +106,27 @@ def _distribution_certificate_id(client: ASCClient) -> str:
 
 
 def _delete_existing_profiles(client: ASCClient, profile_name: str) -> None:
-    for item in client.paginate("/profiles", params={"filter[profileType]": "IOS_APP_STORE"}):
+    """Clear every profile holding this name, whatever its type or state.
+
+    App Store Connect requires profile names to be unique across the whole
+    team, not per profile type. Filtering the sweep to `IOS_APP_STORE` left a
+    same-named development, ad-hoc, or expired profile in place, and the
+    following create then failed with `409 Conflict` on a name that looked
+    already deleted. Matching on the name alone is what the uniqueness rule
+    actually is. The names in `PROFILES` are bundle-namespaced, so this cannot
+    reach an unrelated profile.
+    """
+    for item in client.paginate("/profiles"):
         attrs = item.get("attributes", {})
         if attrs.get("name") != profile_name:
             continue
         profile_id = item["id"]
         status = client.delete(f"/profiles/{profile_id}")
         if status in {204, 404}:
-            print(f"Deleted existing profile {profile_name} ({profile_id})")
+            print(
+                f"Deleted existing profile {profile_name} "
+                f"({profile_id}, type {attrs.get('profileType', '?')})"
+            )
 
 
 def _decode_profile(content: bytes) -> dict[str, Any]:
@@ -152,7 +165,19 @@ def _create_profile(
             },
         }
     }
-    created = client.post("/profiles", body)
+    try:
+        created = client.post("/profiles", body)
+    except httpx.HTTPStatusError as error:
+        if error.response.status_code != 409:
+            raise
+        # A conflict here is always the name, and the sweep above should have
+        # cleared it. Say what to look at instead of surfacing a raw traceback.
+        raise RuntimeError(
+            f"App Store Connect rejected profile {profile_name!r} as a conflict. "
+            "A profile with that exact name still exists on the team — check "
+            "Certificates, Identifiers & Profiles → Profiles for every profile "
+            "type, including expired ones, and delete it before re-running."
+        ) from error
     profile_id = created["data"]["id"]
     fetched = client.get(f"/profiles/{profile_id}")
     content_b64 = fetched["data"]["attributes"].get("profileContent")
