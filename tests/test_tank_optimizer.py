@@ -23,6 +23,33 @@ from app.tank_optimizer import (
 from tests.test_chat import auth, client
 
 
+def _all_route_paths(app) -> list[str]:
+    """Every path the app serves, including routes behind included routers.
+
+    Routes used to hang directly off ``app.routes``, so this test could read
+    ``route.path`` from each entry. Now that routes live in ``app/routes/``
+    and arrive via ``include_router``, some entries are router wrappers whose
+    real routes are nested one level down -- and the wrapper shape is a FastAPI
+    implementation detail. Walking every shape keeps this test checking the
+    live route table rather than a FastAPI version.
+    """
+    paths: list[str] = []
+
+    def walk(routes) -> None:
+        for route in routes:
+            path = getattr(route, "path", None)
+            if path is not None:
+                paths.append(path)
+                continue
+            nested = getattr(route, "original_router", None)
+            nested_routes = getattr(nested, "routes", None) or getattr(route, "routes", None)
+            if nested_routes:
+                walk(nested_routes)
+
+    walk(app.routes)
+    return paths
+
+
 def test_optimizer_idle_requires_quiet_api_and_low_cpu() -> None:
     optimizer = TankOptimizer(Settings(optimizer_min_idle_seconds=60))
     with patch.object(optimizer, "cpu_percent", return_value=10.0):
@@ -77,10 +104,12 @@ def test_every_route_is_classified_for_optimizer_idle_tracking() -> None:
         "/docs/oauth2-redirect",
         "/redoc",
     }
+    served = _all_route_paths(client().app)
+    # Guard the walker itself: if it silently stopped finding routes, the
+    # assertion below would pass while checking nothing.
+    assert "/chat" in served
     unclassified = sorted(
-        route.path
-        for route in client().app.routes
-        if not _is_user_facing_path(route.path) and route.path not in background
+        path for path in served if not _is_user_facing_path(path) and path not in background
     )
     assert unclassified == []
 
