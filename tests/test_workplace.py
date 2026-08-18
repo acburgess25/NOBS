@@ -111,7 +111,9 @@ def test_workplace_shows_approved_active_agents(tmp_path: Path) -> None:
     )
     client = make_client(tmp_path)
     payload = client.get("/workplace/status").json()
-    assert any(agent["name"] == "Planner" and agent["source"] == "approved" for agent in payload["agents"])
+    assert any(
+        agent["name"] == "Planner" and agent["source"] == "approved" for agent in payload["agents"]
+    )
 
 
 def test_browser_sandbox_blocks_disallowed_domain(tmp_path: Path) -> None:

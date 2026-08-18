@@ -79,7 +79,9 @@ class ASCClient:
             query = None
         return items
 
-    def try_paginate(self, path: str, *, params: dict[str, Any] | None = None) -> list[dict[str, Any]] | None:
+    def try_paginate(
+        self, path: str, *, params: dict[str, Any] | None = None
+    ) -> list[dict[str, Any]] | None:
         try:
             return self.paginate(path, params=params)
         except httpx.HTTPStatusError as exc:
@@ -233,7 +235,10 @@ def ensure_nobs_resources(client: ASCClient, execute: bool) -> None:
         print("[dry-run] ensure NOBS bundle IDs")
         return
 
-    for ident, name in (("com.nobsdash.nobs", "NOBS"), ("com.nobsdash.nobs.widgets", "NOBS Widgets")):
+    for ident, name in (
+        ("com.nobsdash.nobs", "NOBS"),
+        ("com.nobsdash.nobs.widgets", "NOBS Widgets"),
+    ):
         bundles = client.paginate("/bundleIds", params={"filter[identifier]": ident})
         if bundles:
             print(f"Bundle ID exists: {ident}")
@@ -253,7 +258,9 @@ def ensure_nobs_resources(client: ASCClient, execute: bool) -> None:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--list", action="store_true", help="List account resources only")
-    parser.add_argument("--execute", action="store_true", help="Perform deletions (default is dry-run)")
+    parser.add_argument(
+        "--execute", action="store_true", help="Perform deletions (default is dry-run)"
+    )
     args = parser.parse_args()
 
     for var in ("ASC_API_KEY_ID", "ASC_API_ISSUER_ID", "ASC_API_KEY_PATH"):

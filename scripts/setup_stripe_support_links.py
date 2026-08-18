@@ -47,7 +47,9 @@ def save_support(data: dict[str, str]) -> None:
     SUPPORT_JSON.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
 
 
-def create_payment_link(secret_key: str, product_name: str, unit_amount_cents: int, *, recurring: bool) -> str:
+def create_payment_link(
+    secret_key: str, product_name: str, unit_amount_cents: int, *, recurring: bool
+) -> str:
     product = stripe_post(
         secret_key,
         "products",
@@ -82,7 +84,10 @@ def main() -> int:
         )
         return 1
     if not secret_key.startswith("sk_test_"):
-        print("Refusing to run with a live secret key. Use sk_test_… for this helper.", file=sys.stderr)
+        print(
+            "Refusing to run with a live secret key. Use sk_test_… for this helper.",
+            file=sys.stderr,
+        )
         return 1
 
     one_time_cents = os.environ.get("NOBS_DONATE_ONETIME_CENTS", "500")

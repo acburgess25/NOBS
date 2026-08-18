@@ -74,7 +74,9 @@ def test_seven_am_chicago_schedule_fires_at_noon_utc() -> None:
     noon_utc = datetime(2026, 7, 4, 12, 0, tzinfo=UTC)
 
     assert local_hhmm(settings, noon_utc) == "07:00"
-    assert [s["id"] for s in due_schedules([_schedule("07:00")], local_hhmm(settings, noon_utc))] == ["s1"]
+    assert [
+        s["id"] for s in due_schedules([_schedule("07:00")], local_hhmm(settings, noon_utc))
+    ] == ["s1"]
 
 
 def test_utc_timezone_is_unchanged() -> None:
@@ -114,17 +116,13 @@ def test_multiple_schedules_on_the_same_minute_are_reported_together() -> None:
     assert [s["id"] for s in due] == ["a", "b"]
 
 
-
-
 # ------------------------------------------------------------------ #
 # Shared pipeline (#6)                                                 #
 # ------------------------------------------------------------------ #
 
 
 def _run_scheduled(store: AgentStore, transport: httpx.MockTransport, **overrides) -> None:
-    asyncio.run(
-        trigger_briefing_generation(_settings(**overrides), store, transport)
-    )
+    asyncio.run(trigger_briefing_generation(_settings(**overrides), store, transport))
 
 
 def test_scheduled_briefing_applies_conflict_heuristics() -> None:

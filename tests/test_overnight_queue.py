@@ -195,15 +195,11 @@ def test_process_overnight_task_completes_read_only_objective(tmp_path: Path) ->
     settings = Settings(agent_workspace_path=tmp_path)
     store = AgentStore(Path(":memory:"))
     tools = ToolRegistry(tmp_path, store=store, settings=settings)
-    task = store.enqueue_overnight_task(
-        "Check Tank status overnight", "personal", "research"
-    )
+    task = store.enqueue_overnight_task("Check Tank status overnight", "personal", "research")
     claimed = store.claim_next_overnight_task()
 
     def ollama_response(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(
-            200, json={"message": {"content": "Everything looks healthy."}}
-        )
+        return httpx.Response(200, json={"message": {"content": "Everything looks healthy."}})
 
     state = {"running": True}
     asyncio.run(

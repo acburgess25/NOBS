@@ -121,7 +121,9 @@ def test_scene_refusal_points_at_the_scene_tool(tmp_path: Path) -> None:
     tools, _ = _tools(tmp_path)
 
     with pytest.raises(ValueError, match="run_home_scene"):
-        tools.execute("control_home_device", {"entity_id": "scene.good_night", "service": "turn_on"})
+        tools.execute(
+            "control_home_device", {"entity_id": "scene.good_night", "service": "turn_on"}
+        )
 
 
 def test_unknown_domain_is_refused_rather_than_executed(tmp_path: Path) -> None:
@@ -192,9 +194,7 @@ def test_service_names_are_validated(tmp_path: Path, service: str) -> None:
     tools, home = _tools(tmp_path)
 
     with pytest.raises(ValueError):
-        tools.execute(
-            "control_home_device", {"entity_id": "light.kitchen", "service": service}
-        )
+        tools.execute("control_home_device", {"entity_id": "light.kitchen", "service": service})
 
     home.call_service.assert_not_called()
 

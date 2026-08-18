@@ -123,7 +123,12 @@ class BrowserSandbox:
 
     def screenshot_svg(self, session_id: str) -> str:
         session = self._require_session(session_id)
-        title = self._titles.get(session_id) or session.title or urlparse(session.url).hostname or "Sandbox"
+        title = (
+            self._titles.get(session_id)
+            or session.title
+            or urlparse(session.url).hostname
+            or "Sandbox"
+        )
         host = urlparse(session.url).hostname or session.url
         return _placeholder_svg(title=title, host=host, agent_id=session.agent_id)
 
@@ -182,9 +187,13 @@ class BrowserSandbox:
                 follow_redirects=False,
                 transport=self.transport,
             ) as client:
-                response = await client.get(url, headers={"User-Agent": "NOBS-Workplace-Sandbox/1.0"})
+                response = await client.get(
+                    url, headers={"User-Agent": "NOBS-Workplace-Sandbox/1.0"}
+                )
                 response.raise_for_status()
-                match = re.search(r"<title[^>]*>([^<]+)</title>", response.text[:8000], re.IGNORECASE)
+                match = re.search(
+                    r"<title[^>]*>([^<]+)</title>", response.text[:8000], re.IGNORECASE
+                )
                 if match:
                     return match.group(1).strip()[:120]
         except (httpx.HTTPError, ValueError):
@@ -271,7 +280,9 @@ def _collect_agents(
         session = browser.get_agent_session(agent_id)
         if activity == "sandboxing" and session is None:
             try:
-                created = browser.create_session(agent_id, "https://en.wikipedia.org/wiki/Main_Page")
+                created = browser.create_session(
+                    agent_id, "https://en.wikipedia.org/wiki/Main_Page"
+                )
                 browser.assign_station(created["id"], station)
                 session = created
             except BrowserSandboxError:
@@ -408,8 +419,5 @@ def _placeholder_svg(title: str, host: str, agent_id: str) -> str:
 
 def _xml_escape(value: str) -> str:
     return (
-        value.replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-        .replace('"', "&quot;")
+        value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
     )

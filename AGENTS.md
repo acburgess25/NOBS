@@ -12,7 +12,7 @@ Do not duplicate durable project instructions in this adapter. Update `docs/AI_W
 
 ## Cursor Cloud specific instructions
 
-The Cursor Cloud VM is Linux, so only the Python backend (`app/`, `tests/`) and the `website/` prototype are buildable/runnable here. The iOS/macOS/Android targets (`NOBS/`, `NOBSWidgets/`, `NOBSTankMac/`, `NOBSAndroid/`) require macOS + Xcode and cannot be built in this environment.
+The Cursor Cloud VM is Linux, so only the Python backend (`app/`, `tests/`) and the `website/` prototype are buildable/runnable here. The Apple targets (`NOBS/`, `NOBSWidgets/`, `NOBSTankMac/`) require macOS + Xcode and cannot be built in this environment.
 
 Startup deps are refreshed automatically by the update script (`python3 scripts/dev.py setup` + `pnpm --dir website install`); the venv lives at `.venv/`. Standard commands are already documented in `README.md` and `docs/CODEBASE_REFERENCE.md`:
 

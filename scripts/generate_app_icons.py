@@ -116,7 +116,11 @@ def generate_ios_icons() -> None:
 
 def generate_web_favicons() -> None:
     WEB_PUBLIC.mkdir(parents=True, exist_ok=True)
-    for name, px in [("favicon-32.png", 32), ("apple-touch-icon.png", 180), ("favicon-192.png", 192)]:
+    for name, px in [
+        ("favicon-32.png", 32),
+        ("apple-touch-icon.png", 180),
+        ("favicon-192.png", 192),
+    ]:
         render_icon(px).save(WEB_PUBLIC / name, optimize=True)
     render_icon(32).save(WEB_PUBLIC / "favicon.ico")
     print(f"Generated website favicons in {WEB_PUBLIC}")

@@ -392,6 +392,7 @@ def _merge_briefing_with_heuristics(
         ),
         one_useful_question=question,
         suggested_next_actions=(
-            _dedupe(sections.suggested_next_actions)[:6] or _fallback_next_actions(request, risks=merged_risks)
+            _dedupe(sections.suggested_next_actions)[:6]
+            or _fallback_next_actions(request, risks=merged_risks)
         ),
     )

@@ -40,9 +40,7 @@ _IDEA_OBJECTIVE = (
 # Overnight tasks are deferred, evening-queued work (research, memory
 # consolidation, briefing prep, etc.) processed one at a time while Tank is
 # idle and inside the configured overnight window. See docs/TANK_AGENT_CORE.md.
-_OVERNIGHT_TASK_TYPES = frozenset(
-    {"research", "memory_consolidation", "briefing_prep", "custom"}
-)
+_OVERNIGHT_TASK_TYPES = frozenset({"research", "memory_consolidation", "briefing_prep", "custom"})
 
 
 async def run_scheduler(
@@ -311,8 +309,7 @@ async def trigger_briefing_generation(
 
     run_id = store.create_run(
         objective=(
-            "Autonomously generate the scheduled daily briefing "
-            "based on the latest synced data."
+            "Autonomously generate the scheduled daily briefing based on the latest synced data."
         ),
         context="personal",
     )

@@ -1,6 +1,6 @@
 # CI troubleshooting
 
-**Last updated:** August 14, 2026
+**Last updated:** August 18, 2026
 
 Quick reference for red checks on NOBS pull requests and `main`.
 
@@ -10,41 +10,85 @@ Quick reference for red checks on NOBS pull requests and `main`.
 
 | Check | Workflow | Typical cause | Code fix? |
 |-------|----------|---------------|-----------|
-| **Python 3.12 on Tank** | Backend CI | Test/lint failure | Yes — run `python3 scripts/dev.py check` |
-| **Python 3.12 on Mac runner** | Backend CI | Same | Yes |
-| **docs-only-auto-approve** | Auto-approve safe PRs | Stale run on `ubuntu-latest`, or tank runner offline | Re-run after tank workflow on `main`; not an app bug |
+| **Any GitHub-hosted job, red in <5s** | Any | Hosted runners cannot be scheduled — billing/quota | **No** — see the section directly below |
+| **Tests and lint (self-hosted Mac)** | Backend CI | Test/lint failure — the gating check | Yes — run `python3 scripts/dev.py check` |
+| **cross-platform** | Backend CI | Manual dispatch only; never runs on a PR | No — advisory only |
 | **NOBS \| Default \| Build - iOS** | Xcode Cloud (App Store Connect) | Fails on every PR; redundant with the self-hosted Mac | No — treat as noise, see below |
 | **TestFlight** | `.github/workflows/testflight.yml` | Development cert missing on CI keychain; distribution profiles | **Home** — runner + Apple Developer portal. Manual options: refresh signing only, upload staged IPA (`~/nobs-build/NOBS.ipa`), or account cleanup. |
 | **NOBSTests** | Backend CI `ios-macos` job | Swift compile or routing fixture drift | Yes — `bash scripts/test-ios.sh` |
 
 ---
 
-## docs-only-auto-approve (failure in ~1s, no steps)
+## Every hosted job fails in seconds (August 2026)
 
-**What it is:** Optional bot that auto-approves documentation-only PRs from owners/collaborators. It does **not** run your tests. For mixed PRs (code + docs), it should **pass** with “Not a docs-only PR; no auto-approval needed.”
+**Symptom.** Every job on a GitHub-hosted runner goes red 1–3 seconds after it
+starts, with no logs (the log endpoint 404s, because the job never ran). Jobs on
+the self-hosted runners are unaffected.
 
-**Common failure message (often misleading):**
+**This is not a bill you owe.** NOBS is a public repository, and GitHub Actions
+on standard hosted runners is free and unlimited for public repos. The same
+hosted matrix — ubuntu, macOS, and Windows — ran green and free on August 14,
+2026 (run 31831101028). Four days later the identical workflow could not get a
+runner. Nothing about the cost of the repo changed; the account's Actions
+access did.
 
-> The job was not started because recent account payments have failed or your spending limit needs to be increased.
+**How to confirm it in one step.** Look at the runner fields on any failed job:
 
-**What this usually means (not necessarily a broken credit card):**
+| | Never scheduled | Ran normally |
+|---|---|---|
+| `runner_id` | `0` | a real id (e.g. `22`, or `1000001420` for hosted) |
+| `runner_name` | empty | `macbook`, `GitHub Actions 1000001420` |
+| `steps` | absent | present |
 
-- The job **never ran** — zero steps, ~2–4s duration, `runner_id: 0`.
-- Inspect the job labels in the Actions UI. If they show **`ubuntu-latest`**, the workflow on **`main` at run time** still targeted GitHub-hosted runners. GitHub often shows the billing/spending-limit message when a hosted job cannot be scheduled — including **Actions minutes spending caps** — even when the payment method is fine.
-- **`pull_request_target` always uses the workflow file on `main`**, not the PR branch. A PR that changes `auto-approve.yml` to `self-hosted, tank` does not fix the check until that change is on `main` **and** the workflow is re-run.
+If hosted jobs show `runner_id: 0` while a self-hosted job **in the same
+workflow run** gets a runner, the problem is account-level Actions access, not
+the pull request. No code change fixes it and re-running will not help.
 
-**Verified on this repo (July 2026):**
+**Fix.** Check [Actions billing and spending limits](https://github.com/settings/billing).
+On a public repo this is usually a spending cap or an account hold left over
+from other usage rather than a real charge for this repository — GitHub
+surfaces all of them with the same "payments have failed or your spending limit
+needs to be increased" wording.
 
-- Failed PR #38 runs: labels `ubuntu-latest`, billing annotation, no steps.
-- After `main` switched to `[self-hosted, tank]` (PR #39), PR #41’s `docs-only-auto-approve` **passed in ~30s** on the tank runner — same workflow, no billing issue.
+**You are not blocked while it is broken.** Since August 2026 the workflow is
+arranged so this cannot stop work:
 
-**What to do:**
+- `Tests and lint (self-hosted Mac)` is the gating check. It runs on hardware
+  in the house, so it costs nothing and does not care about hosted-runner
+  availability.
+- `cross-platform` (the hosted Linux/macOS/Windows matrix) runs on **manual
+  dispatch only**. A job that cannot be scheduled still posts a red X, and a
+  red X nobody can act on is worse than no check, so it no longer runs
+  automatically. Trigger it from the Actions tab ("Run workflow") when hosted
+  runners are working, or before merging a change to path handling, process
+  APIs, or file encoding.
 
-1. **Re-run** the failed workflow from the PR Checks tab (or push/rebase to trigger a new run). Stale reds from before the tank-runner fix will not clear on their own.
-2. Confirm `main` has `runs-on: [self-hosted, tank]` in `.github/workflows/auto-approve.yml`.
-3. Confirm the `tank` runner is online: GitHub → Settings → Actions → Runners (Backend CI “Python on Tank” passing is a good signal).
-4. Only if **new** runs still target `ubuntu-latest` or hosted runners fail while tank works: check [Actions spending limits](https://github.com/settings/billing) (minutes cap, not always “payment failed”).
-5. Optional: remove `docs-only-auto-approve` from **required** branch protection — it is a convenience bot, not a product test.
+The same checks run locally, and that is the real signal either way:
+
+```bash
+python3 scripts/dev.py check   # tests, lint, formatting
+```
+
+**Known gap, recorded honestly.** The gating check runs on macOS only, so the
+cross-platform contract in `docs/AI_WORKFLOW.md` is no longer enforced
+automatically. Before merging anything that touches path handling, process
+APIs, or file encoding, either dispatch the `cross-platform` job or run
+`python3 scripts/dev.py check` on the Tank (Linux). This is a deliberate trade:
+a check that always runs and is always free, over one that reports a failure no
+diff can fix.
+
+**One quirk when changing `auto-approve`-style workflows.** A
+`pull_request_target` workflow always runs the copy of the file on `main`, not
+the copy in the pull request. Deleting or editing one does not change the
+checks on the pull request making the change — it takes effect after merge.
+
+**If a removed workflow was a required status check, remove it from branch
+protection too.** `main` is a protected branch. A required check that no
+workflow produces any more never reports, and a pull request waiting on a
+check that will never arrive can never merge — including the pull request that
+removed the workflow. Settings → Branches → `main` → Require status checks, and
+untick anything no workflow still produces (for example
+`docs-only-auto-approve`). Do this when merging the change that removes it.
 
 ---
 

@@ -45,7 +45,7 @@ class TestWebSearch:
             {"title": "Result 1", "href": "https://example.com/1", "body": "Snippet one."},
             {"title": "Result 2", "href": "https://example.com/2", "body": "Snippet two."},
         ]
-        with patch("app.agent_tools.DDGS") as mock_ddgs:
+        with patch("app.research_tools.DDGS") as mock_ddgs:
             mock_ddgs.return_value.text.return_value = fake_results
             result = _registry().execute("web_search", {"query": "open source AI tools"})
 
@@ -55,7 +55,7 @@ class TestWebSearch:
         assert result["results"][1]["snippet"] == "Snippet two."
 
     def test_empty_results_explain_themselves(self) -> None:
-        with patch("app.agent_tools.DDGS") as mock_ddgs:
+        with patch("app.research_tools.DDGS") as mock_ddgs:
             mock_ddgs.return_value.text.return_value = []
             result = _registry().execute("web_search", {"query": "a query with no matches"})
 
@@ -65,14 +65,14 @@ class TestWebSearch:
         assert "note" in result
 
     def test_respects_max_results_setting(self) -> None:
-        with patch("app.agent_tools.DDGS") as mock_ddgs:
+        with patch("app.research_tools.DDGS") as mock_ddgs:
             mock_ddgs.return_value.text.return_value = []
             _registry({"web_search_max_results": 7}).execute("web_search", {"query": "test"})
             _, kwargs = mock_ddgs.return_value.text.call_args
             assert kwargs["max_results"] == 7
 
     def test_max_results_capped_at_10(self) -> None:
-        with patch("app.agent_tools.DDGS") as mock_ddgs:
+        with patch("app.research_tools.DDGS") as mock_ddgs:
             mock_ddgs.return_value.text.return_value = []
             _registry().execute("web_search", {"query": "test", "max_results": 99})
             _, kwargs = mock_ddgs.return_value.text.call_args
@@ -83,7 +83,7 @@ class TestWebSearch:
             _registry().execute("web_search", {"query": "   "})
 
     def test_ddgs_error_returns_error_dict(self) -> None:
-        with patch("app.agent_tools.DDGS") as mock_ddgs:
+        with patch("app.research_tools.DDGS") as mock_ddgs:
             mock_ddgs.return_value.text.side_effect = RuntimeError("network down")
             result = _registry().execute("web_search", {"query": "test"})
         assert "error" in result
@@ -121,7 +121,7 @@ class TestGetWeather:
         mock_response.json.return_value = self._MOCK_RESPONSE
         mock_response.raise_for_status = MagicMock()
 
-        with patch("app.agent_tools.httpx.Client") as mock_client:
+        with patch("app.research_tools.httpx.Client") as mock_client:
             mock_client.return_value.__enter__.return_value.get.return_value = mock_response
             result = _registry().execute("get_weather", {})
 
@@ -139,7 +139,7 @@ class TestGetWeather:
         assert "NOBS_WEATHER_LATITUDE" in result["error"]
 
     def test_http_error_returns_error_dict(self) -> None:
-        with patch("app.agent_tools.httpx.Client") as mock_client:
+        with patch("app.research_tools.httpx.Client") as mock_client:
             mock_client.return_value.__enter__.return_value.get.side_effect = Exception("timeout")
             result = _registry().execute("get_weather", {})
         assert "error" in result
@@ -159,7 +159,8 @@ class TestReadNewsFeeds:
         feed_mock.entries = [
             # Bind `e` per iteration: without the default argument every lambda
             # closes over the same variable and reads the last entry.
-            MagicMock(**{"get.side_effect": lambda k, d="", e=e: e.get(k, d)}) for e in entries
+            MagicMock(**{"get.side_effect": lambda k, d="", e=e: e.get(k, d)})
+            for e in entries
         ]
         return feed_mock
 
@@ -178,7 +179,7 @@ class TestReadNewsFeeds:
                 "published": "2026-07-05",
             },
         ]
-        with patch("app.agent_tools.feedparser.parse") as mock_parse:
+        with patch("app.research_tools.feedparser.parse") as mock_parse:
             mock_feed = MagicMock()
             mock_feed.feed.get.return_value = "Test Feed"
             mock_entries = []
@@ -199,7 +200,7 @@ class TestReadNewsFeeds:
         assert "NOBS_NEWS_FEED_URLS" in result["error"]
 
     def test_feed_error_captured_in_errors_list(self) -> None:
-        with patch("app.agent_tools.feedparser.parse") as mock_parse:
+        with patch("app.research_tools.feedparser.parse") as mock_parse:
             mock_parse.side_effect = Exception("connection refused")
             result = _registry().execute("read_news_feeds", {})
         assert "errors" in result
@@ -219,7 +220,7 @@ class TestReadUrl:
 
     @staticmethod
     def _allow_host():
-        return patch("app.agent_tools.is_public_http_url", return_value=True)
+        return patch("app.research_tools.is_public_http_url", return_value=True)
 
     @staticmethod
     def _page(body: str = "<html>...</html>", status: int = 200):
@@ -229,13 +230,13 @@ class TestReadUrl:
         client.__enter__ = MagicMock(return_value=client)
         client.__exit__ = MagicMock(return_value=False)
         client.get.return_value = response
-        return patch("app.agent_tools.httpx.Client", return_value=client)
+        return patch("app.research_tools.httpx.Client", return_value=client)
 
     def test_returns_extracted_content(self) -> None:
         with (
             self._allow_host(),
             self._page(),
-            patch("app.agent_tools.trafilatura.extract") as mock_extract,
+            patch("app.research_tools.trafilatura.extract") as mock_extract,
         ):
             mock_extract.return_value = "This is the article text."
             result = _registry().execute("read_url", {"url": "https://example.com/article"})
@@ -256,8 +257,8 @@ class TestReadUrl:
     def test_private_address_raises_without_fetching(self) -> None:
         """The Tank's own API must be unreachable through this tool."""
         with (
-            patch("app.agent_tools.is_public_http_url", return_value=False),
-            patch("app.agent_tools.httpx.Client") as mock_fetch,
+            patch("app.research_tools.is_public_http_url", return_value=False),
+            patch("app.research_tools.httpx.Client") as mock_fetch,
             pytest.raises(ValueError, match="private network"),
         ):
             _registry().execute("read_url", {"url": "http://127.0.0.1:8000/dashboard/pairing"})
@@ -272,7 +273,7 @@ class TestReadUrl:
         with (
             self._allow_host(),
             self._page(),
-            patch("app.agent_tools.trafilatura.extract", return_value=None),
+            patch("app.research_tools.trafilatura.extract", return_value=None),
         ):
             result = _registry().execute("read_url", {"url": "https://example.com"})
         assert "error" in result
@@ -282,7 +283,7 @@ class TestReadUrl:
         with (
             self._allow_host(),
             self._page(),
-            patch("app.agent_tools.trafilatura.extract", return_value=big_text),
+            patch("app.research_tools.trafilatura.extract", return_value=big_text),
         ):
             result = _registry().execute("read_url", {"url": "https://example.com"})
         assert result["truncated"] is True
@@ -306,7 +307,7 @@ class TestLookupWikipedia:
         return page
 
     def test_returns_summary(self) -> None:
-        with patch("app.agent_tools.wikipediaapi.Wikipedia") as mock_wiki:
+        with patch("app.research_tools.wikipediaapi.Wikipedia") as mock_wiki:
             mock_wiki.return_value.page.return_value = self._mock_page()
             result = _registry().execute("lookup_wikipedia", {"query": "Python programming"})
 
@@ -315,14 +316,14 @@ class TestLookupWikipedia:
         assert "summary" in result
 
     def test_not_found_returns_found_false(self) -> None:
-        with patch("app.agent_tools.wikipediaapi.Wikipedia") as mock_wiki:
+        with patch("app.research_tools.wikipediaapi.Wikipedia") as mock_wiki:
             mock_wiki.return_value.page.return_value = self._mock_page(exists=False)
             result = _registry().execute("lookup_wikipedia", {"query": "xyzzy not a real thing"})
 
         assert result["found"] is False
 
     def test_exception_returns_error(self) -> None:
-        with patch("app.agent_tools.wikipediaapi.Wikipedia") as mock_wiki:
+        with patch("app.research_tools.wikipediaapi.Wikipedia") as mock_wiki:
             mock_wiki.return_value.page.side_effect = RuntimeError("network error")
             result = _registry().execute("lookup_wikipedia", {"query": "anything"})
         assert "error" in result
