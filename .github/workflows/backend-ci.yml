@@ -8,16 +8,20 @@ name: Backend CI
 #
 # The `cross-platform` job is the Linux/macOS/Windows matrix that enforces the
 # cross-platform contract in docs/AI_WORKFLOW.md. GitHub-hosted runners are
-# free for public repositories, so this costs nothing either -- but hosted jobs
-# can stop being schedulable for reasons that have nothing to do with the code
-# (an account-level Actions hold does it, and did in August 2026: every hosted
-# job failed in ~2s with no runner assigned and no logs). It is marked
-# continue-on-error so that when that happens it cannot block a pull request or
-# report a failure that no diff can fix. When hosted runners work, it gives the
-# Windows and Linux coverage the Mac alone cannot.
+# free for public repositories, so this costs nothing -- but hosted jobs can
+# stop being schedulable for reasons that have nothing to do with the code (an
+# account-level Actions hold does it, and did in August 2026: every hosted job
+# failed in ~2s with no runner assigned and no logs). A job that cannot be
+# scheduled still reports a red X, which is noise nobody can act on, so this
+# job runs on manual dispatch only.
+#
+# Run it from the Actions tab ("Run workflow") before merging anything that
+# touches path handling, process APIs, or file encoding -- and to re-enable it
+# automatically once hosted runners work again, add `pull_request:` back to the
+# job's `if:` condition below.
 #
 # Net effect: a pull request is gated on a check that always runs and is always
-# free, and gains extra platform coverage whenever GitHub can provide it.
+# free, and full platform coverage is one button away.
 
 on:
   pull_request:
@@ -67,8 +71,10 @@ jobs:
 
   cross-platform:
     name: Python ${{ matrix.python-version }} on ${{ matrix.os }}
+    # Manual only: an unschedulable hosted job would otherwise post a red X on
+    # every pull request that no code change can clear. See the note at the top.
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ${{ matrix.os }}
-    # Never blocks a pull request: see the runner strategy note at the top.
     continue-on-error: true
     strategy:
       fail-fast: false

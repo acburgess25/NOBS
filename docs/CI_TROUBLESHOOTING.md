@@ -12,7 +12,7 @@ Quick reference for red checks on NOBS pull requests and `main`.
 |-------|----------|---------------|-----------|
 | **Any GitHub-hosted job, red in <5s** | Any | Hosted runners cannot be scheduled — billing/quota | **No** — see the section directly below |
 | **Tests and lint (self-hosted Mac)** | Backend CI | Test/lint failure — the gating check | Yes — run `python3 scripts/dev.py check` |
-| **cross-platform** | Backend CI | Hosted runner unavailable; never blocks | No — advisory only |
+| **cross-platform** | Backend CI | Manual dispatch only; never runs on a PR | No — advisory only |
 | **NOBS \| Default \| Build - iOS** | Xcode Cloud (App Store Connect) | Fails on every PR; redundant with the self-hosted Mac | No — treat as noise, see below |
 | **TestFlight** | `.github/workflows/testflight.yml` | Development cert missing on CI keychain; distribution profiles | **Home** — runner + Apple Developer portal. Manual options: refresh signing only, upload staged IPA (`~/nobs-build/NOBS.ipa`), or account cleanup. |
 | **NOBSTests** | Backend CI `ios-macos` job | Swift compile or routing fixture drift | Yes — `bash scripts/test-ios.sh` |
@@ -56,9 +56,12 @@ arranged so this cannot stop work:
 - `Tests and lint (self-hosted Mac)` is the gating check. It runs on hardware
   in the house, so it costs nothing and does not care about hosted-runner
   availability.
-- `cross-platform` (the hosted Linux/macOS/Windows matrix) is
-  `continue-on-error`, so it adds coverage when GitHub can schedule it and goes
-  quiet when it cannot.
+- `cross-platform` (the hosted Linux/macOS/Windows matrix) runs on **manual
+  dispatch only**. A job that cannot be scheduled still posts a red X, and a
+  red X nobody can act on is worse than no check, so it no longer runs
+  automatically. Trigger it from the Actions tab ("Run workflow") when hosted
+  runners are working, or before merging a change to path handling, process
+  APIs, or file encoding.
 
 The same checks run locally, and that is the real signal either way:
 
@@ -66,12 +69,18 @@ The same checks run locally, and that is the real signal either way:
 python3 scripts/dev.py check   # tests, lint, formatting
 ```
 
-**Known gap while hosted runners are unavailable.** The gating check runs on
-macOS only. Linux and Windows coverage for shared backend code comes from the
-`cross-platform` job, so while that job cannot be scheduled, the cross-platform
-contract in `docs/AI_WORKFLOW.md` is not being enforced by CI. Run the suite on
-the Tank (Linux) before merging anything that touches path handling, process
-APIs, or file encoding.
+**Known gap, recorded honestly.** The gating check runs on macOS only, so the
+cross-platform contract in `docs/AI_WORKFLOW.md` is no longer enforced
+automatically. Before merging anything that touches path handling, process
+APIs, or file encoding, either dispatch the `cross-platform` job or run
+`python3 scripts/dev.py check` on the Tank (Linux). This is a deliberate trade:
+a check that always runs and is always free, over one that reports a failure no
+diff can fix.
+
+**One quirk when changing `auto-approve`-style workflows.** A
+`pull_request_target` workflow always runs the copy of the file on `main`, not
+the copy in the pull request. Deleting or editing one does not change the
+checks on the pull request making the change — it takes effect after merge.
 
 ---
 
