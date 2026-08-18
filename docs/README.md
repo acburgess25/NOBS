@@ -35,6 +35,7 @@ collaboration guide every contributor and coding agent follows.
 | [`AXIOM_AGENTS.md`](AXIOM_AGENTS.md) | Axiom skills for Apple-platform audits |
 | [`SIMPLIFICATION_RESEARCH.md`](SIMPLIFICATION_RESEARCH.md) | Prior art, and where to stop hand-rolling |
 | [`CI_TROUBLESHOOTING.md`](CI_TROUBLESHOOTING.md) | When CI fails and it is not your diff |
+| [`research/`](research/) | Stack research database — every tool, why it is here, and what to use instead |
 
 ## Tank backend and agent
 

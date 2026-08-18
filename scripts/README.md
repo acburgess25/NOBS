@@ -31,6 +31,7 @@ python3 scripts/dev.py run      # serve the API with reload
 | `create_test_schedule.py` | Insert a briefing schedule row directly for testing |
 | `test_trigger.py` | Fire the autonomous idea trigger against a local store |
 | `generate_app_icons.py` | Generate the app icon set and website favicons |
+| `build_stack_docs.py` | Regenerate `docs/research/STACK.md` from `stack.json` (`--check` in tests) |
 
 ## Tank operation and deployment
 

@@ -1,6 +1,6 @@
 # CI troubleshooting
 
-**Last updated:** August 14, 2026
+**Last updated:** August 18, 2026
 
 Quick reference for red checks on NOBS pull requests and `main`.
 
@@ -10,12 +10,58 @@ Quick reference for red checks on NOBS pull requests and `main`.
 
 | Check | Workflow | Typical cause | Code fix? |
 |-------|----------|---------------|-----------|
+| **Any GitHub-hosted job, red in <5s** | Any | Hosted runners cannot be scheduled — billing/quota | **No** — see the section directly below |
 | **Python 3.12 on Tank** | Backend CI | Test/lint failure | Yes — run `python3 scripts/dev.py check` |
 | **Python 3.12 on Mac runner** | Backend CI | Same | Yes |
 | **docs-only-auto-approve** | Auto-approve safe PRs | Stale run on `ubuntu-latest`, or tank runner offline | Re-run after tank workflow on `main`; not an app bug |
 | **NOBS \| Default \| Build - iOS** | Xcode Cloud (App Store Connect) | Fails on every PR; redundant with the self-hosted Mac | No — treat as noise, see below |
 | **TestFlight** | `.github/workflows/testflight.yml` | Development cert missing on CI keychain; distribution profiles | **Home** — runner + Apple Developer portal. Manual options: refresh signing only, upload staged IPA (`~/nobs-build/NOBS.ipa`), or account cleanup. |
 | **NOBSTests** | Backend CI `ios-macos` job | Swift compile or routing fixture drift | Yes — `bash scripts/test-ios.sh` |
+
+---
+
+## Every hosted job fails in seconds (August 2026)
+
+**Symptom.** Every job that runs on a GitHub-hosted runner goes red 1–3 seconds
+after it starts. There are no logs to download — the log endpoint returns 404,
+because the job never started. Jobs on the self-hosted runners are unaffected
+and run normally.
+
+**How to confirm it in one step.** Fetch any failed job and look at the runner
+fields:
+
+```bash
+# Never scheduled: no runner was ever assigned.
+#   "runner_id": 0, "runner_name": "", no "steps"
+#
+# Compare with a self-hosted job in the same run, which shows:
+#   "runner_id": 22, "runner_name": "macbook", with real steps
+```
+
+If hosted jobs show `runner_id: 0` **while a self-hosted job in the same
+workflow run gets a runner**, the problem is the hosted-runner account state,
+not the pull request. No code change will fix it, and re-running will not help.
+
+**Observed on PR #112 (August 18, 2026):** five hosted jobs across two
+independent workflows (`Backend CI` and `Auto-approve safe PRs`) all failed
+this way, while `NOBSTests on Mac runner` picked up `runner_id: 22` and ran.
+
+**Fix.** Check [Actions billing and spending limits](https://github.com/settings/billing).
+The usual cause is the Actions minutes spending cap sitting at zero, not a
+declined card — GitHub reports both the same way. Raising the cap makes hosted
+jobs schedulable again; the reds clear on the next run.
+
+**Why not just move everything to self-hosted?** `backend-ci.yml` deliberately
+uses hosted runners for the Linux/macOS/Windows matrix. That matrix *is* the
+cross-platform contract from `docs/AI_WORKFLOW.md` — there is no self-hosted
+Windows box, so moving off hosted runners would silently drop Windows coverage
+for shared backend code. Fix the billing instead.
+
+**Meanwhile.** The same checks run locally and are the real signal:
+
+```bash
+python3 scripts/dev.py check   # tests, lint, formatting
+```
 
 ---
 

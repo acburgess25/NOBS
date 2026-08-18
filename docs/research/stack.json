@@ -1,0 +1,843 @@
+{
+  "schema_version": 1,
+  "purpose": "Machine-readable inventory of every language, framework, library, model, and service NOBS uses. Read by humans learning the stack and by coding agents that need to know what this project already standardises on before proposing new code.",
+  "how_to_use": "Agents: load this file before proposing a dependency or a pattern. Prefer an entry that already exists over introducing a new one. If a task genuinely needs something absent here, check 'alternatives' on the closest entry first, and respect 'constraints'.",
+  "constraints": [
+    "Cross-platform is a hard requirement: shared backend code must run on Linux, macOS, and Windows/WSL2. A platform-only dependency belongs behind an adapter.",
+    "Local-first and privacy-first: prefer a local or on-device option over a hosted service. Do not add a dependency that phones home by default.",
+    "No dependency for something an Apple framework or the Python standard library already solves cleanly.",
+    "Every new integration must declare its data source, permissions, network destinations, retention, failure behavior, and revocation."
+  ],
+  "entries": [
+    {
+      "id": "python",
+      "name": "Python",
+      "category": "language",
+      "layer": "backend",
+      "declared": ">=3.11",
+      "role": "Language for the Tank backend, CI tooling, and deploy scripts.",
+      "why_here": "3.11 is the supported floor because the code uses StrEnum and modern typing syntax. CI exercises 3.11 and 3.12.",
+      "used_in": [
+        "app/",
+        "tests/",
+        "scripts/"
+      ],
+      "docs": "https://docs.python.org/3/",
+      "alternatives": [],
+      "learn": "Start with the standard library's pathlib, dataclasses, enum, and asyncio - all four are used throughout app/."
+    },
+    {
+      "id": "fastapi",
+      "name": "FastAPI",
+      "category": "web-framework",
+      "layer": "backend",
+      "declared": ">=0.115,<1",
+      "resolved": "0.141.1",
+      "role": "HTTP API framework for the Tank: routing, validation, dependency injection, OpenAPI schema.",
+      "why_here": "Validates external input with typed models and generates the OpenAPI contract that the iPhone app and dashboard code against.",
+      "used_in": [
+        "app/main.py",
+        "app/routes/",
+        "app/dependencies.py"
+      ],
+      "docs": "https://fastapi.tiangolo.com/",
+      "alternatives": [
+        {
+          "name": "Litestar",
+          "when": "Wanting built-in DI layers and stricter typing; similar performance profile."
+        },
+        {
+          "name": "Flask + pydantic",
+          "when": "A much smaller surface with no async requirement."
+        },
+        {
+          "name": "Django REST Framework",
+          "when": "You want an ORM, admin, and auth batteries included - heavier than this project needs."
+        }
+      ],
+      "learn": "The dependency-injection system is the part worth understanding: app/dependencies.py shows typed Annotated dependencies, which is the modern idiom."
+    },
+    {
+      "id": "uvicorn",
+      "name": "Uvicorn",
+      "category": "server",
+      "layer": "backend",
+      "declared": ">=0.34,<1",
+      "resolved": "0.52.3",
+      "role": "ASGI server that actually runs the FastAPI app.",
+      "why_here": "Standard ASGI server; the [standard] extra brings uvloop and httptools for speed on Linux.",
+      "used_in": [
+        "scripts/dev.py",
+        "deploy/tank/nobs-api.service"
+      ],
+      "docs": "https://www.uvicorn.org/",
+      "alternatives": [
+        {
+          "name": "Hypercorn",
+          "when": "You need HTTP/2 or HTTP/3."
+        },
+        {
+          "name": "Granian",
+          "when": "Rust-based server, worth benchmarking if throughput ever matters."
+        }
+      ],
+      "learn": "Understand the ASGI interface - it is the contract between Uvicorn and FastAPI."
+    },
+    {
+      "id": "pydantic",
+      "name": "Pydantic",
+      "category": "validation",
+      "layer": "backend",
+      "resolved": "2.13.4",
+      "role": "Typed models for every request and response body.",
+      "why_here": "The wire contract in app/schemas.py is Pydantic models; validation at the boundary is a project rule.",
+      "used_in": [
+        "app/schemas.py",
+        "app/briefing.py",
+        "app/agent.py"
+      ],
+      "docs": "https://docs.pydantic.dev/",
+      "alternatives": [
+        {
+          "name": "attrs + cattrs",
+          "when": "You want structuring without the validation layer."
+        },
+        {
+          "name": "msgspec",
+          "when": "Serialization speed dominates; noticeably faster but a smaller ecosystem."
+        }
+      ],
+      "learn": "v2 is a near-rewrite of v1 in Rust - when reading Stack Overflow answers, check which version they target."
+    },
+    {
+      "id": "pydantic-settings",
+      "name": "pydantic-settings",
+      "category": "configuration",
+      "layer": "backend",
+      "declared": ">=2.7,<3",
+      "resolved": "2.15.0",
+      "role": "Loads all NOBS_* environment variables into the typed Settings object.",
+      "why_here": "Configuration is centralised in app/config.py by project rule; this makes env vars typed and documented in one place.",
+      "used_in": [
+        "app/config.py"
+      ],
+      "docs": "https://docs.pydantic.dev/latest/concepts/pydantic_settings/",
+      "alternatives": [
+        {
+          "name": "python-decouple",
+          "when": "A much simpler project with no typing needs."
+        },
+        {
+          "name": "dynaconf",
+          "when": "You need layered config files per environment."
+        }
+      ],
+      "learn": "Settings resolves paths relative to the working directory - which is exactly why tests/conftest.py chdir's into a temp dir."
+    },
+    {
+      "id": "httpx",
+      "name": "HTTPX",
+      "category": "http-client",
+      "layer": "backend",
+      "declared": ">=0.28,<1",
+      "resolved": "0.28.1",
+      "role": "Async and sync HTTP client for Ollama, Home Assistant, weather, and page fetching.",
+      "why_here": "Async support and a pluggable transport, which is what lets tests inject MockTransport instead of hitting the network.",
+      "used_in": [
+        "app/routes/assistant.py",
+        "app/research_tools.py",
+        "app/home_assistant.py"
+      ],
+      "docs": "https://www.python-httpx.org/",
+      "alternatives": [
+        {
+          "name": "aiohttp",
+          "when": "Async-only and you want a websocket client in the same library."
+        },
+        {
+          "name": "requests",
+          "when": "Sync-only scripts; no async support at all."
+        }
+      ],
+      "learn": "MockTransport is the single most useful testing feature here - see how tests/test_chat.py uses it."
+    },
+    {
+      "id": "sqlite",
+      "name": "SQLite (stdlib sqlite3)",
+      "category": "database",
+      "layer": "backend",
+      "role": "Local store for approvals, proposals, audit events, briefings, schedules, and dream-team state.",
+      "why_here": "Local-first: a single file on the Tank, no server to run, no data leaving the house. 14 tables defined in app/agent_schema.py.",
+      "used_in": [
+        "app/agent_store.py",
+        "app/agent_schema.py"
+      ],
+      "docs": "https://www.sqlite.org/docs.html",
+      "alternatives": [
+        {
+          "name": "DuckDB",
+          "when": "Analytical queries over the research library rather than transactional writes."
+        },
+        {
+          "name": "Postgres",
+          "when": "Multiple writers across machines - would break the local-first single-appliance model."
+        }
+      ],
+      "learn": "WAL mode (set in the schema) is why reads do not block writes. Note SQLite cannot add a NOT NULL column without a default - that shapes the migration list."
+    },
+    {
+      "id": "zeroconf",
+      "name": "python-zeroconf",
+      "category": "networking",
+      "layer": "backend",
+      "declared": ">=0.147,<1",
+      "resolved": "0.150.0",
+      "role": "Advertises the Tank over mDNS/Bonjour so devices can find it without a hardcoded IP.",
+      "why_here": "Discovery on the local network with no cloud round-trip.",
+      "used_in": [
+        "app/bonjour.py",
+        "app/main.py"
+      ],
+      "docs": "https://python-zeroconf.readthedocs.io/",
+      "alternatives": [
+        {
+          "name": "avahi via D-Bus",
+          "when": "Linux-only deployment; not cross-platform."
+        }
+      ],
+      "learn": "Registration is synchronous and runs on its own loop - main.py deliberately pushes it to a thread so mDNS cannot block startup."
+    },
+    {
+      "id": "psutil",
+      "name": "psutil",
+      "category": "system-metrics",
+      "layer": "backend",
+      "declared": ">=6.0,<8",
+      "resolved": "7.2.2",
+      "role": "CPU, memory, and disk readings for Tank health and optimizer idle detection.",
+      "why_here": "Cross-platform system metrics; the optimizer only runs heavy jobs when CPU is genuinely idle.",
+      "used_in": [
+        "app/agent_tools.py",
+        "app/tank_optimizer.py"
+      ],
+      "docs": "https://psutil.readthedocs.io/",
+      "alternatives": [
+        {
+          "name": "Reading /proc directly",
+          "when": "Linux-only and you want zero dependencies."
+        }
+      ],
+      "learn": "cpu_percent() needs an interval or a prior call to mean anything - a common source of wrong readings."
+    },
+    {
+      "id": "ddgs",
+      "name": "ddgs (DuckDuckGo Search)",
+      "category": "research-tool",
+      "layer": "backend",
+      "declared": ">=9.0,<10",
+      "resolved": "9.15.0",
+      "role": "Web search backing the agent's web_search tool.",
+      "why_here": "No API key and no account, which keeps the free local core genuinely free.",
+      "used_in": [
+        "app/research_tools.py"
+      ],
+      "docs": "https://pypi.org/project/ddgs/",
+      "alternatives": [
+        {
+          "name": "SearXNG",
+          "when": "You want to self-host search on the Tank - strong local-first fit, worth evaluating."
+        },
+        {
+          "name": "Brave Search API",
+          "when": "You need reliability guarantees and can accept an API key."
+        },
+        {
+          "name": "Tavily",
+          "when": "LLM-oriented search results; hosted and paid."
+        }
+      ],
+      "learn": "Unofficial scraping clients break when the upstream HTML changes - this is the most fragile runtime dependency in the project."
+    },
+    {
+      "id": "trafilatura",
+      "name": "trafilatura",
+      "category": "research-tool",
+      "layer": "backend",
+      "declared": ">=2.0,<3",
+      "resolved": "2.2.0",
+      "role": "Extracts readable article text from a fetched HTML page.",
+      "why_here": "Turns a page into something a small local model can actually read.",
+      "used_in": [
+        "app/research_tools.py"
+      ],
+      "docs": "https://trafilatura.readthedocs.io/",
+      "alternatives": [
+        {
+          "name": "readability-lxml",
+          "when": "Lighter dependency, somewhat lower extraction quality."
+        },
+        {
+          "name": "Playwright + custom extraction",
+          "when": "The page needs JavaScript to render."
+        }
+      ],
+      "learn": "NOBS fetches with httpx first and disables redirects, so an allowed public URL cannot 302 into the LAN - trafilatura's own fetch_url would follow it."
+    },
+    {
+      "id": "feedparser",
+      "name": "feedparser",
+      "category": "research-tool",
+      "layer": "backend",
+      "declared": ">=6.0,<7",
+      "resolved": "6.0.14",
+      "role": "Parses RSS and Atom feeds for the news tool.",
+      "why_here": "Handles the many malformed feeds in the wild without special cases.",
+      "used_in": [
+        "app/research_tools.py"
+      ],
+      "docs": "https://feedparser.readthedocs.io/",
+      "alternatives": [
+        {
+          "name": "atoma",
+          "when": "You want stricter parsing and typed output."
+        }
+      ],
+      "learn": "It never raises on a bad feed - it sets a bozo flag. Silence is not success."
+    },
+    {
+      "id": "wikipedia-api",
+      "name": "Wikipedia-API",
+      "category": "research-tool",
+      "layer": "backend",
+      "declared": ">=0.7,<1",
+      "resolved": "0.15.0",
+      "role": "Fetches Wikipedia article summaries for the lookup_wikipedia tool.",
+      "why_here": "A cited, stable reference source for the research library.",
+      "used_in": [
+        "app/research_tools.py"
+      ],
+      "docs": "https://pypi.org/project/Wikipedia-API/",
+      "alternatives": [
+        {
+          "name": "MediaWiki API directly",
+          "when": "You need search, categories, or revisions rather than summaries."
+        }
+      ],
+      "learn": "Always send a descriptive user agent - Wikimedia blocks generic ones."
+    },
+    {
+      "id": "pytest",
+      "name": "pytest",
+      "category": "testing",
+      "layer": "tooling",
+      "declared": ">=9.0.3,<10",
+      "resolved": "9.1.1",
+      "role": "The backend test suite - 249 tests covering routes, auth, tools, and failure paths.",
+      "why_here": "Fixtures make the hermetic-environment pattern in conftest.py possible, which is what keeps tests from touching real Tank data.",
+      "used_in": [
+        "tests/"
+      ],
+      "docs": "https://docs.pytest.org/",
+      "alternatives": [
+        {
+          "name": "unittest",
+          "when": "Standard library only; far more boilerplate."
+        }
+      ],
+      "learn": "Read tests/conftest.py first - the autouse fixture explains why every test runs in a temp directory with NOBS_* env vars stripped."
+    },
+    {
+      "id": "ruff",
+      "name": "Ruff",
+      "category": "linter-formatter",
+      "layer": "tooling",
+      "declared": ">=0.16,<0.17",
+      "resolved": "0.16.3",
+      "role": "Linter and formatter for all Python, enforced in CI.",
+      "why_here": "Replaces flake8, isort, pyupgrade, and black with one fast Rust tool.",
+      "used_in": [
+        "pyproject.toml",
+        "scripts/dev.py"
+      ],
+      "docs": "https://docs.astral.sh/ruff/",
+      "alternatives": [
+        {
+          "name": "black + flake8 + isort",
+          "when": "The older split toolchain; slower and three configs."
+        }
+      ],
+      "learn": "The rule set is pinned explicitly in pyproject.toml. Without an explicit select, a Ruff upgrade silently changes what CI enforces - that happened here and produced 61 surprise failures."
+    },
+    {
+      "id": "uv",
+      "name": "uv",
+      "category": "package-manager",
+      "layer": "tooling",
+      "role": "Fast resolver; uv.lock pins the full backend dependency graph.",
+      "why_here": "Reproducible installs across Linux, macOS, and Windows.",
+      "used_in": [
+        "uv.lock"
+      ],
+      "docs": "https://docs.astral.sh/uv/",
+      "alternatives": [
+        {
+          "name": "pip + requirements.txt",
+          "when": "What scripts/dev.py uses today for the venv install."
+        },
+        {
+          "name": "Poetry",
+          "when": "You want dependency groups and publishing in one tool."
+        }
+      ],
+      "learn": "From the same team as Ruff. Note dev.py currently installs with pip, so uv.lock is a pin record rather than the install path."
+    },
+    {
+      "id": "hatchling",
+      "name": "Hatchling",
+      "category": "build-backend",
+      "layer": "tooling",
+      "declared": "build-system requires",
+      "role": "PEP 517 build backend that packages the app/ directory.",
+      "why_here": "Minimal configuration for a simple package.",
+      "used_in": [
+        "pyproject.toml"
+      ],
+      "docs": "https://hatch.pypa.io/latest/",
+      "alternatives": [
+        {
+          "name": "setuptools",
+          "when": "Maximum compatibility with old tooling."
+        }
+      ],
+      "learn": "The build backend only matters at install time - it is not a runtime dependency."
+    },
+    {
+      "id": "swift",
+      "name": "Swift 6",
+      "category": "language",
+      "layer": "apple",
+      "role": "Language for the iPhone app, widgets, and the macOS Tank supervisor.",
+      "why_here": "Native Apple development; strict concurrency checking catches data races at compile time.",
+      "used_in": [
+        "NOBS/",
+        "NOBSWidgets/",
+        "NOBSTankMac/"
+      ],
+      "docs": "https://www.swift.org/documentation/",
+      "alternatives": [
+        {
+          "name": "React Native / Flutter",
+          "when": "Cross-platform mobile - rejected here because the app is deliberately Apple-native."
+        }
+      ],
+      "learn": "Swift 6 strict concurrency is the big learning curve: @MainActor, Sendable, and actor isolation. See the axiom-concurrency skill."
+    },
+    {
+      "id": "swiftui",
+      "name": "SwiftUI",
+      "category": "ui-framework",
+      "layer": "apple",
+      "role": "The entire iPhone and macOS interface.",
+      "why_here": "Declarative UI with Dynamic Type, VoiceOver, and reduced-motion support built in - accessibility is a product requirement, not an add-on.",
+      "used_in": [
+        "NOBS/ConversationView.swift",
+        "NOBS/Views/",
+        "NOBSTankMac/MenuContentView.swift"
+      ],
+      "docs": "https://developer.apple.com/documentation/swiftui",
+      "alternatives": [
+        {
+          "name": "UIKit",
+          "when": "Fine-grained control or older OS targets; can be bridged where needed."
+        }
+      ],
+      "learn": "Keep views small and move state into observable models - the project rule exists because large views become untestable."
+    },
+    {
+      "id": "foundationmodels",
+      "name": "FoundationModels",
+      "category": "on-device-ai",
+      "layer": "apple",
+      "role": "Apple's on-device language model, used for local processing when Tank is unavailable.",
+      "why_here": "Keeps the 'Local' processing route genuinely local.",
+      "used_in": [
+        "NOBS/Services/"
+      ],
+      "docs": "https://developer.apple.com/documentation/foundationmodels",
+      "alternatives": [
+        {
+          "name": "Core ML with a bundled model",
+          "when": "You need a specific model rather than the system one."
+        }
+      ],
+      "learn": "Guard the import - it is not available on every OS version the project builds for."
+    },
+    {
+      "id": "appintents",
+      "name": "App Intents",
+      "category": "system-integration",
+      "layer": "apple",
+      "role": "Exposes NOBS actions to Siri, Shortcuts, and Spotlight.",
+      "why_here": "The 'same assistant everywhere' promise starts with Siri on Apple devices.",
+      "used_in": [
+        "NOBS/Intents/",
+        "NOBSTankMac/AskNOBSIntent.swift"
+      ],
+      "docs": "https://developer.apple.com/documentation/appintents",
+      "alternatives": [
+        {
+          "name": "SiriKit Intents",
+          "when": "The older API; App Intents supersedes it."
+        }
+      ],
+      "learn": "App Intents replaced SiriKit for most cases - check the date on any tutorial you read."
+    },
+    {
+      "id": "widgetkit",
+      "name": "WidgetKit + ActivityKit",
+      "category": "system-integration",
+      "layer": "apple",
+      "role": "Home/Lock Screen widgets and Live Activities for approvals and briefings.",
+      "why_here": "Passive daily context and live tracking of unfolding workflows.",
+      "used_in": [
+        "NOBSWidgets/"
+      ],
+      "docs": "https://developer.apple.com/documentation/widgetkit",
+      "alternatives": [],
+      "learn": "Widgets run in a separate process with a tight memory budget - they read a snapshot file rather than calling the API."
+    },
+    {
+      "id": "storekit",
+      "name": "StoreKit 2",
+      "category": "payments",
+      "layer": "apple",
+      "role": "In-app tips and the NOBScloud subscription.",
+      "why_here": "Required by App Store rules for digital purchases.",
+      "used_in": [
+        "NOBS/NOBS.storekit",
+        "NOBS/Services/"
+      ],
+      "docs": "https://developer.apple.com/documentation/storekit",
+      "alternatives": [
+        {
+          "name": "Square / Stripe",
+          "when": "Payments outside the app - already used for web tips."
+        }
+      ],
+      "learn": "StoreKit 2 is async/await and much simpler than the original API. Test with the local .storekit configuration file before touching App Store Connect."
+    },
+    {
+      "id": "eventkit",
+      "name": "EventKit",
+      "category": "system-integration",
+      "layer": "apple",
+      "role": "Reads calendar events and reminders for the daily briefing.",
+      "why_here": "The briefing is the product anchor and needs the real schedule.",
+      "used_in": [
+        "NOBS/Services/"
+      ],
+      "docs": "https://developer.apple.com/documentation/eventkit",
+      "alternatives": [],
+      "learn": "Permissions are progressive by product rule - request access at the moment its value is clear, not at launch."
+    },
+    {
+      "id": "xcode",
+      "name": "Xcode 27",
+      "category": "ide-toolchain",
+      "layer": "apple",
+      "role": "Builds and tests all Apple targets.",
+      "why_here": "The only supported toolchain for iOS and macOS.",
+      "used_in": [
+        "NOBS.xcodeproj/",
+        "scripts/build-ios-simulator.sh",
+        "scripts/test-ios.sh"
+      ],
+      "docs": "https://developer.apple.com/xcode/",
+      "alternatives": [],
+      "learn": "Apple builds cannot run on Linux, which is why the iOS CI job uses a self-hosted Mac runner."
+    },
+    {
+      "id": "react",
+      "name": "React 19",
+      "category": "ui-framework",
+      "layer": "website",
+      "declared": "19.2.0",
+      "role": "The public website at nobsdash.com.",
+      "why_here": "Component model for the marketing and portfolio site.",
+      "used_in": [
+        "website/src/"
+      ],
+      "docs": "https://react.dev/",
+      "alternatives": [
+        {
+          "name": "Astro",
+          "when": "A content site that ships almost no JavaScript - arguably a better fit for a marketing page."
+        },
+        {
+          "name": "Svelte",
+          "when": "Smaller bundles and less ceremony."
+        }
+      ],
+      "learn": "React 19 adds Actions and the use() hook; older tutorials will not mention them."
+    },
+    {
+      "id": "vite",
+      "name": "Vite 6",
+      "category": "build-tool",
+      "layer": "website",
+      "declared": "6.4.3",
+      "role": "Dev server and production bundler for the website.",
+      "why_here": "Fast dev server and a simple production build.",
+      "used_in": [
+        "website/vite.config.mjs"
+      ],
+      "docs": "https://vite.dev/",
+      "alternatives": [
+        {
+          "name": "Next.js",
+          "when": "You need SSR, routing, and an image pipeline."
+        }
+      ],
+      "learn": "Dev uses native ES modules while the production build uses Rollup - behavior can differ between them."
+    },
+    {
+      "id": "pnpm",
+      "name": "pnpm",
+      "category": "package-manager",
+      "layer": "website",
+      "role": "Installs website dependencies.",
+      "why_here": "Content-addressed store, so disk use stays low and installs are fast.",
+      "used_in": [
+        "website/pnpm-lock.yaml",
+        "website/pnpm-workspace.yaml"
+      ],
+      "docs": "https://pnpm.io/",
+      "alternatives": [
+        {
+          "name": "npm",
+          "when": "Preinstalled with Node; slower and larger on disk."
+        }
+      ],
+      "learn": "pnpm's strict node_modules layout catches dependencies you use but never declared."
+    },
+    {
+      "id": "phosphor-icons",
+      "name": "@phosphor-icons/react",
+      "category": "design-assets",
+      "layer": "website",
+      "declared": "^2.1.10",
+      "role": "Icon set for the website.",
+      "why_here": "A consistent icon family, so no hand-drawn SVGs or emoji in the UI.",
+      "used_in": [
+        "website/src/"
+      ],
+      "docs": "https://phosphoricons.com/",
+      "alternatives": [
+        {
+          "name": "Lucide",
+          "when": "You prefer a Feather-derived look."
+        }
+      ],
+      "learn": "Import icons individually so the bundler can tree-shake the rest of the set."
+    },
+    {
+      "id": "ollama",
+      "name": "Ollama",
+      "category": "model-runtime",
+      "layer": "local-ai",
+      "role": "Runs local language models on the Tank; every model call goes through its HTTP API.",
+      "why_here": "The entire local-first promise depends on inference that never leaves the house.",
+      "used_in": [
+        "app/routes/assistant.py",
+        "app/agent.py",
+        "app/briefing.py"
+      ],
+      "docs": "https://docs.ollama.com/",
+      "alternatives": [
+        {
+          "name": "llama.cpp server",
+          "when": "You want maximum control over quantization and sampling."
+        },
+        {
+          "name": "vLLM",
+          "when": "Serving many concurrent users on a GPU - overkill for one household."
+        },
+        {
+          "name": "LM Studio",
+          "when": "A GUI for experimenting rather than a service."
+        }
+      ],
+      "learn": "Ollama supports JSON-schema-constrained decoding, which this project uses instead of free-form JSON mode - it is the difference between hoping for valid JSON and requiring it."
+    },
+    {
+      "id": "qwen3-8b",
+      "name": "qwen3:8b",
+      "category": "model",
+      "layer": "local-ai",
+      "role": "Default general chat and agent model.",
+      "why_here": "Fits comfortably in Tank memory while still following tool-call instructions.",
+      "used_in": [
+        ".env.example",
+        "app/config.py"
+      ],
+      "docs": "https://ollama.com/library/qwen3",
+      "alternatives": [
+        {
+          "name": "llama3.1:8b",
+          "when": "A general-purpose alternative at the same size."
+        },
+        {
+          "name": "mistral-small",
+          "when": "Worth benchmarking for instruction following."
+        }
+      ],
+      "learn": "Model choice is configuration, not code - NOBS_OLLAMA_MODEL swaps it without touching app/."
+    },
+    {
+      "id": "qwen25-coder-14b",
+      "name": "qwen2.5-coder:14b",
+      "category": "model",
+      "layer": "local-ai",
+      "role": "Code-oriented model for log analysis and the dream-team sandbox.",
+      "why_here": "Better at structured and code output than the general 8b model.",
+      "used_in": [
+        "scripts/analyze_tank_logs.py",
+        "scripts/setup-local-ai.sh"
+      ],
+      "docs": "https://ollama.com/library/qwen2.5-coder",
+      "alternatives": [
+        {
+          "name": "deepseek-coder-v2",
+          "when": "Worth comparing on code generation quality."
+        }
+      ],
+      "learn": "A 14b model needs roughly twice the memory of an 8b at the same quantization - the constraint is RAM, not disk."
+    },
+    {
+      "id": "nomic-embed-text",
+      "name": "nomic-embed-text",
+      "category": "model",
+      "layer": "local-ai",
+      "role": "Embedding model for the research library index.",
+      "why_here": "Local embeddings mean research can be searched without uploading it anywhere.",
+      "used_in": [
+        "scripts/setup-local-ai.sh"
+      ],
+      "docs": "https://ollama.com/library/nomic-embed-text",
+      "alternatives": [
+        {
+          "name": "bge-m3",
+          "when": "You need multilingual embeddings."
+        }
+      ],
+      "learn": "Embeddings are how semantic search works: text becomes a vector, and similarity is distance between vectors."
+    },
+    {
+      "id": "home-assistant",
+      "name": "Home Assistant",
+      "category": "integration",
+      "layer": "smart-home",
+      "role": "Bridge to smart-home devices; NOBS calls its REST API rather than talking to vendors directly.",
+      "why_here": "One local integration instead of one cloud account per device brand.",
+      "used_in": [
+        "app/home_assistant.py",
+        "app/agent_tools.py"
+      ],
+      "docs": "https://developers.home-assistant.io/docs/api/rest/",
+      "alternatives": [
+        {
+          "name": "Matter/Thread directly",
+          "when": "Long-term direction; avoids the Home Assistant dependency entirely."
+        },
+        {
+          "name": "HomeKit via HAP",
+          "when": "Apple-only households."
+        }
+      ],
+      "learn": "Home tools are risk-classified: lights and media are one class, locks and cameras another that always needs approval."
+    },
+    {
+      "id": "github-actions",
+      "name": "GitHub Actions",
+      "category": "ci",
+      "layer": "infrastructure",
+      "role": "Runs the backend test matrix on Linux, macOS, and Windows, plus iOS tests on a self-hosted Mac.",
+      "why_here": "The cross-platform matrix is how the hard cross-platform requirement is actually enforced.",
+      "used_in": [
+        ".github/workflows/"
+      ],
+      "docs": "https://docs.github.com/actions",
+      "alternatives": [
+        {
+          "name": "GitLab CI / Woodpecker",
+          "when": "Self-hosting the whole pipeline."
+        }
+      ],
+      "learn": "Hosted runners are metered. If jobs fail in seconds with no logs and no runner assigned, that is a billing or quota problem, not your code - see docs/CI_TROUBLESHOOTING.md."
+    },
+    {
+      "id": "systemd",
+      "name": "systemd",
+      "category": "process-manager",
+      "layer": "infrastructure",
+      "role": "Keeps the Tank API, dashboard, and tunnel running and restarts them on failure.",
+      "why_here": "The Tank is an always-on appliance; services must survive reboots.",
+      "used_in": [
+        "deploy/tank/nobs-api.service",
+        "deploy/tank/nobsdash.service"
+      ],
+      "docs": "https://www.freedesktop.org/software/systemd/man/systemd.service.html",
+      "alternatives": [
+        {
+          "name": "launchd",
+          "when": "macOS - already used by scripts/install-tank-launchagent.sh."
+        }
+      ],
+      "learn": "journalctl -u nobs-api is the first command to run when the Tank misbehaves."
+    },
+    {
+      "id": "cloudflared",
+      "name": "cloudflared",
+      "category": "networking",
+      "layer": "infrastructure",
+      "role": "Tunnels the public marketing site out from the Tank.",
+      "why_here": "Publishes a website with no inbound ports opened on the home network.",
+      "used_in": [
+        "deploy/tank/cloudflared-nobsdash.service"
+      ],
+      "docs": "https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/",
+      "alternatives": [
+        {
+          "name": "Tailscale Funnel",
+          "when": "You are already on Tailscale."
+        },
+        {
+          "name": "WireGuard",
+          "when": "Private remote access rather than public publishing."
+        }
+      ],
+      "learn": "Only the marketing site is tunnelled. The API port is deliberately not proxied - a proxy in front of it would make every remote request look local and break the pairing gate."
+    },
+    {
+      "id": "qrcode",
+      "name": "qrcode",
+      "category": "pairing",
+      "layer": "tooling",
+      "declared": ">=7.4,<9",
+      "resolved": "8.2",
+      "role": "Renders the pairing QR code so a phone can claim the Tank without typing a token.",
+      "why_here": "The device token is long by design; a QR code keeps first-run pairing bearable without weakening it.",
+      "used_in": [
+        "scripts/pairing.py"
+      ],
+      "docs": "https://pypi.org/project/qrcode/",
+      "alternatives": [
+        {
+          "name": "segno",
+          "when": "Pure Python with no Pillow dependency for image output."
+        }
+      ],
+      "learn": "It is a dev/setup dependency, not a runtime one - the API never generates QR codes itself."
+    }
+  ]
+}

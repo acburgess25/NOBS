@@ -70,6 +70,7 @@ This is not a production release. Household identity, hosted NOBScloud servers, 
 | `deploy/tank/` | Tank service definitions |
 | `design/` | Approved visual references |
 | `docs/` | Product truth, architecture, research, and operating guides ([index](docs/README.md)) |
+| `docs/research/` | Stack database: every tool used, why, and alternatives ([browse](docs/research/STACK.md)) |
 | `docs/internal/` | Pointer to maintainer-only docs in [NOBS-private](https://github.com/acburgess25/NOBS-private) |
 | `website/` | Public project website |
 
