@@ -4,15 +4,13 @@ import time
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
-from enum import Enum
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any
 
 import httpx
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Request, status
 from fastapi.responses import RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
-from pydantic import BaseModel, Field
 
 from app.agent import (
     AgentModelError,
@@ -26,10 +24,8 @@ from app.agent_store import AgentStore
 from app.agent_tools import ToolRegistry
 from app.bonjour import TankBonjourAdvertisement
 from app.briefing import (
-    BriefingCalendarItem,
     BriefingError,
     BriefingModelUnavailable,
-    BriefingReminderItem,
     BriefingRequest,
     BriefingResponse,
     OllamaResponse,
@@ -43,6 +39,29 @@ from app.home_assistant import HomeAssistantClient
 from app.networking import tank_pairing_url
 from app.pairing import PairingWindow, is_loopback_client
 from app.scheduler import run_scheduler
+from app.schemas import (
+    AppleAuthRequest,
+    AppleAuthResponse,
+    ChatRequest,
+    ChatResponse,
+    CreateScheduleRequest,
+    DreamTeamApproveResponse,
+    DreamTeamProposalDecision,
+    DreamTeamProposalView,
+    DreamTeamSessionCreateRequest,
+    DreamTeamSessionView,
+    OvernightTaskCreateRequest,
+    OvernightTaskView,
+    PairingSecretView,
+    PairingStateView,
+    ProposalDecision,
+    ProposalView,
+    ScheduleView,
+    SyncCalendarRequest,
+    SyncRemindersRequest,
+    UpdateScheduleRequest,
+    WorkplaceBrowserSessionRequest,
+)
 from app.tank_optimizer import (
     _ALL_JOB_TYPES,
     _HEAVY_JOB_TYPES,
@@ -55,167 +74,6 @@ from app.workplace import (
     build_workplace_status,
     parse_allowed_domains,
 )
-
-
-class ChatMessage(BaseModel):
-    role: str = Field(pattern="^(user|assistant)$")
-    content: str = Field(min_length=1, max_length=20_000)
-
-
-class ChatRequest(BaseModel):
-    messages: list[ChatMessage] = Field(min_length=1, max_length=40)
-
-
-class ChatResponse(BaseModel):
-    message: str
-    route: str
-    privacy_receipt: PrivacyReceipt
-
-
-class ProposalView(BaseModel):
-    id: str
-    title: str
-    description: str
-    proposal_type: str
-    status: str
-    created_at: str
-    decided_at: str | None
-
-
-class ProposalDecision(BaseModel):
-    decision: Literal["approve", "dismiss"]
-
-
-class ScheduleView(BaseModel):
-    id: str
-    time_of_day: str
-    status: str
-    created_at: str
-
-
-class CreateScheduleRequest(BaseModel):
-    time_of_day: str = Field(pattern="^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$")
-
-
-class UpdateScheduleRequest(BaseModel):
-    status: Literal["active", "paused", "revoked"]
-
-
-class OvernightTaskType(str, Enum):
-    research = "research"
-    memory_consolidation = "memory_consolidation"
-    briefing_prep = "briefing_prep"
-    custom = "custom"
-
-
-class OvernightTaskCreateRequest(BaseModel):
-    objective: str = Field(min_length=1, max_length=10_000)
-    context: Literal["personal", "business", "shared"] = "personal"
-    mode: Literal["assistant", "developer"] = "assistant"
-    task_type: OvernightTaskType = OvernightTaskType.custom
-    priority: int = Field(default=0, ge=0, le=10)
-
-
-class OvernightTaskView(BaseModel):
-    id: str
-    objective: str
-    context: str
-    mode: str
-    task_type: str
-    priority: int
-    status: str
-    result: dict[str, Any] | None
-    error: str | None
-    created_at: str
-    started_at: str | None
-    completed_at: str | None
-
-
-class SyncCalendarRequest(BaseModel):
-    events: list[BriefingCalendarItem]
-
-
-class SyncRemindersRequest(BaseModel):
-    reminders: list[BriefingReminderItem]
-
-
-class AppleAuthRequest(BaseModel):
-    user_identifier: str = Field(min_length=1, max_length=256)
-    identity_token: str | None = None
-
-
-class AppleAuthResponse(BaseModel):
-    device_token: str
-
-
-class DreamTeamSessionCreateRequest(BaseModel):
-    objective: str = Field(min_length=1, max_length=2000)
-    context: Literal["personal", "business", "shared"] = "personal"
-
-
-class DreamTeamDraftView(BaseModel):
-    id: str
-    session_id: str
-    name: str
-    role: str
-    persona: dict[str, Any]
-    score: float | None
-    iteration: int
-    status: str
-    test_result: dict[str, Any] | None
-    created_at: str
-    updated_at: str
-
-
-class DreamTeamProposalView(BaseModel):
-    id: str
-    session_id: str
-    title: str
-    summary: str
-    members: list[dict[str, Any]]
-    metadata: dict[str, Any]
-    status: str
-    created_at: str
-    decided_at: str | None
-
-
-class DreamTeamSessionView(BaseModel):
-    id: str
-    objective: str
-    context: str
-    status: str
-    config: dict[str, Any]
-    result_summary: str | None
-    created_at: str
-    updated_at: str
-    drafts: list[DreamTeamDraftView] | None = None
-    proposals: list[DreamTeamProposalView] | None = None
-
-
-class DreamTeamProposalDecision(BaseModel):
-    decision: Literal["approve", "reject"]
-
-
-class DreamTeamApproveResponse(BaseModel):
-    proposal: DreamTeamProposalView
-    active_manifests: int
-    local_first_policy: dict[str, Any]
-
-
-class WorkplaceBrowserSessionRequest(BaseModel):
-    agent_id: str = Field(min_length=1, max_length=120)
-    url: str = Field(min_length=1, max_length=2000)
-
-
-class PairingStateView(BaseModel):
-    open: bool
-    expires_in_seconds: int | None
-    ttl_seconds: int
-
-
-class PairingSecretView(PairingStateView):
-    url: str
-    token: str
 
 
 @asynccontextmanager
