@@ -185,7 +185,9 @@ class TankOptimizer:
             "idle_cpu_threshold": self.settings.optimizer_idle_cpu_percent,
             "heavy_interval_minutes": self.settings.optimizer_heavy_interval_minutes,
             "light_interval_seconds": self.settings.optimizer_light_interval_seconds,
-            "next_heavy_job_in_seconds": round(next_heavy_in, 1) if next_heavy_in is not None else None,
+            "next_heavy_job_in_seconds": round(next_heavy_in, 1)
+            if next_heavy_in is not None
+            else None,
             "next_heavy_job_type": _HEAVY_JOB_TYPES[self._heavy_rotation % len(_HEAVY_JOB_TYPES)],
             "last_job": self._last_result.__dict__ if self._last_result else None,
             "recent_jobs": [item.__dict__ for item in self._history[-8:]],
@@ -215,8 +217,12 @@ class TankOptimizer:
         handlers: dict[str, Callable[[], Coroutine[Any, Any, dict[str, Any]]]] = {
             "briefing_index_light": lambda: job_briefing_index_light(store),
             "model_ping": lambda: job_model_ping(settings, transport),
-            "dream_team_scoring": lambda: job_dream_team_scoring(settings, store, dream_team_factory()),
-            "briefing_index_refresh": lambda: job_briefing_index_refresh(settings, store, transport),
+            "dream_team_scoring": lambda: job_dream_team_scoring(
+                settings, store, dream_team_factory()
+            ),
+            "briefing_index_refresh": lambda: job_briefing_index_refresh(
+                settings, store, transport
+            ),
             "dream_team_batch": lambda: job_dream_team_batch(settings, store, dream_team_factory()),
             "model_warmup": lambda: job_model_warmup(settings, transport),
         }
@@ -273,7 +279,9 @@ class TankOptimizer:
                     self._run_now_job = None
                     await self._execute_job(
                         job_type,
-                        OptimizerJobKind.heavy if job_type in _HEAVY_JOB_TYPES else OptimizerJobKind.light,
+                        OptimizerJobKind.heavy
+                        if job_type in _HEAVY_JOB_TYPES
+                        else OptimizerJobKind.light,
                         settings,
                         store,
                         tools,
@@ -282,10 +290,7 @@ class TankOptimizer:
                     )
                 elif self.can_start_job():
                     now = time.monotonic()
-                    due_heavy = (
-                        self._next_heavy_at is not None
-                        and now >= self._next_heavy_at
-                    )
+                    due_heavy = self._next_heavy_at is not None and now >= self._next_heavy_at
                     if due_heavy:
                         await self._execute_job(
                             self._next_heavy_job_type(),
@@ -333,9 +338,7 @@ async def job_briefing_index_light(store: AgentStore) -> dict[str, Any]:
     }
     store.set_kv("optimizer_briefing_index", json.dumps(index))
     return {
-        "summary": (
-            f"Indexed {len(calendar)} calendar and {len(reminders)} reminder items"
-        ),
+        "summary": (f"Indexed {len(calendar)} calendar and {len(reminders)} reminder items"),
         "index": index,
     }
 
@@ -390,9 +393,7 @@ async def job_model_warmup(settings: Settings, transport: Any) -> dict[str, Any]
         "messages": [
             {
                 "role": "user",
-                "content": (
-                    "Reply with JSON only: {\"status\":\"ok\",\"service\":\"nobs-tank\"}"
-                ),
+                "content": ('Reply with JSON only: {"status":"ok","service":"nobs-tank"}'),
             }
         ],
         # Schema-constrained so the warm-up check measures model latency rather

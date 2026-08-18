@@ -44,7 +44,7 @@ def ensure_environment() -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=("setup", "test", "lint", "run", "check"))
+    parser.add_argument("command", choices=("setup", "test", "lint", "format", "run", "check"))
     args = parser.parse_args()
 
     if args.command == "setup":
@@ -57,6 +57,13 @@ def main() -> None:
         run("-m", "pytest")
     if args.command in {"lint", "check"}:
         run("-m", "ruff", "check", ".")
+        # `ruff check` does not enforce layout, so formatting drifted across 20
+        # files before this was added. Checking it here means CI is the single
+        # place that decides the code is formatted, and no one has to review a
+        # diff that is really just line wrapping.
+        run("-m", "ruff", "format", "--check", ".")
+    if args.command == "format":
+        run("-m", "ruff", "format", ".")
     if args.command == "run":
         run("-m", "uvicorn", "app.main:app", "--reload")
 

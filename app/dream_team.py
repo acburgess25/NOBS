@@ -227,7 +227,11 @@ class DreamTeamSandbox:
             path = self.active_root / f"{slug}.json"
             path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
         self.store.update_dream_team_session(proposal["session_id"], "approved")
-        return {"proposal": proposal, "session": session, "active_manifests": len(proposal["members"])}
+        return {
+            "proposal": proposal,
+            "session": session,
+            "active_manifests": len(proposal["members"]),
+        }
 
     def reject_proposal(self, proposal_id: str) -> dict[str, Any]:
         proposal = self.store.decide_dream_team_proposal(proposal_id, "rejected")
@@ -242,8 +246,8 @@ class DreamTeamSandbox:
             f"User objective: {session['objective']}\n"
             f"Context: {session['context']}\n"
             f"Create {self.settings.dream_team_max_agents} complementary agent personas. "
-            "Return ONLY JSON: {\"agents\": [{\"name\": str, \"role\": str, \"tone\": str, "
-            "\"specialty\": str, \"suggested_tools\": [str], \"sample_objective\": str}]}. "
+            'Return ONLY JSON: {"agents": [{"name": str, "role": str, "tone": str, '
+            '"specialty": str, "suggested_tools": [str], "sample_objective": str}]}. '
             "suggested_tools must be from: get_tank_status, list_workspace_files, read_workspace_file. "
             "Keep personas concise and practical."
         )
@@ -261,9 +265,7 @@ class DreamTeamSandbox:
                 "tone": str(agent.get("tone", "warm, concise")),
                 "specialty": str(agent.get("specialty", "")),
                 "suggested_tools": [
-                    t
-                    for t in agent.get("suggested_tools", [])
-                    if t in SANDBOX_READ_ONLY_TOOLS
+                    t for t in agent.get("suggested_tools", []) if t in SANDBOX_READ_ONLY_TOOLS
                 ],
                 "sample_objective": str(agent.get("sample_objective", session["objective"])),
                 "system_prompt": (
@@ -373,8 +375,8 @@ class DreamTeamSandbox:
         test_result = draft.get("test_result") or {}
         prompt = (
             "Improve this NOBS agent persona based on sandbox feedback. "
-            "Return ONLY JSON: {\"persona\": {\"tone\": str, \"specialty\": str, "
-            "\"suggested_tools\": [str], \"sample_objective\": str, \"system_prompt\": str}}.\n"
+            'Return ONLY JSON: {"persona": {"tone": str, "specialty": str, '
+            '"suggested_tools": [str], "sample_objective": str, "system_prompt": str}}.\n'
             f"Objective: {session['objective']}\n"
             f"Current name: {draft['name']}\n"
             f"Current role: {draft['role']}\n"

@@ -102,9 +102,7 @@ _HOME_ASSISTANT_UNCONFIGURED = (
 # Assistant accepts area/device/label targeting inside the service payload, so
 # leaving these through would let one approved entity_id stand in for a whole
 # area -- and the stored approval would no longer describe what ran.
-_TARGETING_KEYS = frozenset(
-    {"area_id", "device_id", "entity_id", "floor_id", "label_id", "target"}
-)
+_TARGETING_KEYS = frozenset({"area_id", "device_id", "entity_id", "floor_id", "label_id", "target"})
 
 _SERVICE_NAME_RE = re.compile(r"^[a-z0-9_]{1,50}$")
 
@@ -794,9 +792,7 @@ class ToolRegistry:
     def _list_home_devices(self, arguments: dict[str, Any]) -> dict[str, Any]:
         self._require_argument_keys(arguments, {"domain"})
         if not self.home_assistant or not self.home_assistant.is_configured:
-            return {
-                "error": _HOME_ASSISTANT_UNCONFIGURED
-            }
+            return {"error": _HOME_ASSISTANT_UNCONFIGURED}
         domain = arguments.get("domain")
         try:
             devices = self.home_assistant.list_devices(domain)
@@ -826,11 +822,7 @@ class ToolRegistry:
 
         allowed = _HOME_DOMAIN_RISK.get(domain)
         if allowed is None:
-            hint = (
-                " Use run_home_scene to run a named scene."
-                if domain == _SCENE_DOMAIN
-                else ""
-            )
+            hint = " Use run_home_scene to run a named scene." if domain == _SCENE_DOMAIN else ""
             raise ValueError(
                 f"NOBS does not control '{domain}' entities through this tool. A script, "
                 "automation, or button performs whatever action its author wrote, "
@@ -838,10 +830,13 @@ class ToolRegistry:
                 f"{hint}"
             )
         if allowed is not risk:
-            other = "control_secure_home_device" if allowed is ToolRisk.SENSITIVE else "control_home_device"
+            other = (
+                "control_secure_home_device"
+                if allowed is ToolRisk.SENSITIVE
+                else "control_home_device"
+            )
             raise ValueError(
-                f"'{domain}' entities are {allowed.value} risk and must go through "
-                f"{other}."
+                f"'{domain}' entities are {allowed.value} risk and must go through {other}."
             )
 
         service_data = arguments.get("service_data")
@@ -879,9 +874,7 @@ class ToolRegistry:
     def _list_home_scenes(self, arguments: dict[str, Any]) -> dict[str, Any]:
         self._require_argument_keys(arguments, set())
         if not self.home_assistant or not self.home_assistant.is_configured:
-            return {
-                "error": _HOME_ASSISTANT_UNCONFIGURED
-            }
+            return {"error": _HOME_ASSISTANT_UNCONFIGURED}
         try:
             scenes = self.home_assistant.list_devices("scene")
             return {"scenes": scenes[:100], "truncated": len(scenes) > 100}
@@ -899,9 +892,7 @@ class ToolRegistry:
                 "Use control_home_device or control_secure_home_device for individual accessories."
             )
         if not self.home_assistant or not self.home_assistant.is_configured:
-            return {
-                "error": _HOME_ASSISTANT_UNCONFIGURED
-            }
+            return {"error": _HOME_ASSISTANT_UNCONFIGURED}
         try:
             res = self.home_assistant.call_service("scene", "turn_on", {"entity_id": entity_id})
             return {"status": "success", "result": res}
@@ -1088,9 +1079,7 @@ class ToolRegistry:
                     )
                 }
             response.raise_for_status()
-            text = trafilatura.extract(
-                response.text, include_comments=False, include_tables=True
-            )
+            text = trafilatura.extract(response.text, include_comments=False, include_tables=True)
             if not text:
                 return {"error": "Could not extract readable content from the URL"}
             truncated = len(text) > 20_000

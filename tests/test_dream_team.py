@@ -274,9 +274,7 @@ def test_schema_does_not_let_the_model_widen_its_sandbox(tmp_path: Path) -> None
         headers=auth(),
     )
     assert create.status_code == 200
-    run = test_client.post(
-        f"/dream-team/sessions/{create.json()['id']}/run", headers=auth()
-    )
+    run = test_client.post(f"/dream-team/sessions/{create.json()['id']}/run", headers=auth())
     assert run.status_code == 200
 
     proposed_tools = [
@@ -296,7 +294,13 @@ def test_dream_team_heuristic_score_without_extra_llm(tmp_path: Path) -> None:
         dream_team_sandbox_path=tmp_path / "sandbox",
         dream_team_active_path=tmp_path / "active",
     )
-    sandbox = DreamTeamSandbox(settings, store, tools=__import__("app.agent_tools", fromlist=["ToolRegistry"]).ToolRegistry(tmp_path / "ws"))
+    sandbox = DreamTeamSandbox(
+        settings,
+        store,
+        tools=__import__("app.agent_tools", fromlist=["ToolRegistry"]).ToolRegistry(
+            tmp_path / "ws"
+        ),
+    )
     draft = {
         "persona": {
             "tone": "warm",
@@ -317,9 +321,7 @@ def test_dream_team_heuristic_score_without_extra_llm(tmp_path: Path) -> None:
 def test_dream_team_reject_proposal(tmp_path: Path) -> None:
     store = AgentStore(tmp_path / "reject.db")
     session = store.create_dream_team_session("x", "personal", {})
-    proposal = store.create_dream_team_proposal(
-        session["id"], "Team", "summary", [], {}
-    )
+    proposal = store.create_dream_team_proposal(session["id"], "Team", "summary", [], {})
     settings = Settings(
         agent_database_path=tmp_path / "reject.db",
         agent_workspace_path=tmp_path / "ws",
@@ -329,7 +331,9 @@ def test_dream_team_reject_proposal(tmp_path: Path) -> None:
     sandbox = DreamTeamSandbox(
         settings,
         store,
-        tools=__import__("app.agent_tools", fromlist=["ToolRegistry"]).ToolRegistry(tmp_path / "ws"),
+        tools=__import__("app.agent_tools", fromlist=["ToolRegistry"]).ToolRegistry(
+            tmp_path / "ws"
+        ),
     )
     result = sandbox.reject_proposal(proposal["id"])
     assert result["status"] == "rejected"

@@ -37,6 +37,13 @@ testpaths = ["tests"]
 line-length = 100
 target-version = "py311"
 
+# Axiom skills are vendored third-party content, refreshed with
+# `npx skills update`. docs/AXIOM_AGENTS.md forbids hand-editing their bodies,
+# and ruff 0.16 formats fenced code blocks inside Markdown, so without this
+# exclusion `ruff format` rewrites files we are contractually not allowed to
+# touch -- and the next vendor refresh reverts it.
+extend-exclude = [".agents/skills", ".claude/skills"]
+
 # Declare the rule set explicitly. Without a `select`, the enforced rules are
 # whatever ruff ships as its default, and that default changes between
 # releases -- 0.16 expanded it from roughly 20 rules to 413, which turned an

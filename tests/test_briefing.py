@@ -6,9 +6,7 @@ from tests.test_chat import auth, client
 
 REQUEST = {
     "date": "2026-07-04",
-    "calendar": [
-        {"title": "Design sync", "start": "10:00", "end": "11:00", "context": "business"}
-    ],
+    "calendar": [{"title": "Design sync", "start": "10:00", "end": "11:00", "context": "business"}],
     "reminders": [{"title": "Call plumber", "due": "14:00", "context": "personal"}],
 }
 

@@ -538,10 +538,14 @@ class AgentStore:
 
     def list_calendar_events(self) -> list[dict[str, Any]]:
         with self._lock:
-            rows = self._connect().execute(
-                'SELECT id, title, start, end_time AS "end", location, context, created_at '
-                "FROM calendar_events"
-            ).fetchall()
+            rows = (
+                self._connect()
+                .execute(
+                    'SELECT id, title, start, end_time AS "end", location, context, created_at '
+                    "FROM calendar_events"
+                )
+                .fetchall()
+            )
         return [dict(row) for row in rows]
 
     def sync_reminders(self, reminders: list[dict[str, str]]) -> None:
@@ -565,9 +569,11 @@ class AgentStore:
 
     def list_reminders(self) -> list[dict[str, Any]]:
         with self._lock:
-            rows = self._connect().execute(
-                'SELECT id, title, due_at AS "due", context, created_at FROM reminders'
-            ).fetchall()
+            rows = (
+                self._connect()
+                .execute('SELECT id, title, due_at AS "due", context, created_at FROM reminders')
+                .fetchall()
+            )
         return [dict(row) for row in rows]
 
     @staticmethod
@@ -1072,9 +1078,7 @@ class AgentStore:
             "score": row["score"],
             "iteration": row["iteration"],
             "status": row["status"],
-            "test_result": json.loads(row["test_result_json"])
-            if row["test_result_json"]
-            else None,
+            "test_result": json.loads(row["test_result_json"]) if row["test_result_json"] else None,
             "created_at": row["created_at"],
             "updated_at": row["updated_at"],
         }

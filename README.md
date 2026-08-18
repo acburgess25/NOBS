@@ -114,9 +114,10 @@ Set a strong `NOBS_DEVICE_TOKEN` in `.env` before using `/ready` or `/chat`. Oll
 Useful commands:
 
 ```bash
-python3 scripts/dev.py check  # tests and lint
+python3 scripts/dev.py check   # tests, lint, and formatting
 python3 scripts/dev.py test
 python3 scripts/dev.py lint
+python3 scripts/dev.py format  # apply formatting; `check` only reports it
 python3 scripts/dev.py run
 ```
 

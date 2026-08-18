@@ -159,7 +159,8 @@ class TestReadNewsFeeds:
         feed_mock.entries = [
             # Bind `e` per iteration: without the default argument every lambda
             # closes over the same variable and reads the last entry.
-            MagicMock(**{"get.side_effect": lambda k, d="", e=e: e.get(k, d)}) for e in entries
+            MagicMock(**{"get.side_effect": lambda k, d="", e=e: e.get(k, d)})
+            for e in entries
         ]
         return feed_mock
 

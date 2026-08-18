@@ -129,9 +129,7 @@ def test_columns_are_added_to_an_existing_database(tmp_path) -> None:
     assert reminders[0]["due"] is None
 
     # And the migrated table accepts writes that use the new columns.
-    store.sync_calendar(
-        [{"title": "New", "start": "10:00", "end": "11:00", "context": "business"}]
-    )
+    store.sync_calendar([{"title": "New", "start": "10:00", "end": "11:00", "context": "business"}])
     assert store.list_calendar_events()[0]["end"] == "11:00"
 
 

@@ -46,7 +46,10 @@ def main() -> int:
         print(f"API apps check failed: {apps.status_code} {apps.text[:300]}", file=sys.stderr)
         return 1
     if certs.status_code != 200:
-        print(f"API certificates check failed: {certs.status_code} {certs.text[:300]}", file=sys.stderr)
+        print(
+            f"API certificates check failed: {certs.status_code} {certs.text[:300]}",
+            file=sys.stderr,
+        )
         return 1
 
     app_names = [

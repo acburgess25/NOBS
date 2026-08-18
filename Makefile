@@ -1,4 +1,4 @@
-.PHONY: install run test lint
+.PHONY: install run test lint format
 
 install:
 	python3 scripts/dev.py setup
@@ -11,3 +11,6 @@ test:
 
 lint:
 	python3 scripts/dev.py lint
+
+format:
+	python3 scripts/dev.py format

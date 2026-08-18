@@ -491,7 +491,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         pairing.close()
         return PairingStateView.model_validate(pairing.state())
 
-    @app.post("/optimizer/run-now", tags=["operations"], dependencies=[Depends(require_device_token)])
+    @app.post(
+        "/optimizer/run-now", tags=["operations"], dependencies=[Depends(require_device_token)]
+    )
     async def optimizer_run_now(
         job_type: str | None = Query(default=None),
     ) -> dict[str, Any]:
@@ -505,11 +507,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         selected = job_type or _HEAVY_JOB_TYPES[optimizer._heavy_rotation % len(_HEAVY_JOB_TYPES)]
         if selected not in _ALL_JOB_TYPES:
             raise HTTPException(status_code=400, detail=f"Unknown job type: {selected}")
-        kind = (
-            OptimizerJobKind.heavy
-            if selected in _HEAVY_JOB_TYPES
-            else OptimizerJobKind.light
-        )
+        kind = OptimizerJobKind.heavy if selected in _HEAVY_JOB_TYPES else OptimizerJobKind.light
         result = await optimizer._execute_job(
             selected,
             kind,
@@ -998,9 +996,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     async def get_dream_team_session(session_id: str) -> DreamTeamSessionView:
         try:
-            session = app.state.agent_store.get_dream_team_session(
-                session_id, include_details=True
-            )
+            session = app.state.agent_store.get_dream_team_session(session_id, include_details=True)
         except KeyError as error:
             raise HTTPException(status_code=404, detail="Session not found") from error
         return DreamTeamSessionView.model_validate(session)
@@ -1107,5 +1103,6 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         }
 
     return app
+
 
 app = create_app()
