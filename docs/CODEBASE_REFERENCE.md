@@ -29,7 +29,7 @@ NOBS/
 ├── NOBSTests/               # iOS unit tests (ModelRouter, routing fixtures)
 ├── NOBS.xcodeproj/          # Xcode project (4 targets: NOBS, NOBSWidgets, NOBSTank, NOBSTests)
 ├── app/                     # FastAPI Tank API, agent core, dashboard, scheduler
-├── tests/                   # Backend pytest suite (103 tests)
+├── tests/                   # Backend pytest suite (249 tests)
 ├── scripts/                 # Dev, CI, signing, deploy, pairing, local AI setup
 ├── deploy/tank/             # systemd units, kiosk desktop, cloudflared templates
 ├── docs/                    # Product, architecture, ops, App Store prep
@@ -152,10 +152,13 @@ Chat is the home surface. Contextual views (Today, Memory, Home, Activity, Priva
 | Module | Responsibility |
 |--------|----------------|
 | `app/main.py` | FastAPI app, routes, auth dependency, lifespan |
+| `app/schemas.py` | Request/response models — the wire contract every client decodes |
 | `app/config.py` | `NOBS_*` settings from `.env` |
 | `app/agent.py` | Tank agent loop, tool dispatch |
 | `app/agent_tools.py` | Allowlisted tool registry (read-only vs approval-gated) |
+| `app/research_tools.py` | Read-only research tool bodies (search, weather, news, page text, Wikipedia) |
 | `app/agent_store.py` | SQLite approvals, proposals, audit |
+| `app/agent_schema.py` | SQLite table definitions and column migrations |
 | `app/scheduler.py` | Recurring schedules, overnight queue, proactive jobs |
 | `app/tank_optimizer.py` | Background idle optimizer (dream team, briefing index, model warm-up) |
 | `app/dashboard.py` | Connected-screen status JSON |

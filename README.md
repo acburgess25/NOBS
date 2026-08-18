@@ -39,7 +39,7 @@ This repository contains an early end-to-end prototype:
 - **Apple app:** SwiftUI conversation-first experience, Today briefing, widgets, Siri/App Intents, visible processing labels, and privacy receipts.
 - **Private Tank:** Authenticated FastAPI + Ollama backend with an approval-gated agent and Personal, Business, and Shared contexts.
 - **Safe automation:** State-changing tools queue exact actions for explicit approval; decisions are atomic, audited, and non-replayable.
-- **Cross-platform companions:** A macOS Tank supervisor and an Android tablet companion share documented, authenticated contracts.
+- **Cross-platform companions:** A macOS Tank supervisor shares the same documented, authenticated contracts as the iPhone app.
 - **Room-safe dashboard:** Live health, approvals, activity, and light/dark themes without exposing personal content.
 - **Honest fallback:** The app remains useful locally when Tank is unavailable and labels unfinished capabilities clearly.
 
@@ -62,19 +62,21 @@ This is not a production release. Household identity, hosted NOBScloud servers, 
 | `NOBS/` | SwiftUI application |
 | `NOBSWidgets/` | Home Screen, Lock Screen, and Live Activity extensions |
 | `NOBSTankMac/` | macOS menu-bar Tank supervisor |
-| `NOBSAndroid/` | Native Android tablet companion |
 | `app/` | FastAPI Tank API and Ollama bridge |
 | `tests/` | Backend contract and failure-path tests |
+| `dashboard/` | Static assets for the Tank connected-screen dashboard |
+| `workplace/` | Live dream-team workplace UI served by the Tank |
+| `scripts/` | Dev, CI, signing, deploy, and setup tooling ([index](scripts/README.md)) |
 | `deploy/tank/` | Tank service definitions |
 | `design/` | Approved visual references |
-| `docs/` | Product truth, architecture, research, and operating guides |
+| `docs/` | Product truth, architecture, research, and operating guides ([index](docs/README.md)) |
 | `docs/internal/` | Pointer to maintainer-only docs in [NOBS-private](https://github.com/acburgess25/NOBS-private) |
 | `website/` | Public project website |
 
 ## Architecture at a glance
 
 ```text
-iPhone / iPad / Mac / Android
+iPhone / iPad / Mac
             │
             │ authenticated private-network API
             ▼

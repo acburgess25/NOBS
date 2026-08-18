@@ -1,9 +1,8 @@
 """Request and response models for the Tank HTTP API.
 
-These are the wire contract. The iPhone app, the macOS supervisor, the
-dashboard, and the Android companion all decode exactly what is declared
-here, so a change to a field name or type is a breaking protocol change --
-not a local refactor. Keeping them in one file makes that contract readable
+These are the wire contract. The iPhone app, the macOS supervisor, and the
+dashboard all decode exactly what is declared here, so a change to a field
+name or type is a breaking protocol change -- not a local refactor. Keeping them in one file makes that contract readable
 on its own, instead of interleaved with the routes that happen to use it.
 """
 
