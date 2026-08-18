@@ -82,6 +82,14 @@ diff can fix.
 the copy in the pull request. Deleting or editing one does not change the
 checks on the pull request making the change — it takes effect after merge.
 
+**If a removed workflow was a required status check, remove it from branch
+protection too.** `main` is a protected branch. A required check that no
+workflow produces any more never reports, and a pull request waiting on a
+check that will never arrive can never merge — including the pull request that
+removed the workflow. Settings → Branches → `main` → Require status checks, and
+untick anything no workflow still produces (for example
+`docs-only-auto-approve`). Do this when merging the change that removes it.
+
 ---
 
 ## TestFlight (main push — Archive failed)
