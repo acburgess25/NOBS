@@ -151,7 +151,9 @@ Chat is the home surface. Contextual views (Today, Memory, Home, Activity, Priva
 
 | Module | Responsibility |
 |--------|----------------|
-| `app/main.py` | FastAPI app, routes, auth dependency, lifespan |
+| `app/main.py` | App assembly: state, static mounts, lifespan, router includes |
+| `app/routes/` | HTTP routes, one module per OpenAPI tag |
+| `app/dependencies.py` | Typed state accessors and the three authentication gates |
 | `app/schemas.py` | Request/response models — the wire contract every client decodes |
 | `app/config.py` | `NOBS_*` settings from `.env` |
 | `app/agent.py` | Tank agent loop, tool dispatch |
