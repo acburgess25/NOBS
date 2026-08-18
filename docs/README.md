@@ -36,6 +36,7 @@ collaboration guide every contributor and coding agent follows.
 | [`SIMPLIFICATION_RESEARCH.md`](SIMPLIFICATION_RESEARCH.md) | Prior art, and where to stop hand-rolling |
 | [`CI_TROUBLESHOOTING.md`](CI_TROUBLESHOOTING.md) | When CI fails and it is not your diff |
 | [`research/`](research/) | Stack research database — every tool, why it is here, and what to use instead |
+| [`research/COSTS.md`](research/COSTS.md) | What costs money and what is free |
 
 ## Tank backend and agent
 

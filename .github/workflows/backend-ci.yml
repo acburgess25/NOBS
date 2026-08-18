@@ -1,16 +1,23 @@
 name: Backend CI
 
-# Backend CI runs on GitHub-hosted runners so a pull request is never blocked
-# by whether a particular machine in the house happens to be awake. The repo is
-# public, so hosted minutes are free.
+# Runner strategy, and why it is split this way:
 #
-# The matrix is the cross-platform contract from docs/AI_WORKFLOW.md: shared
-# backend code must pass on Linux, macOS, and Windows. Python 3.11 is the
-# supported floor (pyproject requires-python = ">=3.11"), so it is exercised
-# alongside the primary 3.12 interpreter.
+# The `backend` job runs on the self-hosted Mac in the house. It costs nothing,
+# it does not depend on GitHub's hosted-runner availability, and it is the
+# check that actually gates a pull request.
 #
-# Only the iOS job stays on the self-hosted Mac: it needs the Xcode 27 beta
-# toolchain, which hosted macOS images do not carry.
+# The `cross-platform` job is the Linux/macOS/Windows matrix that enforces the
+# cross-platform contract in docs/AI_WORKFLOW.md. GitHub-hosted runners are
+# free for public repositories, so this costs nothing either -- but hosted jobs
+# can stop being schedulable for reasons that have nothing to do with the code
+# (an account-level Actions hold does it, and did in August 2026: every hosted
+# job failed in ~2s with no runner assigned and no logs). It is marked
+# continue-on-error so that when that happens it cannot block a pull request or
+# report a failure that no diff can fix. When hosted runners work, it gives the
+# Windows and Linux coverage the Mac alone cannot.
+#
+# Net effect: a pull request is gated on a check that always runs and is always
+# free, and gains extra platform coverage whenever GitHub can provide it.
 
 on:
   pull_request:
@@ -28,8 +35,41 @@ concurrency:
 
 jobs:
   backend:
+    name: Tests and lint (self-hosted Mac)
+    runs-on: [self-hosted, macOS, ARM64]
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Resolve Python
+        run: |
+          for candidate in \
+            /opt/homebrew/bin/python3.13 \
+            /opt/homebrew/bin/python3.12 \
+            /opt/homebrew/bin/python3.11 \
+            /opt/homebrew/bin/python3 \
+            python3
+          do
+            if command -v "$candidate" >/dev/null 2>&1; then
+              echo "Using $candidate"
+              echo "PYTHON=$candidate" >> "$GITHUB_ENV"
+              exit 0
+            fi
+          done
+          echo "No Python 3.11+ interpreter found on the Mac runner." >&2
+          exit 1
+
+      - name: Set up NOBS
+        run: "$PYTHON scripts/dev.py setup"
+
+      - name: Test and lint
+        run: "$PYTHON scripts/dev.py check"
+
+  cross-platform:
     name: Python ${{ matrix.python-version }} on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    # Never blocks a pull request: see the runner strategy note at the top.
+    continue-on-error: true
     strategy:
       fail-fast: false
       matrix:

@@ -11,9 +11,8 @@ Quick reference for red checks on NOBS pull requests and `main`.
 | Check | Workflow | Typical cause | Code fix? |
 |-------|----------|---------------|-----------|
 | **Any GitHub-hosted job, red in <5s** | Any | Hosted runners cannot be scheduled — billing/quota | **No** — see the section directly below |
-| **Python 3.12 on Tank** | Backend CI | Test/lint failure | Yes — run `python3 scripts/dev.py check` |
-| **Python 3.12 on Mac runner** | Backend CI | Same | Yes |
-| **docs-only-auto-approve** | Auto-approve safe PRs | Stale run on `ubuntu-latest`, or tank runner offline | Re-run after tank workflow on `main`; not an app bug |
+| **Tests and lint (self-hosted Mac)** | Backend CI | Test/lint failure — the gating check | Yes — run `python3 scripts/dev.py check` |
+| **cross-platform** | Backend CI | Hosted runner unavailable; never blocks | No — advisory only |
 | **NOBS \| Default \| Build - iOS** | Xcode Cloud (App Store Connect) | Fails on every PR; redundant with the self-hosted Mac | No — treat as noise, see below |
 | **TestFlight** | `.github/workflows/testflight.yml` | Development cert missing on CI keychain; distribution profiles | **Home** — runner + Apple Developer portal. Manual options: refresh signing only, upload staged IPA (`~/nobs-build/NOBS.ipa`), or account cleanup. |
 | **NOBSTests** | Backend CI `ios-macos` job | Swift compile or routing fixture drift | Yes — `bash scripts/test-ios.sh` |
@@ -22,75 +21,57 @@ Quick reference for red checks on NOBS pull requests and `main`.
 
 ## Every hosted job fails in seconds (August 2026)
 
-**Symptom.** Every job that runs on a GitHub-hosted runner goes red 1–3 seconds
-after it starts. There are no logs to download — the log endpoint returns 404,
-because the job never started. Jobs on the self-hosted runners are unaffected
-and run normally.
+**Symptom.** Every job on a GitHub-hosted runner goes red 1–3 seconds after it
+starts, with no logs (the log endpoint 404s, because the job never ran). Jobs on
+the self-hosted runners are unaffected.
 
-**How to confirm it in one step.** Fetch any failed job and look at the runner
-fields:
+**This is not a bill you owe.** NOBS is a public repository, and GitHub Actions
+on standard hosted runners is free and unlimited for public repos. The same
+hosted matrix — ubuntu, macOS, and Windows — ran green and free on August 14,
+2026 (run 31831101028). Four days later the identical workflow could not get a
+runner. Nothing about the cost of the repo changed; the account's Actions
+access did.
 
-```bash
-# Never scheduled: no runner was ever assigned.
-#   "runner_id": 0, "runner_name": "", no "steps"
-#
-# Compare with a self-hosted job in the same run, which shows:
-#   "runner_id": 22, "runner_name": "macbook", with real steps
-```
+**How to confirm it in one step.** Look at the runner fields on any failed job:
 
-If hosted jobs show `runner_id: 0` **while a self-hosted job in the same
-workflow run gets a runner**, the problem is the hosted-runner account state,
-not the pull request. No code change will fix it, and re-running will not help.
+| | Never scheduled | Ran normally |
+|---|---|---|
+| `runner_id` | `0` | a real id (e.g. `22`, or `1000001420` for hosted) |
+| `runner_name` | empty | `macbook`, `GitHub Actions 1000001420` |
+| `steps` | absent | present |
 
-**Observed on PR #112 (August 18, 2026):** five hosted jobs across two
-independent workflows (`Backend CI` and `Auto-approve safe PRs`) all failed
-this way, while `NOBSTests on Mac runner` picked up `runner_id: 22` and ran.
+If hosted jobs show `runner_id: 0` while a self-hosted job **in the same
+workflow run** gets a runner, the problem is account-level Actions access, not
+the pull request. No code change fixes it and re-running will not help.
 
 **Fix.** Check [Actions billing and spending limits](https://github.com/settings/billing).
-The usual cause is the Actions minutes spending cap sitting at zero, not a
-declined card — GitHub reports both the same way. Raising the cap makes hosted
-jobs schedulable again; the reds clear on the next run.
+On a public repo this is usually a spending cap or an account hold left over
+from other usage rather than a real charge for this repository — GitHub
+surfaces all of them with the same "payments have failed or your spending limit
+needs to be increased" wording.
 
-**Why not just move everything to self-hosted?** `backend-ci.yml` deliberately
-uses hosted runners for the Linux/macOS/Windows matrix. That matrix *is* the
-cross-platform contract from `docs/AI_WORKFLOW.md` — there is no self-hosted
-Windows box, so moving off hosted runners would silently drop Windows coverage
-for shared backend code. Fix the billing instead.
+**You are not blocked while it is broken.** Since August 2026 the workflow is
+arranged so this cannot stop work:
 
-**Meanwhile.** The same checks run locally and are the real signal:
+- `Tests and lint (self-hosted Mac)` is the gating check. It runs on hardware
+  in the house, so it costs nothing and does not care about hosted-runner
+  availability.
+- `cross-platform` (the hosted Linux/macOS/Windows matrix) is
+  `continue-on-error`, so it adds coverage when GitHub can schedule it and goes
+  quiet when it cannot.
+
+The same checks run locally, and that is the real signal either way:
 
 ```bash
 python3 scripts/dev.py check   # tests, lint, formatting
 ```
 
----
-
-## docs-only-auto-approve (failure in ~1s, no steps)
-
-**What it is:** Optional bot that auto-approves documentation-only PRs from owners/collaborators. It does **not** run your tests. For mixed PRs (code + docs), it should **pass** with “Not a docs-only PR; no auto-approval needed.”
-
-**Common failure message (often misleading):**
-
-> The job was not started because recent account payments have failed or your spending limit needs to be increased.
-
-**What this usually means (not necessarily a broken credit card):**
-
-- The job **never ran** — zero steps, ~2–4s duration, `runner_id: 0`.
-- Inspect the job labels in the Actions UI. If they show **`ubuntu-latest`**, the workflow on **`main` at run time** still targeted GitHub-hosted runners. GitHub often shows the billing/spending-limit message when a hosted job cannot be scheduled — including **Actions minutes spending caps** — even when the payment method is fine.
-- **`pull_request_target` always uses the workflow file on `main`**, not the PR branch. A PR that changes `auto-approve.yml` to `self-hosted, tank` does not fix the check until that change is on `main` **and** the workflow is re-run.
-
-**Verified on this repo (July 2026):**
-
-- Failed PR #38 runs: labels `ubuntu-latest`, billing annotation, no steps.
-- After `main` switched to `[self-hosted, tank]` (PR #39), PR #41’s `docs-only-auto-approve` **passed in ~30s** on the tank runner — same workflow, no billing issue.
-
-**What to do:**
-
-1. **Re-run** the failed workflow from the PR Checks tab (or push/rebase to trigger a new run). Stale reds from before the tank-runner fix will not clear on their own.
-2. Confirm `main` has `runs-on: [self-hosted, tank]` in `.github/workflows/auto-approve.yml`.
-3. Confirm the `tank` runner is online: GitHub → Settings → Actions → Runners (Backend CI “Python on Tank” passing is a good signal).
-4. Only if **new** runs still target `ubuntu-latest` or hosted runners fail while tank works: check [Actions spending limits](https://github.com/settings/billing) (minutes cap, not always “payment failed”).
-5. Optional: remove `docs-only-auto-approve` from **required** branch protection — it is a convenience bot, not a product test.
+**Known gap while hosted runners are unavailable.** The gating check runs on
+macOS only. Linux and Windows coverage for shared backend code comes from the
+`cross-platform` job, so while that job cannot be scheduled, the cross-platform
+contract in `docs/AI_WORKFLOW.md` is not being enforced by CI. Run the suite on
+the Tank (Linux) before merging anything that touches path handling, process
+APIs, or file encoding.
 
 ---
 

@@ -16,6 +16,7 @@ It exists for two readers:
 |---|---|
 | [`stack.json`](stack.json) | **Source of truth.** Structured, machine-readable, 38 entries. |
 | [`STACK.md`](STACK.md) | Generated from the JSON for reading. Do not edit by hand. |
+| [`COSTS.md`](COSTS.md) | What costs money and what does not. Short answer: only the Apple Developer Program. |
 | [`../../scripts/build_stack_docs.py`](../../scripts/build_stack_docs.py) | Regenerates `STACK.md`. `--check` fails if it is stale. |
 
 ## Using it with an AI agent
