@@ -23,6 +23,7 @@ NOBS is a private, local-first personal assistant for iPhone. It helps overwhelm
 - Home Screen and Lock Screen widget for today's plan
 - Siri shortcuts: Prepare my day, Explain schedule, Ask NOBS
 - Optional pairing with your own **Tank** server on your home network
+- Optional tip jar (Privacy → Support NOBS) via Apple In-App Purchase—tips fund development and do not unlock features
 
 **Optional Tank**
 Tank is a self-hosted server you control. NOBS works locally without it. When Tank is available, briefings and chat can refine on your hardware—you always see where processing happened.
@@ -57,3 +58,4 @@ https://nobsdash.com
 - Morning briefing v2, evening wrap-up, widget, Siri shortcuts
 - Conversational onboarding with response-length preference
 - Sign in with Apple for optional Tank pairing
+- Optional tip jar in Privacy → Support NOBS (Apple In-App Purchase)

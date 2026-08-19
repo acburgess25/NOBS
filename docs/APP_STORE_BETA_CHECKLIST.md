@@ -106,7 +106,8 @@ See [`docs/app-store/review-notes.md`](app-store/review-notes.md).
 - [x] Coming Soon surfaces styled consistently (Memory, Home)
 - [x] Privacy policy draft for hosting
 - [ ] Replace hero screenshot on website when you capture a fresh Simulator shot
-- [ ] Verify all `TODO(feature)` items are either shipped or honestly labeled coming soon
+- [x] Verify all `TODO(feature)` items are either shipped or honestly labeled coming soon — repo-wide search (August 18, 2026) found one, `NOBS/ApprovalsView.swift:236`, a non-user-facing internal note about richer argument formatting; it does not claim unshipped user-facing behavior, so no "coming soon" label is needed
+- [x] App Store metadata draft discloses the in-app tip jar (Apple IAP) under "what works" — it previously listed Tank pairing and Siri shortcuts but omitted the Support NOBS tip jar, which App Review expects described in the app description for apps offering IAP (`docs/app-store/metadata.md`)
 
 ---
 
