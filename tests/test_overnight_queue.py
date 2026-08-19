@@ -14,7 +14,12 @@ import pytest
 from app.agent_store import AgentStore
 from app.agent_tools import ToolRegistry
 from app.config import Settings
-from app.scheduler import is_overnight_window, is_tank_idle, process_overnight_task
+from app.scheduler import (
+    is_overnight_window,
+    is_tank_idle,
+    process_overnight_task,
+    trigger_autonomous_idea,
+)
 from tests.test_chat import auth, client
 
 # ------------------------------------------------------------------ #
@@ -245,6 +250,62 @@ def test_process_overnight_task_records_failure_on_model_error(tmp_path: Path) -
     assert finished["status"] == "failed"
     assert finished["error"]
     assert state["running"] is False
+
+
+# ------------------------------------------------------------------ #
+# Background agent turns get the longer background timeout, not the   #
+# short interactive one -- see docs/CURRENT_STATE.md on the           #
+# autonomous idea generator's httpx.ReadTimeout failures.             #
+# ------------------------------------------------------------------ #
+
+
+def test_process_overnight_task_uses_background_timeout(tmp_path: Path) -> None:
+    settings = Settings(agent_workspace_path=tmp_path, agent_background_timeout_seconds=111.0)
+    store = AgentStore(Path(":memory:"))
+    tools = ToolRegistry(tmp_path, store=store, settings=settings)
+    store.enqueue_overnight_task("Check Tank status overnight", "personal", "research")
+    claimed = store.claim_next_overnight_task()
+
+    captured: dict = {}
+
+    class StubResponse:
+        @staticmethod
+        def model_dump(mode: str) -> dict:
+            return {"status": "completed", "message": "ok", "approvals": [], "tool_results": []}
+
+    class RecordingAgent:
+        def __init__(self, **kwargs):
+            captured.update(kwargs)
+
+        async def run(self, request):
+            return StubResponse()
+
+    with patch("app.scheduler.TankAgent", RecordingAgent):
+        asyncio.run(
+            process_overnight_task(settings, store, tools, None, claimed, {"running": True})
+        )
+
+    assert captured["timeout_override"] == 111.0
+
+
+def test_trigger_autonomous_idea_uses_background_timeout(tmp_path: Path) -> None:
+    settings = Settings(agent_workspace_path=tmp_path, agent_background_timeout_seconds=222.0)
+    store = AgentStore(Path(":memory:"))
+    tools = ToolRegistry(tmp_path, store=store, settings=settings)
+
+    captured: dict = {}
+
+    class RecordingAgent:
+        def __init__(self, **kwargs):
+            captured.update(kwargs)
+
+        async def run(self, request):
+            return None
+
+    with patch("app.scheduler.TankAgent", RecordingAgent):
+        asyncio.run(trigger_autonomous_idea(settings, store, tools, None))
+
+    assert captured["timeout_override"] == 222.0
 
 
 # ------------------------------------------------------------------ #

@@ -392,7 +392,8 @@ All backend settings use prefix `NOBS_` (see `.env.example` and `app/config.py`)
 | `NOBS_OLLAMA_BASE_URL` | Ollama HTTP endpoint |
 | `NOBS_OLLAMA_MODEL` | Chat model name |
 | `NOBS_CODING_MODEL` | Developer-mode model |
-| `NOBS_OLLAMA_TIMEOUT_SECONDS` | Model call timeout |
+| `NOBS_OLLAMA_TIMEOUT_SECONDS` | Model call timeout (interactive `/chat`, `/agent/tasks`) |
+| `NOBS_AGENT_BACKGROUND_TIMEOUT_SECONDS` | Model call timeout for scheduler-triggered agent turns (autonomous idea generation, overnight queue) — longer than the interactive timeout since nothing is synchronously waiting |
 | `NOBS_DEVICE_TOKEN` | **Required** for `/ready`, `/chat`, agent routes |
 | `NOBS_AGENT_DATABASE_PATH` | Agent SQLite path |
 | `NOBS_AGENT_WORKSPACE_PATH` | Agent workspace root |
