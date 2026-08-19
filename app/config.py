@@ -21,6 +21,17 @@ class Settings(BaseSettings):
     ollama_model: str = "qwen3:8b"
     coding_model: str = "qwen2.5-coder:14b"
     ollama_timeout_seconds: float = Field(default=45.0, gt=0, le=300)
+
+    # Which local inference server Tank talks to. "ollama" keeps the original
+    # behaviour; "lmstudio" routes the same requests through LM Studio's
+    # OpenAI-compatible server (see docs/LM_STUDIO_SETUP.md). Both are local;
+    # neither base URL should ever point off the private network.
+    inference_provider: str = Field(default="ollama", pattern="^(ollama|lmstudio)$")
+    lmstudio_base_url: str = "http://127.0.0.1:1234"
+    # LM Studio identifies models differently from Ollama (qwen/qwen3-8b vs
+    # qwen3:8b). Leave blank to send the Ollama names through unchanged.
+    lmstudio_model: str = ""
+    lmstudio_coding_model: str = ""
     device_token: SecretStr | None = None
     # How long an operator-opened pairing window stays valid. Pairing a new
     # device requires physical access to the Tank, so this only needs to be

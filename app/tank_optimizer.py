@@ -17,13 +17,14 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
-import httpx
 import psutil
 
 from app.agent_store import AgentStore
 from app.agent_tools import ToolRegistry
 from app.config import Settings
 from app.dream_team import DreamTeamModelError, DreamTeamSandbox
+from app.inference import chat as run_chat
+from app.inference import list_models, model_available, provider_label, resolve_model
 from app.scheduler import trigger_briefing_generation
 
 logger = logging.getLogger(__name__)
@@ -365,18 +366,16 @@ async def job_briefing_index_refresh(
 
 
 async def job_model_ping(settings: Settings, transport: Any) -> dict[str, Any]:
-    """Light pass: verify Ollama is reachable and the configured model is listed."""
-    async with httpx.AsyncClient(timeout=5.0, transport=transport) as client:
-        response = await client.get(f"{settings.ollama_base_url}/api/tags")
-        response.raise_for_status()
-        models = [item.get("name", "") for item in response.json().get("models", [])]
-    wanted = settings.ollama_model
-    available = wanted in models or any(model.startswith(f"{wanted}:") for model in models)
+    """Light pass: verify the model server answers and serves the wanted model."""
+    models = await list_models(settings, transport, timeout=5.0)
+    wanted = resolve_model(settings, settings.ollama_model)
+    available = model_available(wanted, models)
     store_note = {
         "checked_at": datetime.now(UTC).isoformat(),
         "model": wanted,
         "available": available,
         "model_count": len(models),
+        "provider": provider_label(settings),
     }
     return {
         "summary": f"Model {'available' if available else 'missing'}: {wanted}",
@@ -401,14 +400,9 @@ async def job_model_warmup(settings: Settings, transport: Any) -> dict[str, Any]
         "format": _MODEL_PING_SCHEMA,
     }
     started = time.monotonic()
-    async with httpx.AsyncClient(
-        timeout=settings.ollama_timeout_seconds,
-        transport=transport,
-    ) as client:
-        response = await client.post(f"{settings.ollama_base_url}/api/chat", json=payload)
-        response.raise_for_status()
+    data = await run_chat(settings, payload, transport)
     elapsed_ms = round((time.monotonic() - started) * 1000)
-    content = response.json().get("message", {}).get("content", "")
+    content = data.get("message", {}).get("content", "")
     parsed = json.loads(content)
     ok = parsed.get("status") == "ok"
     return {

@@ -98,12 +98,17 @@ Acceptance criteria:
 
 ---
 
-## Phase 4 — Ollama Bridge (implemented prototype)
+## Phase 4 — Local Model Bridge (implemented prototype)
 
 Implement:
-- local network bridge from the Tank API to Ollama
+- local network bridge from the Tank API to the local model server
 - authenticated readiness and runtime checks
 - clear error handling for host resolution/network failures
+
+The bridge lives in `app/inference.py` and speaks Ollama's `/api/chat` dialect internally.
+`NOBS_INFERENCE_PROVIDER=lmstudio` translates the same requests to LM Studio's
+OpenAI-compatible server instead — see [`LM_STUDIO_SETUP.md`](LM_STUDIO_SETUP.md). Add new
+providers there, not at the call sites.
 
 Acceptance criteria:
 - backend can complete a test inference call via bridge

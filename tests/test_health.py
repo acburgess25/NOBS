@@ -49,7 +49,11 @@ def test_dashboard_status_is_room_safe(tmp_path) -> None:
     assert response.status_code == 200
     payload = response.json()
     assert payload["display_name"] == "Workshop Tank"
-    assert payload["services"]["ollama"] == {"status": "online", "model": "qwen3:8b"}
+    assert payload["services"]["ollama"] == {
+        "status": "online",
+        "model": "qwen3:8b",
+        "provider": "Ollama",
+    }
     assert payload["agent"]["pending_approvals"] == 0
     assert payload["workspaces"] == {"personal": 0, "business": 0, "shared": 0}
     assert "conversations" in payload["privacy"].lower()

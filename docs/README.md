@@ -49,6 +49,7 @@ collaboration guide every contributor and coding agent follows.
 | [`TOOL_EXPANSION.md`](TOOL_EXPANSION.md) | Research on extending the tool and skill surface |
 | [`NOBSDASH_DEPLOYMENT.md`](NOBSDASH_DEPLOYMENT.md) | Deploying the public website |
 | [`mac_local_inference_setup.md`](mac_local_inference_setup.md) | Running local inference on a Mac at ~$0 |
+| [`LM_STUDIO_SETUP.md`](LM_STUDIO_SETUP.md) | Using LM Studio as Tank's local model server |
 
 ## Apple platform
 

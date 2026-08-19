@@ -78,6 +78,7 @@ async function refresh() {
     setText("privacy-copy", data.privacy);
     setText("api-state", data.services.api.status);
     setText("ollama-state", data.services.ollama.status.replace("_", " "));
+    setText("model-provider", data.services.ollama.provider || "Local model server");
     setText("model-name", data.services.ollama.model);
     setText("uptime", formatUptime(data.system.uptime_seconds));
     setText("disk-free", `${data.system.disk_free_gb} GB`);
