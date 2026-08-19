@@ -214,7 +214,13 @@ async def process_overnight_task(
     """
     task_id = task["id"]
     try:
-        agent = TankAgent(settings=settings, tools=tools, store=store, transport=transport)
+        agent = TankAgent(
+            settings=settings,
+            tools=tools,
+            store=store,
+            transport=transport,
+            timeout_override=settings.agent_background_timeout_seconds,
+        )
         request = AgentTaskRequest(
             objective=task["objective"],
             context=task["context"],
@@ -240,7 +246,13 @@ async def trigger_autonomous_idea(
     transport: Any,
 ) -> None:
     """Ask the agent to propose one smart-home or system optimization idea."""
-    agent = TankAgent(settings=settings, tools=tools, store=store, transport=transport)
+    agent = TankAgent(
+        settings=settings,
+        tools=tools,
+        store=store,
+        transport=transport,
+        timeout_override=settings.agent_background_timeout_seconds,
+    )
     request = AgentTaskRequest(objective=_IDEA_OBJECTIVE, context="personal")
     try:
         await agent.run(request)
