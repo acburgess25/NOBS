@@ -29,7 +29,7 @@ If a request conflicts with `PRODUCT_DECISIONS.md`, stop and ask whether the pro
 ### Work routing
 
 - Tank agent, tools, approvals, or autonomy: read [`docs/TANK_AGENT_CORE.md`](TANK_AGENT_CORE.md), then inspect `app/agent.py`, `app/agent_tools.py`, `app/agent_store.py`, and `tests/test_agent.py`.
-- Tank API, Ollama, authentication, or deployment: read [`docs/NOBS_TANK_BUILD.md`](NOBS_TANK_BUILD.md), then inspect `app/main.py`, `app/config.py`, and `deploy/tank/`.
+- Tank API, local model serving, authentication, or deployment: read [`docs/NOBS_TANK_BUILD.md`](NOBS_TANK_BUILD.md), then inspect `app/main.py`, `app/config.py`, and `deploy/tank/`. Every model request goes through `app/inference.py`; provider differences (Ollama, LM Studio) belong there, not at call sites. See [`docs/LM_STUDIO_SETUP.md`](LM_STUDIO_SETUP.md).
 - Connected-screen dashboard or kiosk: read [`docs/TANK_DASHBOARD.md`](TANK_DASHBOARD.md), then inspect `dashboard/`, `app/dashboard.py`, and `scripts/start-dashboard-kiosk.sh`.
 - iPhone experience: inspect `NOBS/AppModel.swift`, `NOBS/ConversationView.swift`, and the API contracts they call.
 - Apple OS audits, SwiftUI/concurrency/accessibility/IAP/build diagnosis: follow [`docs/AXIOM_AGENTS.md`](AXIOM_AGENTS.md) (Axiom skills under `.agents/skills/`, MCP via `.cursor/mcp.json` / `.codex/config.toml`, Claude Code plugin via `.claude/settings.json`).

@@ -20,6 +20,7 @@ import httpx
 from pydantic import BaseModel, Field
 
 from app.config import Settings
+from app.inference import chat as run_chat
 
 _BRIEFING_SYSTEM_PROMPT = (
     "You are NOBS, a warm, concise, privacy-first personal assistant. "
@@ -127,19 +128,14 @@ async def generate_briefing(
         ],
     }
     try:
-        async with httpx.AsyncClient(
-            timeout=settings.ollama_timeout_seconds,
-            transport=transport,
-        ) as client:
-            response = await client.post(f"{settings.ollama_base_url}/api/chat", json=payload)
-            response.raise_for_status()
+        data = await run_chat(settings, payload, transport)
     except (httpx.TimeoutException, httpx.ConnectError) as error:
         raise BriefingModelUnavailable("Tank model is unavailable") from error
     except httpx.HTTPStatusError as error:
         raise BriefingError("Tank model returned an error") from error
 
     try:
-        model_content = OllamaResponse.model_validate_json(response.content).message.content
+        model_content = OllamaResponse.model_validate(data).message.content
         sections = BriefingSections.model_validate_json(model_content)
     except ValueError as error:
         raise BriefingError("Tank model returned an invalid briefing") from error

@@ -2,7 +2,7 @@
 
 For full codebase reference see [`CODEBASE_REFERENCE.md`](CODEBASE_REFERENCE.md).
 
-**Last updated:** August 14, 2026 (backend CI moved to GitHub-hosted Linux/macOS/Windows runners; Dream Team sandbox path guard fixed; PR backlog drained)
+**Last updated:** August 19, 2026 (LM Studio added as a selectable local model server behind `app/inference.py`)
 **Purpose:** Tool-neutral handoff for any contributor entering without prior chat history.
 
 This records implementation state, not product direction. [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md) remains the approved product source of truth. Verify the branch, tests, and live services before treating deployment facts as current.
@@ -85,7 +85,8 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 ### Tank API and agent
 
 - FastAPI service with public `/health` and device-token-protected `/ready`, `/chat`, and `/agent/*` routes.
-- Local Ollama `qwen3:8b` chat and tool-calling path with bounded steps.
+- Local `qwen3:8b` chat and tool-calling path with bounded steps.
+- Two selectable local model servers behind `app/inference.py`: Ollama (default) and LM Studio's OpenAI-compatible server (`NOBS_INFERENCE_PROVIDER=lmstudio`). Chat, briefing, agent, dream team, dashboard status, and the optimizer all route through it, so switching providers changes no other code. Setup: [`LM_STUDIO_SETUP.md`](LM_STUDIO_SETUP.md). Not yet provider-aware: the `NOBSTankMac` menu-bar Ollama indicator and `scripts/setup-local-ai.sh`.
 - Safe Developer Mode using `qwen2.5-coder:14b` with bounded read-only project listing, file reading, and searching (verified secure against traversal, symlink escapes, hidden files, and secrets).
 - Explicit Personal, Business, and Shared contexts.
 - Allowlisted tools only; no arbitrary shell or unrestricted filesystem access.
@@ -121,7 +122,7 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 
 - Tank-hosted, room-safe dashboard at `/dashboard` with 15-second refresh.
 - Light, Dark, and system-following Auto themes.
-- API, Ollama, uptime, load, storage, agent activity, approval/proposal counts, workspace counts, and GPU stats.
+- API, model server (Ollama or LM Studio, named in the service row), uptime, load, storage, agent activity, approval/proposal counts, workspace counts, and GPU stats.
 - Responsive 16:9 and narrow-screen layouts with connection-loss behavior.
 - LIVE on Tank's HDMI display: GNOME minimal desktop + Firefox kiosk autostart, auto-login, survives reboot. GUI session is on tty2 (Ctrl+Alt+F2); text console on tty3.
 

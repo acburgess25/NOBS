@@ -1,6 +1,7 @@
 """Chat and the daily briefing -- the two user-facing model routes.
 
-Both talk to Ollama on the Tank and both return a privacy receipt naming where
+Both talk to the local model server on the Tank (Ollama or LM Studio, see
+`app.inference`) and both return a privacy receipt naming where
 the work happened, because PRODUCT_DECISIONS.md requires every response to
 identify its processing location. Model failures are mapped to 503 (Tank model
 unavailable) or 502 (Tank model misbehaved) rather than surfacing as a 500, so
@@ -22,6 +23,7 @@ from app.briefing import (
     generate_briefing,
 )
 from app.dependencies import SettingsDep, StoreDep, TransportDep, require_device_token
+from app.inference import chat as run_chat
 from app.schemas import ChatRequest, ChatResponse
 
 router = APIRouter()
@@ -57,19 +59,14 @@ async def chat(
     }
 
     try:
-        async with httpx.AsyncClient(
-            timeout=settings.ollama_timeout_seconds,
-            transport=transport,
-        ) as client:
-            response = await client.post(f"{settings.ollama_base_url}/api/chat", json=payload)
-            response.raise_for_status()
+        data = await run_chat(settings, payload, transport)
     except (httpx.TimeoutException, httpx.ConnectError) as error:
         raise HTTPException(status_code=503, detail="Tank model is unavailable") from error
     except httpx.HTTPStatusError as error:
         raise HTTPException(status_code=502, detail="Tank model returned an error") from error
 
     try:
-        message = OllamaResponse.model_validate_json(response.content).message.content.strip()
+        message = OllamaResponse.model_validate(data).message.content.strip()
     except ValueError as error:
         raise HTTPException(
             status_code=502,
