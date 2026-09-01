@@ -3,7 +3,31 @@ from pathlib import Path
 
 import httpx
 
+from app.agent import TankAgent
+from app.agent_store import AgentStore
+from app.agent_tools import ToolRegistry
+from app.config import Settings
 from tests.test_chat import auth, client
+
+
+def test_agent_uses_ollama_timeout_by_default(tmp_path: Path) -> None:
+    settings = Settings(agent_workspace_path=tmp_path, ollama_timeout_seconds=30.0)
+    store = AgentStore(Path(":memory:"))
+    tools = ToolRegistry(tmp_path, store=store, settings=settings)
+
+    agent = TankAgent(settings=settings, store=store, tools=tools)
+
+    assert agent._timeout_seconds == 30.0
+
+
+def test_agent_honors_timeout_override(tmp_path: Path) -> None:
+    settings = Settings(agent_workspace_path=tmp_path, ollama_timeout_seconds=30.0)
+    store = AgentStore(Path(":memory:"))
+    tools = ToolRegistry(tmp_path, store=store, settings=settings)
+
+    agent = TankAgent(settings=settings, store=store, tools=tools, timeout_override=120.0)
+
+    assert agent._timeout_seconds == 120.0
 
 
 def test_agent_executes_read_only_tool_without_approval(tmp_path: Path) -> None:
