@@ -1,7 +1,8 @@
 """Dream Team Sandbox — local-first agent persona drafting, testing, and refinement.
 
-All inference runs on Tank's local Ollama. No cloud, PCC, or external APIs are used
-in the refinement loop. Sandbox tests may only call read-only, on-host tools.
+All inference runs on Tank's local model server (Ollama or LM Studio, whichever
+`app.inference` is configured for). No cloud, PCC, or external APIs are used in
+the refinement loop. Sandbox tests may only call read-only, on-host tools.
 """
 
 from __future__ import annotations
@@ -17,6 +18,7 @@ import httpx
 from app.agent_store import AgentStore
 from app.agent_tools import ToolRegistry
 from app.config import Settings
+from app.inference import chat as run_chat
 
 logger = logging.getLogger(__name__)
 
@@ -566,18 +568,9 @@ class DreamTeamSandbox:
         if json_format is not None:
             payload["format"] = json_format
         try:
-            async with httpx.AsyncClient(
-                timeout=self.settings.ollama_timeout_seconds,
-                transport=self.transport,
-            ) as client:
-                response = await client.post(
-                    f"{self.settings.ollama_base_url}/api/chat",
-                    json=payload,
-                )
-                response.raise_for_status()
-            return response.json()
+            return await run_chat(self.settings, payload, self.transport)
         except (httpx.HTTPError, ValueError) as error:
-            raise DreamTeamModelError("Local Ollama could not complete dream team step") from error
+            raise DreamTeamModelError("Local model could not complete dream team step") from error
 
 
 def _slugify(value: str) -> str:

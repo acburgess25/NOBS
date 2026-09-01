@@ -13,6 +13,7 @@ import httpx
 from app.agent_store import AgentStore
 from app.agent_tools import ToolRegistry
 from app.config import Settings
+from app.inference import list_models, model_available, provider_label, resolve_model
 from app.networking import tank_pairing_url
 from app.tank_optimizer import TankOptimizer
 
@@ -28,17 +29,19 @@ async def build_dashboard_status(
     pairing_state: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     system = _system_status(settings.agent_workspace_path, process_started_at)
-    ollama = await _ollama_status(settings, transport)
+    model_server = await _model_status(settings, transport)
     agent = store.dashboard_metrics()
     workspaces = tools.workspace_counts()
     attention: list[dict[str, str]] = []
 
-    if ollama["status"] != "online":
+    if model_server["status"] != "online":
         attention.append(
             {
                 "level": "urgent",
                 "title": "Local model is offline",
-                "detail": "Ollama did not answer the dashboard health check.",
+                "detail": (
+                    f"{model_server['provider']} did not answer the dashboard health check."
+                ),
             }
         )
     if agent["pending_approvals"]:
@@ -102,7 +105,7 @@ async def build_dashboard_status(
         "system": system,
         "services": {
             "api": {"status": "online", "version": settings.version},
-            "ollama": ollama,
+            "ollama": model_server,
         },
         "agent": agent_for_frontend,
         "workspaces": workspaces,
@@ -166,20 +169,23 @@ def _host_uptime() -> float | None:
         return None
 
 
-async def _ollama_status(
+async def _model_status(
     settings: Settings,
     transport: httpx.AsyncBaseTransport | None = None,
 ) -> dict[str, str]:
+    """Health of whichever local model server this Tank is configured for."""
+    wanted = resolve_model(settings, settings.ollama_model)
+    provider = provider_label(settings)
     try:
-        async with httpx.AsyncClient(timeout=2.5, transport=transport) as client:
-            response = await client.get(f"{settings.ollama_base_url}/api/tags")
-            response.raise_for_status()
-            models = [item.get("name", "") for item in response.json().get("models", [])]
-        wanted = settings.ollama_model
-        available = wanted in models or any(model.startswith(f"{wanted}:") for model in models)
-        return {"status": "online" if available else "model_missing", "model": wanted}
+        models = await list_models(settings, transport, timeout=2.5)
+        available = model_available(wanted, models)
+        return {
+            "status": "online" if available else "model_missing",
+            "model": wanted,
+            "provider": provider,
+        }
     except (httpx.HTTPError, ValueError):
-        return {"status": "offline", "model": settings.ollama_model}
+        return {"status": "offline", "model": wanted, "provider": provider}
 
 
 def _gpu_status() -> dict[str, int] | None:

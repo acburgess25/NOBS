@@ -10,6 +10,7 @@ from pydantic import BaseModel, Field
 from app.agent_store import AgentStore
 from app.agent_tools import ToolRegistry, ToolRisk
 from app.config import Settings
+from app.inference import chat as run_chat
 
 
 class AgentTaskRequest(BaseModel):
@@ -223,16 +224,13 @@ class TankAgent:
             "tools": tools,
         }
         try:
-            async with httpx.AsyncClient(
+            data = await run_chat(
+                self.settings,
+                payload,
+                self.transport,
                 timeout=self._timeout_seconds,
-                transport=self.transport,
-            ) as client:
-                response = await client.post(
-                    f"{self.settings.ollama_base_url}/api/chat",
-                    json=payload,
-                )
-                response.raise_for_status()
-            return OllamaAgentResponse.model_validate_json(response.content)
+            )
+            return OllamaAgentResponse.model_validate(data)
         except (httpx.HTTPError, ValueError) as error:
             raise AgentModelError("Tank model could not complete the agent step") from error
 
