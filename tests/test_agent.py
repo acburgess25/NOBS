@@ -1,9 +1,34 @@
+import asyncio
 import json
 from pathlib import Path
 
 import httpx
 
+from app.agent import AgentTaskRequest, TankAgent
+from app.agent_store import AgentStore
+from app.agent_tools import ToolRegistry
+from app.config import Settings
 from tests.test_chat import auth, client
+
+
+def test_agent_uses_ollama_timeout_by_default(tmp_path: Path) -> None:
+    settings = Settings(agent_workspace_path=tmp_path, ollama_timeout_seconds=30.0)
+    store = AgentStore(Path(":memory:"))
+    tools = ToolRegistry(tmp_path, store=store, settings=settings)
+
+    agent = TankAgent(settings=settings, store=store, tools=tools)
+
+    assert agent._timeout_seconds == 30.0
+
+
+def test_agent_honors_timeout_override(tmp_path: Path) -> None:
+    settings = Settings(agent_workspace_path=tmp_path, ollama_timeout_seconds=30.0)
+    store = AgentStore(Path(":memory:"))
+    tools = ToolRegistry(tmp_path, store=store, settings=settings)
+
+    agent = TankAgent(settings=settings, store=store, tools=tools, timeout_override=120.0)
+
+    assert agent._timeout_seconds == 120.0
 
 
 def test_agent_executes_read_only_tool_without_approval(tmp_path: Path) -> None:
@@ -365,3 +390,43 @@ def test_agent_parses_json_tool_call_from_content(tmp_path: Path) -> None:
             },
         }
     ]
+
+
+def test_background_timeout_reaches_the_model_request(tmp_path: Path) -> None:
+    """A background override must reach the HTTP request, not just the attribute.
+
+    `timeout_override` is stored on the agent, but the model call goes through
+    `app.inference.chat`, which falls back to `ollama_timeout_seconds` whenever
+    its `timeout` argument is None. Asserting only the stored attribute passes
+    even when the override is dropped on the way to httpx, which is exactly how
+    the interactive timeout could silently come back for overnight work.
+    """
+    seen: list[float | None] = []
+
+    def capture(request: httpx.Request) -> httpx.Response:
+        timeout = request.extensions.get("timeout") or {}
+        seen.append(timeout.get("read"))
+        return httpx.Response(200, json={"message": {"role": "assistant", "content": "done"}})
+
+    settings = Settings(
+        agent_workspace_path=tmp_path,
+        ollama_timeout_seconds=30.0,
+        agent_background_timeout_seconds=120.0,
+    )
+    store = AgentStore(Path(":memory:"))
+    tools = ToolRegistry(tmp_path, store=store, settings=settings)
+    agent = TankAgent(
+        settings=settings,
+        store=store,
+        tools=tools,
+        transport=httpx.MockTransport(capture),
+        timeout_override=settings.agent_background_timeout_seconds,
+    )
+
+    asyncio.run(agent.run(AgentTaskRequest(objective="Check Tank", context="personal")))
+
+    assert seen, "the agent never issued a model request"
+    assert seen[0] == 120.0, (
+        f"background turn used {seen[0]}s, not the 120s override — "
+        "the timeout is being dropped before httpx"
+    )

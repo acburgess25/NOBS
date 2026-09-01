@@ -21,6 +21,11 @@ class Settings(BaseSettings):
     ollama_model: str = "qwen3:8b"
     coding_model: str = "qwen2.5-coder:14b"
     ollama_timeout_seconds: float = Field(default=45.0, gt=0, le=300)
+    # Separate, longer timeout for agent turns the scheduler triggers in the
+    # background (autonomous idea generation, overnight queue) — nobody is
+    # synchronously waiting on those, unlike interactive /chat and
+    # /agent/tasks, which should keep failing fast on ollama_timeout_seconds.
+    agent_background_timeout_seconds: float = Field(default=120.0, gt=0, le=600)
 
     # Which local inference server Tank talks to. "ollama" keeps the original
     # behaviour; "lmstudio" routes the same requests through LM Studio's

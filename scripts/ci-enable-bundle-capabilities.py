@@ -56,9 +56,14 @@ def _ensure_app_group(client: httpx.Client) -> None:
         params={"filter[identifier]": APP_GROUP, "limit": 1},
     )
     if response.status_code == 404:
+        # 404 here means the endpoint itself is unavailable to this key, not
+        # that the group is missing — App Store Connect exposes no readable
+        # appGroups collection. Say so plainly: phrasing this as though the
+        # group were absent has already sent one investigation the wrong way.
         print(
-            f"App Group {APP_GROUP} cannot be checked via API; ensure it exists in the "
-            "Developer portal under Identifiers → App Groups"
+            f"App Group {APP_GROUP}: not verifiable here — App Store Connect exposes no "
+            "readable appGroups endpoint, so this check is inconclusive rather than failed. "
+            "Manage the group in the Developer portal under Identifiers → App Groups."
         )
         return
     response.raise_for_status()
@@ -269,8 +274,12 @@ def main() -> int:
             _link_app_group_to_bundle(client, widget_id, app_group_id)
         else:
             print(
-                f"App Group {APP_GROUP} resource ID not found via API; "
-                "create it under Identifiers → App Groups and assign it to both bundle IDs"
+                f"App Group {APP_GROUP}: no resource ID resolvable via the API, so it was "
+                "not linked to the bundle IDs from here. The API cannot list App Groups, so "
+                "this does not mean the group is missing — an existing, correctly assigned "
+                "group produces this same message. Verify assignment in the Developer portal "
+                "only if a later step reports a missing App Groups entitlement; the widget "
+                "profile step fails loudly when the entitlement is genuinely absent."
             )
 
     print("Bundle capabilities are configured for NOBS.")

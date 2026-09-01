@@ -4,7 +4,7 @@
 
 Machine-readable inventory of every language, framework, library, model, and service NOBS uses. Read by humans learning the stack and by coding agents that need to know what this project already standardises on before proposing new code.
 
-**38 entries.** The machine-readable source is [`stack.json`](stack.json); this page is generated from it.
+**39 entries.** The machine-readable source is [`stack.json`](stack.json); this page is generated from it.
 
 ## Rules any new dependency has to clear
 
@@ -21,7 +21,7 @@ Machine-readable inventory of every language, framework, library, model, and ser
 - [Website](#website) — 4
 - [Local AI](#local-ai) — 4
 - [Smart home](#smart-home) — 1
-- [Infrastructure](#infrastructure) — 3
+- [Infrastructure](#infrastructure) — 4
 
 ## Tank backend (Python)
 
@@ -645,3 +645,20 @@ Machine-readable inventory of every language, framework, library, model, and ser
 - **launchd** — macOS - already used by scripts/install-tank-launchagent.sh.
 
 [Documentation](https://www.freedesktop.org/software/systemd/man/systemd.service.html)
+
+### Tailscale
+
+*networking* — Private mesh VPN for reaching the Tank API from outside the house.
+
+**Why it is here.** It is the only remote-access shape that does not break the auth model. The Tank decides 'is this caller at the Tank?' from the connection peer address, so a VPN peer (100.x) is correctly seen as remote while a reverse proxy would make every caller look local.
+
+**Used in.** `scripts/setup-tank-remote-access.sh`, `docs/REMOTE_ACCESS.md`
+
+**Worth knowing.** `tailscale serve` and `tailscale funnel` are proxies, not VPN paths - they connect from localhost and would defeat the pairing gate. Free for personal use.
+
+**Alternatives.**
+
+- **WireGuard** — Self-hosting the coordination yourself; Tailscale is WireGuard with key exchange handled.
+- **Cloudflare Tunnel** — Publishing a public static site - never the API, see docs/REMOTE_ACCESS.md.
+
+[Documentation](https://tailscale.com/kb/)

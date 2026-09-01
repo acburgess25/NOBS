@@ -75,11 +75,15 @@ class TankAgent:
         store: AgentStore,
         tools: ToolRegistry,
         transport: httpx.AsyncBaseTransport | None = None,
+        timeout_override: float | None = None,
     ) -> None:
         self.settings = settings
         self.store = store
         self.tools = tools
         self.transport = transport
+        self._timeout_seconds = (
+            timeout_override if timeout_override is not None else settings.ollama_timeout_seconds
+        )
 
     async def run(self, request: AgentTaskRequest) -> AgentTaskResponse:
         run_id = self.store.create_run(request.objective, request.context)
@@ -220,7 +224,12 @@ class TankAgent:
             "tools": tools,
         }
         try:
-            data = await run_chat(self.settings, payload, self.transport)
+            data = await run_chat(
+                self.settings,
+                payload,
+                self.transport,
+                timeout=self._timeout_seconds,
+            )
             return OllamaAgentResponse.model_validate(data)
         except (httpx.HTTPError, ValueError) as error:
             raise AgentModelError("Tank model could not complete the agent step") from error

@@ -46,6 +46,7 @@ collaboration guide every contributor and coding agent follows.
 | [`TANK_AGENT_CORE.md`](TANK_AGENT_CORE.md) | Agent loop, tools, approvals, autonomy rules |
 | [`TANK_DASHBOARD.md`](TANK_DASHBOARD.md) | Connected-screen dashboard and kiosk |
 | [`TANK_FRESH_START.md`](TANK_FRESH_START.md) | Resetting a Tank to a clean state |
+| [`REMOTE_ACCESS.md`](REMOTE_ACCESS.md) | Reaching the Tank from outside the house, and why a proxy must never front the API |
 | [`TOOL_EXPANSION.md`](TOOL_EXPANSION.md) | Research on extending the tool and skill surface |
 | [`NOBSDASH_DEPLOYMENT.md`](NOBSDASH_DEPLOYMENT.md) | Deploying the public website |
 | [`mac_local_inference_setup.md`](mac_local_inference_setup.md) | Running local inference on a Mac at ~$0 |
