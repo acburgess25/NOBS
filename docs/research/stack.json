@@ -838,6 +838,30 @@
         }
       ],
       "learn": "It is a dev/setup dependency, not a runtime one - the API never generates QR codes itself."
+    },
+    {
+      "id": "tailscale",
+      "name": "Tailscale",
+      "category": "networking",
+      "layer": "infrastructure",
+      "role": "Private mesh VPN for reaching the Tank API from outside the house.",
+      "why_here": "It is the only remote-access shape that does not break the auth model. The Tank decides 'is this caller at the Tank?' from the connection peer address, so a VPN peer (100.x) is correctly seen as remote while a reverse proxy would make every caller look local.",
+      "used_in": [
+        "scripts/setup-tank-remote-access.sh",
+        "docs/REMOTE_ACCESS.md"
+      ],
+      "docs": "https://tailscale.com/kb/",
+      "alternatives": [
+        {
+          "name": "WireGuard",
+          "when": "Self-hosting the coordination yourself; Tailscale is WireGuard with key exchange handled."
+        },
+        {
+          "name": "Cloudflare Tunnel",
+          "when": "Publishing a public static site - never the API, see docs/REMOTE_ACCESS.md."
+        }
+      ],
+      "learn": "`tailscale serve` and `tailscale funnel` are proxies, not VPN paths - they connect from localhost and would defeat the pairing gate. Free for personal use."
     }
   ]
 }

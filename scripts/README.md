@@ -42,6 +42,7 @@ python3 scripts/dev.py run      # serve the API with reload
 | `deploy-nobsdash.sh` | Build and deploy the public website to its Tank origin |
 | `reset-tank-fresh.sh` | Reset a Tank to clean first-run state |
 | `install-tank-launchagent.sh` | Install the macOS LaunchAgent that runs the local Tank API |
+| `setup-tank-remote-access.sh` | Private remote access to the Tank via Tailscale (run on the Tank, at home) |
 | `setup-kiosk-host.sh` | One-time host setup so Tank's display boots into the dashboard |
 | `start-dashboard-kiosk.sh` | Wait for the API, then open the dashboard in kiosk mode |
 | `launch-dashboard-mac.sh` | Open the dashboard on macOS once the backend is up |
