@@ -2,38 +2,26 @@ name: Backend CI
 
 # Runner strategy, and why it is split this way:
 #
-# The `backend` job is the check that gates a pull request, so the one thing it
-# must never do is fail to run. It is portable Python -- the same
-# `scripts/dev.py check` that passes on Linux, macOS, and Windows -- so it runs
-# on `ubuntu-latest`, which is free for public repositories and is scheduled by
-# GitHub rather than by whether a particular machine in the house is awake.
+# The `backend` job runs on the self-hosted Mac in the house. It costs nothing,
+# it does not depend on GitHub's hosted-runner availability, and it is the
+# check that actually gates a pull request.
 #
-# It used to run on the self-hosted Mac, on the reasoning that a machine we own
-# cannot be taken away by an account-level Actions hold. That traded one
-# availability risk for another, and the second one arrived: with the `macbook`
-# runner offline, the gating job queued instead of running, so no pull request
-# could report green no matter what was in it. Ten of them accumulated. A check
-# that hangs is worse than a check that fails, because nothing tells you it is
-# not coming.
+# The `cross-platform` job is the Linux/macOS/Windows matrix that enforces the
+# cross-platform contract in docs/AI_WORKFLOW.md. GitHub-hosted runners are
+# free for public repositories, so this costs nothing -- but hosted jobs can
+# stop being schedulable for reasons that have nothing to do with the code (an
+# account-level Actions hold does it, and did in August 2026: every hosted job
+# failed in ~2s with no runner assigned and no logs). A job that cannot be
+# scheduled still reports a red X, which is noise nobody can act on, so this
+# job runs on manual dispatch only.
 #
-# The `cross-platform` job is the macOS/Windows matrix enforcing the
-# cross-platform contract in docs/AI_WORKFLOW.md. Hosted jobs can stop being
-# schedulable for reasons unrelated to the code (an account-level hold did it in
-# August 2026: every hosted job failed in ~2s with no runner and no logs), and a
-# job that cannot be scheduled reports a red X nobody can act on. So it stays on
-# manual dispatch. Linux is covered on every pull request by `backend` above,
-# including the 3.11 floor.
+# Run it from the Actions tab ("Run workflow") before merging anything that
+# touches path handling, process APIs, or file encoding -- and to re-enable it
+# automatically once hosted runners work again, add `pull_request:` back to the
+# job's `if:` condition below.
 #
-# The `ios-macos` job genuinely needs the self-hosted Mac -- it wants the Xcode
-# 27 beta toolchain that hosted macOS images do not carry. Because that Mac is
-# only intermittently online, it does not run on pull requests, where it would
-# queue forever and reintroduce exactly the problem described above. It runs on
-# pushes to main and on manual dispatch, when the Mac being asleep delays a
-# result instead of blocking a merge.
-#
-# Net effect: every pull request is gated on a check that always runs, is always
-# free, and can actually go green. Full platform coverage and the iOS tests are
-# each one button away in the Actions tab.
+# Net effect: a pull request is gated on a check that always runs and is always
+# free, and full platform coverage is one button away.
 
 on:
   pull_request:
@@ -51,27 +39,35 @@ concurrency:
 
 jobs:
   backend:
-    name: Tests and lint (Python ${{ matrix.python-version }})
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        # 3.12 is the working version; 3.11 guards the `requires-python` floor.
-        python-version: ["3.12", "3.11"]
+    name: Tests and lint (self-hosted Mac)
+    runs-on: [self-hosted, macOS, ARM64]
 
     steps:
       - uses: actions/checkout@v7
 
-      - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v7
-        with:
-          python-version: ${{ matrix.python-version }}
+      - name: Resolve Python
+        run: |
+          for candidate in \
+            /opt/homebrew/bin/python3.13 \
+            /opt/homebrew/bin/python3.12 \
+            /opt/homebrew/bin/python3.11 \
+            /opt/homebrew/bin/python3 \
+            python3
+          do
+            if command -v "$candidate" >/dev/null 2>&1; then
+              echo "Using $candidate"
+              echo "PYTHON=$candidate" >> "$GITHUB_ENV"
+              exit 0
+            fi
+          done
+          echo "No Python 3.11+ interpreter found on the Mac runner." >&2
+          exit 1
 
       - name: Set up NOBS
-        run: python scripts/dev.py setup
+        run: "$PYTHON scripts/dev.py setup"
 
       - name: Test and lint
-        run: python scripts/dev.py check"
+        run: "$PYTHON scripts/dev.py check"
 
   cross-platform:
     name: Python ${{ matrix.python-version }} on ${{ matrix.os }}
@@ -83,8 +79,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, windows-latest]
+        os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: ["3.12"]
+        include:
+          # Guard the supported floor without tripling the whole matrix.
+          - os: ubuntu-latest
+            python-version: "3.11"
 
     steps:
       - uses: actions/checkout@v7
@@ -102,11 +102,6 @@ jobs:
 
   ios-macos:
     name: NOBSTests on Mac runner
-    # Not on pull requests: this needs the self-hosted Mac, and when that Mac is
-    # offline the job queues rather than failing, which is what stalled the
-    # backlog. On main and on dispatch, a sleeping Mac delays a result instead
-    # of blocking a merge.
-    if: github.event_name != 'pull_request'
     runs-on: [self-hosted, macOS, ARM64]
 
     env:
