@@ -24,6 +24,7 @@ collaboration guide every contributor and coding agent follows.
 | [`ISSUE_BACKLOG.md`](ISSUE_BACKLOG.md) | Seed backlog of known work |
 | [`MONETIZATION_AND_GROWTH.md`](MONETIZATION_AND_GROWTH.md) | How the project takes money without paywalling the free core |
 | [`SUPPORT_AND_PAYMENTS.md`](SUPPORT_AND_PAYMENTS.md) | Tips, sponsorship, and payment plumbing |
+| [`DOGFOOD_SETUP.md`](DOGFOOD_SETUP.md) | Running NOBS on the owner's own iPhone, Tank, and Mac before TestFlight |
 | [`CAREER_AND_VISIBILITY.md`](CAREER_AND_VISIBILITY.md) | Build-in-public and job-market plan |
 
 ## Working on the code
