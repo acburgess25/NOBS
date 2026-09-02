@@ -85,16 +85,71 @@ These are product rules, not style preferences:
 2. Use the public codename **Project Lantern** when discussing sensitive roadmap items in public threads.
 3. Include tests or explain why tests are not needed.
 4. Ensure local checks pass (`python3 scripts/dev.py check` for backend changes).
+5. Confirm the contributor attestation in the PR template, including the
+   [contribution grant](#the-grant).
 
-## License
+## License and contribution rights
 
-By opening a pull request you confirm you have the right to submit that work,
-and you agree your contributions are provided under this repository's
-AGPL-3.0-or-later license.
+NOBS is published under **AGPL-3.0-or-later**, and it stays that way. Inbound
+contributions match outbound: your work is licensed under AGPL like everything
+else here.
 
-Per-commit `Signed-off-by` sign-off is not required. It was previously listed
-as mandatory while nothing in the project actually used it, which asked
-newcomers to follow a rule the repository itself did not follow. The
-right-to-submit confirmation above is what carries that intent now. Sign-off
-is still welcome if you prefer it — `git commit -s` — it is simply not a
-condition of merging.
+There is one addition. It is stated plainly in the open rather than buried in a
+signature flow, because a term you only discover after doing the work is a bad
+way to treat someone who showed up to help.
+
+### The grant
+
+By opening a pull request, you confirm that:
+
+1. **You have the right to submit the work.** You wrote it, or you can
+   redistribute it under this repository's license. It carries no employer
+   claim, NDA, or third-party copyright you are not free to license.
+
+2. **Your contribution is licensed under AGPL-3.0-or-later**, like the rest of
+   the project.
+
+3. **You additionally grant the maintainer** (Alexander Burgess) a perpetual,
+   worldwide, non-exclusive, royalty-free, irrevocable license to reproduce,
+   modify, adapt, publish, sublicense, and distribute your contribution —
+   including under license terms other than AGPL, and including as part of a
+   proprietary or commercially distributed build. The grant covers any patent
+   claims you hold that your contribution would otherwise infringe.
+
+**You keep your copyright.** This is a license, not an assignment. You may still
+use, publish, and relicense your own work anywhere you like, and your name stays
+in the history.
+
+### Why this exists
+
+The AGPL and Apple's App Store terms do not sit comfortably together. Store
+distribution imposes usage restrictions that the GPL family is written to
+forbid, which is why AGPL-licensed apps have been pulled from the App Store
+before.
+
+While one person holds copyright on all of NOBS, this is not a problem — a sole
+copyright holder can publish AGPL source and also ship a store build. But the
+first contribution that arrives under AGPL alone makes the iPhone app
+undistributable without going back to its author for separate permission. With
+enough contributors, that becomes impossible to unwind.
+
+Without this grant, the project has to choose between accepting help and
+shipping the app it exists to ship. The grant is what lets both be true.
+
+**What it is not.** It does not make NOBS closed — the source stays public and
+AGPL, and this file will say so for as long as that is true. It does not let
+anyone other than the maintainer relicense your work. And it does not loosen the
+product rules in [`docs/PRODUCT_DECISIONS.md`](docs/PRODUCT_DECISIONS.md):
+no selling personal data, no paywalling the free local core, no manufactured
+hardware limits. Those bind the maintainer regardless of who wrote which line.
+
+If you would rather not grant it, a friction report, bug report, or idea is
+still a real contribution and carries none of these terms.
+
+### Sign-off
+
+Per-commit `Signed-off-by` is not required. It was previously listed as
+mandatory while nothing in the project actually used it, which asked newcomers
+to follow a rule the repository itself did not follow. The confirmation above is
+what carries that intent now. Sign-off is still welcome if you prefer it —
+`git commit -s` — it is simply not a condition of merging.
