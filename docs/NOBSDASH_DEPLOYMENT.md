@@ -8,7 +8,7 @@ deployed from `main` by [`.github/workflows/deploy-website.yml`](../.github/work
 | Item | Value |
 | --- | --- |
 | Host | GitHub Pages |
-| Source | GitHub Actions (`Deploy website`) |
+| Source | GitHub Actions (`Deploy website`), built on the self-hosted Mac runner — see [`CI_TROUBLESHOOTING.md`](CI_TROUBLESHOOTING.md) |
 | Build | `website/` → `pnpm build` → `dist/` |
 | Custom domains | `nobsdash.com`, `www.nobsdash.com` |
 | Pages URL | `https://acburgess25.github.io/NOBS/` (until custom domain is attached) |

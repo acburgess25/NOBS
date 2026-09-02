@@ -1,4 +1,15 @@
 # Deploy nobsdash.com (GitHub Pages)
+#
+# Runner: self-hosted Mac, not ubuntu-latest. See docs/CI_TROUBLESHOOTING.md
+# "Every hosted job fails in seconds" -- GitHub-hosted runners can stop being
+# schedulable for account-level reasons that have nothing to do with this
+# repo (it happened in August 2026). Backend CI already moved its gating job
+# to the self-hosted Mac for that reason. This workflow hadn't, which meant a
+# hosted-runner outage left the live site -- including the support.json tip
+# CTA -- stuck on a stale build with no code fix able to recover it. actions/
+# setup-node and pnpm/action-setup install their own toolchains regardless of
+# runner, so this only requires the Mac runner to be online and have network
+# access, same as Backend CI already does.
 
 name: Deploy website
 
@@ -21,7 +32,7 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, macOS, ARM64]
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -51,7 +62,7 @@ jobs:
 
   deploy:
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, macOS, ARM64]
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

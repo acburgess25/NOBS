@@ -13,6 +13,7 @@ Quick reference for red checks on NOBS pull requests and `main`.
 | **Any GitHub-hosted job, red in <5s** | Any | Hosted runners cannot be scheduled — billing/quota | **No** — see the section directly below |
 | **Tests and lint (self-hosted Mac)** | Backend CI | Test/lint failure — the gating check | Yes — run `python3 scripts/dev.py check` |
 | **cross-platform** | Backend CI | Manual dispatch only; never runs on a PR | No — advisory only |
+| **Deploy website / build, deploy** | `deploy-website.yml` | Runs on the self-hosted Mac (since August 20, 2026); fails if that Mac is offline, or on a real `pnpm build` error | Yes if `pnpm build` fails locally in `website/`; otherwise confirm the Mac runner is online |
 | **NOBS \| Default \| Build - iOS** | Xcode Cloud (App Store Connect) | Fails on every PR; redundant with the self-hosted Mac | No — treat as noise, see below |
 | **TestFlight** | `.github/workflows/testflight.yml` | Development cert missing on CI keychain; distribution profiles | **Home** — runner + Apple Developer portal. Manual options: refresh signing only, upload staged IPA (`~/nobs-build/NOBS.ipa`), or account cleanup. |
 | **NOBSTests** | Backend CI `ios-macos` job | Swift compile or routing fixture drift | Yes — `bash scripts/test-ios.sh` |
@@ -62,6 +63,12 @@ arranged so this cannot stop work:
   automatically. Trigger it from the Actions tab ("Run workflow") when hosted
   runners are working, or before merging a change to path handling, process
   APIs, or file encoding.
+- `deploy-website.yml` (`nobsdash.com`, including the `support.json` tip CTA)
+  moved to the same self-hosted Mac for the same reason: unlike Backend CI,
+  it had no self-hosted fallback, so this outage left the live site stuck on
+  a stale build with no code fix able to recover it. It now only needs that
+  Mac to be online and have network access — confirm both if a deploy is
+  stuck.
 
 The same checks run locally, and that is the real signal either way:
 
