@@ -1,27 +1,41 @@
 name: Backend CI
 
-# Runner strategy, and why it is split this way:
+# What runs where, and why:
 #
-# The `backend` job runs on the self-hosted Mac in the house. It costs nothing,
-# it does not depend on GitHub's hosted-runner availability, and it is the
-# check that actually gates a pull request.
+# `backend` is the check that gates a pull request. It runs the portable
+# Python suite (`scripts/dev.py setup`, then `scripts/dev.py check`) on
+# GitHub-hosted ubuntu-latest with Python 3.12. Hosted runners are free for
+# this public repository.
 #
-# The `cross-platform` job is the Linux/macOS/Windows matrix that enforces the
-# cross-platform contract in docs/AI_WORKFLOW.md. GitHub-hosted runners are
-# free for public repositories, so this costs nothing -- but hosted jobs can
-# stop being schedulable for reasons that have nothing to do with the code (an
-# account-level Actions hold does it, and did in August 2026: every hosted job
-# failed in ~2s with no runner assigned and no logs). A job that cannot be
-# scheduled still reports a red X, which is noise nobody can act on, so this
-# job runs on manual dispatch only.
+# That job used to target the self-hosted Mac ([self-hosted, macOS, ARM64]).
+# The Mac was wiped, so nothing has those labels anymore. A job aimed at a
+# missing self-hosted runner does not fail fast: it sits in the queue
+# (runner_id 0, no steps) until it is cancelled, and the pull request can
+# never go green.
 #
-# Run it from the Actions tab ("Run workflow") before merging anything that
-# touches path handling, process APIs, or file encoding -- and to re-enable it
-# automatically once hosted runners work again, add `pull_request:` back to the
-# job's `if:` condition below.
+# An earlier move onto ubuntu-latest was reverted in August 2026 because every
+# hosted job died in about two seconds with runner_id 0 and no logs. That is
+# an account-level Actions hold, not a test failure. This workflow is also
+# the test of whether that hold is gone. A real run has a nonzero runner_id
+# and a log of steps. See docs/CI_TROUBLESHOOTING.md.
 #
-# Net effect: a pull request is gated on a check that always runs and is always
-# free, and full platform coverage is one button away.
+# `cross-platform` (Python 3.12 on Linux, macOS, and Windows, plus Python 3.11
+# on Linux) stays on manual dispatch. If hosted runners cannot be scheduled,
+# those extra jobs would put a red X on every pull request that no code change
+# can clear. Linux on Python 3.12 is already covered by `backend` on every
+# pull request.
+#
+# `ios-macos` still needs the house Mac. NOBSTests uses the Xcode 27 beta
+# toolchain, which GitHub's macOS images do not have. The job runs only when
+# the repository variable MAC_RUNNER_ONLINE is exactly `true`. Until then it
+# is skipped on pull requests, on pushes to main, and on manual dispatch, so
+# it cannot sit in the queue. The TestFlight workflow uses the same gate.
+# Re-register the runner with scripts/setup-github-runner-mac.sh, then set
+# that variable, to turn the Mac jobs back on.
+#
+# Manual fallback for the Python suite: Actions → Backend CI → Run workflow,
+# and set runner to self-hosted-mac. Do that only when the Mac runner is
+# Idle. Otherwise that one run waits in the queue.
 
 on:
   pull_request:
@@ -29,6 +43,14 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      runner:
+        description: Where to run tests and lint. Choose self-hosted-mac only when that runner is Idle.
+        type: choice
+        default: ubuntu-latest
+        options:
+          - ubuntu-latest
+          - self-hosted-mac
 
 permissions:
   contents: read
@@ -39,13 +61,21 @@ concurrency:
 
 jobs:
   backend:
-    name: Tests and lint (self-hosted Mac)
-    runs-on: [self-hosted, macOS, ARM64]
+    name: Tests and lint
+    runs-on: ${{ inputs.runner == 'self-hosted-mac' && fromJSON('["self-hosted", "macOS", "ARM64"]') || 'ubuntu-latest' }}
+    timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@v7
 
-      - name: Resolve Python
+      - name: Set up Python 3.12
+        if: runner.os != 'macOS'
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Resolve Python on the Mac
+        if: runner.os == 'macOS'
         run: |
           for candidate in \
             /opt/homebrew/bin/python3.13 \
@@ -64,18 +94,19 @@ jobs:
           exit 1
 
       - name: Set up NOBS
-        run: "$PYTHON scripts/dev.py setup"
+        run: "${PYTHON:-python} scripts/dev.py setup"
 
       - name: Test and lint
-        run: "$PYTHON scripts/dev.py check"
+        run: "${PYTHON:-python} scripts/dev.py check"
 
   cross-platform:
     name: Python ${{ matrix.python-version }} on ${{ matrix.os }}
-    # Manual only: an unschedulable hosted job would otherwise post a red X on
+    # Manual only. An unschedulable hosted job would otherwise post a red X on
     # every pull request that no code change can clear. See the note at the top.
     if: github.event_name == 'workflow_dispatch'
     runs-on: ${{ matrix.os }}
     continue-on-error: true
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -102,7 +133,14 @@ jobs:
 
   ios-macos:
     name: NOBSTests on Mac runner
+    # Skipped unless the house Mac is registered again. A missing self-hosted
+    # runner queues forever (runner_id 0, no steps) instead of failing, which
+    # is what stalled pull requests after the Mac wipe. The same condition
+    # applies on pushes to main and on manual dispatch, not only on pull
+    # requests: there is no runner to pick the job up until the variable is set.
+    if: vars.MAC_RUNNER_ONLINE == 'true'
     runs-on: [self-hosted, macOS, ARM64]
+    timeout-minutes: 45
 
     env:
       DEVELOPER_DIR: /Applications/Xcode-beta.app/Contents/Developer

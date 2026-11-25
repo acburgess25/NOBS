@@ -436,7 +436,7 @@ Machine-readable inventory of every language, framework, library, model, and ser
 
 **Used in.** `NOBS.xcodeproj/`, `scripts/build-ios-simulator.sh`, `scripts/test-ios.sh`
 
-**Worth knowing.** Apple builds cannot run on Linux, which is why the iOS CI job uses a self-hosted Mac runner.
+**Worth knowing.** Apple builds cannot run on Linux, which is why NOBSTests stays on a self-hosted Mac runner and is skipped until that runner is registered again.
 
 [Documentation](https://developer.apple.com/xcode/)
 
@@ -616,13 +616,13 @@ Machine-readable inventory of every language, framework, library, model, and ser
 
 ### GitHub Actions
 
-*ci* — Runs the gating test/lint check on the self-hosted Mac, an advisory Linux/macOS/Windows matrix on hosted runners, and iOS tests on the Mac.
+*ci* — Runs the gating test/lint check on GitHub-hosted Ubuntu, an advisory macOS/Windows matrix on manual dispatch, and iOS tests on the house Mac when that runner is back.
 
-**Why it is here.** Free on public repositories, and the cross-platform matrix is how the hard cross-platform requirement is actually enforced when hosted runners are available.
+**Why it is here.** Free on public repositories. The hosted Linux job is what gates a pull request after the self-hosted Mac runner was wiped.
 
 **Used in.** `.github/workflows/`
 
-**Worth knowing.** Actions is free and unlimited on standard hosted runners for public repos - a hosted job that dies in seconds with runner_id 0 and no logs is an account-level hold, not a charge for this repo. The gating check runs on a self-hosted runner so that condition can never block a pull request. See docs/research/COSTS.md.
+**Worth knowing.** Actions is free and unlimited on standard hosted runners for public repos. A hosted job that dies in seconds with runner_id 0 and no logs is an account-level hold, not a charge for this repo. A self-hosted job that sits for hours with the same runner_id 0 means the Mac runner is offline; those jobs are skipped until MAC_RUNNER_ONLINE is true. See docs/CI_TROUBLESHOOTING.md and docs/research/COSTS.md.
 
 **Alternatives.**
 

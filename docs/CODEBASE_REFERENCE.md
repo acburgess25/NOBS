@@ -77,8 +77,8 @@ Maintainer-only notes live in the private repo [NOBS-private](https://github.com
 | **iOS deployment target** | 18.0 (built/tested on iOS 27 simulator) |
 | **macOS deployment target** | 27.0 (NOBSTank) |
 | **Python (required)** | ≥ 3.11 |
-| **Python (CI Tank runner)** | 3.12 |
-| **Python (CI Mac runner)** | 3.13 |
+| **Python (CI, gating)** | 3.12 on GitHub-hosted `ubuntu-latest` |
+| **Python (CI Mac, optional)** | Homebrew 3.13, 3.12, or 3.11 when Backend CI is dispatched with `runner=self-hosted-mac` |
 | **Xcode** | 27 beta — `/Applications/Xcode-beta.app` |
 | **Simulator default** | iPhone 17 Pro, iOS 27.0 |
 | **Apple Developer Team ID** | `K853LKQLAS` |
@@ -204,8 +204,10 @@ Default Tank URLs: Simulator `http://127.0.0.1:8000`; physical device `http://ta
 | `scripts/build-ios-simulator.sh` | Unsigned simulator build | iOS compile check |
 | `scripts/test-ios.sh` | NOBSTests on simulator | Swift routing tests |
 | `scripts/stage-testflight-ipa.sh` | Local archive → `~/nobs-build/NOBS.ipa` | Home TestFlight prep |
-| `.github/workflows/testflight.yml` | CI archive + TestFlight upload | Signing automation |
-| `.github/workflows/backend-ci.yml` | Python + NOBSTests CI | CI matrix changes |
+| `.github/workflows/testflight.yml` | CI archive + TestFlight upload; skipped unless `MAC_RUNNER_ONLINE` is `true` | Signing automation |
+| `.github/workflows/backend-ci.yml` | Python tests and lint on `ubuntu-latest`; NOBSTests only when the Mac runner is back | CI matrix changes |
+| `.github/workflows/website-check.yml` | Vite production build on `ubuntu-latest`; does not deploy | Website CI |
+| `.github/workflows/deploy-website.yml` | Build and publish `website/` to GitHub Pages on `main` | Website deploy |
 | `ExportOptions.plist` | App Store export signing style | Distribution signing |
 | `docs/PRODUCT_DECISIONS.md` | Approved product direction | Only when decision owner supersedes |
 | `docs/CURRENT_STATE.md` | What works vs planned | After capability changes |
@@ -291,7 +293,7 @@ cd website && pnpm install && pnpm build
 | Website | `cd website && pnpm build` | Vite production build |
 | Docs whitespace | `git diff --check` | No conflict markers or trailing issues |
 
-Backend CI runs the same `dev.py check` on **Tank** (Python 3.12) and **Mac** (Python 3.13). iOS CI runs `scripts/test-ios.sh` on the Mac runner with `DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer`.
+Backend CI runs `dev.py check` on GitHub-hosted Ubuntu with Python 3.12. That is the pull-request gate. The macOS/Windows matrix, and Python 3.11, run only when Backend CI is dispatched by hand. iOS CI runs `scripts/test-ios.sh` on the house Mac (`DEVELOPER_DIR=/Applications/Xcode-beta.app/Contents/Developer`) only when the repository variable `MAC_RUNNER_ONLINE` is `true`.
 
 ---
 
@@ -301,17 +303,25 @@ Backend CI runs the same `dev.py check` on **Tank** (Python 3.12) and **Mac** (P
 
 | Workflow | Trigger | Runner | What it does |
 |----------|---------|--------|--------------|
-| **Backend CI** | PR + push to `main` | `self-hosted, tank` (Python 3.12); `self-hosted, macOS, ARM64` (Python 3.13 + NOBSTests) | `dev.py setup` + `dev.py check`; `test-ios.sh` |
-| **TestFlight** | Push to `main` (iOS paths) + `workflow_dispatch` | `self-hosted, macOS, ARM64, testflight` | API cert provisioning, archive, export, upload |
-| **Auto-approve safe PRs** | `pull_request_target` | `self-hosted, tank` | Dependabot patch/minor; docs-only from collaborators |
+| **Backend CI** | PR + push to `main`, plus manual dispatch | `ubuntu-latest` (Python 3.12) gates the PR. Dispatch input `runner=self-hosted-mac` is the fallback. `cross-platform` is dispatch-only. | `dev.py setup` + `dev.py check` |
+| **Website check** | PR + push to `main`, plus manual dispatch | `ubuntu-latest` (Node 22, pnpm 10) | `pnpm install --frozen-lockfile` and `pnpm build`. No deploy. |
+| **Deploy website** | Push to `main` when `website/**` changes, plus manual dispatch | `ubuntu-latest` | Build and publish GitHub Pages |
+| **NOBSTests** | Same events as Backend CI, but the job is skipped unless `MAC_RUNNER_ONLINE` is `true` | `self-hosted, macOS, ARM64` | `scripts/test-ios.sh` |
+| **TestFlight** | `workflow_dispatch` only, and skipped unless `MAC_RUNNER_ONLINE` is `true` | `self-hosted, macOS, ARM64, testflight` | API cert provisioning, archive, export, upload |
+
+The old docs-only auto-approve workflow is not in the repo. If branch protection still requires a check named `docs-only-auto-approve` or `Tests and lint (self-hosted Mac)`, that requirement has to be updated by hand. See [`CI_TROUBLESHOOTING.md`](CI_TROUBLESHOOTING.md).
 
 ### Self-hosted runners
 
+Current workflows do not target the Tank runner. The Mac runner is offline until someone registers it again; Python CI does not wait on it.
+
 | Runner labels | Host | Setup script |
 |---------------|------|--------------|
-| `self-hosted, tank` | Linux Tank homelab | `scripts/setup-github-runner-tank.sh` |
-| `self-hosted, macOS, ARM64` | Mac (backend + iOS tests) | `scripts/setup-github-runner-mac.sh` |
-| `self-hosted, macOS, ARM64, testflight` | Mac (archive/upload) | Same Mac runner with extra label |
+| `self-hosted, tank` | Linux Tank homelab (not used by current workflows) | `scripts/setup-github-runner-tank.sh` |
+| `self-hosted, macOS, ARM64` | Mac (NOBSTests, and the Python fallback) | `scripts/setup-github-runner-mac.sh` |
+| `self-hosted, macOS, ARM64, testflight` | Same Mac, extra label, for archive/upload | Same script (labels include `testflight`) |
+
+After the Mac runner is Idle, set the repository variable `MAC_RUNNER_ONLINE` to `true`. Until then NOBSTests and TestFlight are skipped.
 
 ### GitHub secrets (names only — never commit values)
 
@@ -320,7 +330,7 @@ Backend CI runs the same `dev.py check` on **Tank** (Python 3.12) and **Mac** (P
 | `ASC_API_KEY_ID` | TestFlight workflow |
 | `ASC_API_ISSUER_ID` | TestFlight workflow |
 | `ASC_API_KEY_CONTENT` | TestFlight workflow (`.p8` key, plain or base64) |
-| `GITHUB_TOKEN` | Auto-approve workflow (default) |
+| `GITHUB_TOKEN` | Provided by Actions for checkout. Not a secret you create. |
 
 **Not required anymore:** `DIST_CERT_P12` — certs are provisioned via App Store Connect API in CI.
 
@@ -515,7 +525,8 @@ Full agent policy: [`TANK_AGENT_CORE.md`](TANK_AGENT_CORE.md).
 |-------|---------|-----------|
 | App ID capabilities missing | Xcode Cloud `action_required`; archive wants App Groups / SIWA profiles | [`APP_STORE_BETA_CHECKLIST.md`](APP_STORE_BETA_CHECKLIST.md) § Provisioning |
 | TestFlight archive fails | No iOS Development cert / profile errors | [`CI_TROUBLESHOOTING.md`](CI_TROUBLESHOOTING.md) § TestFlight |
-| `docs-only-auto-approve` red in ~2s | Billing/spending message, `ubuntu-latest`, zero steps | Re-run after `main` has tank runner; see [`CI_TROUBLESHOOTING.md`](CI_TROUBLESHOOTING.md) |
+| Hosted job red in ~2s | `runner_id` 0, no steps, billing/spending message | Account Actions hold, not the diff. See [`CI_TROUBLESHOOTING.md`](CI_TROUBLESHOOTING.md) |
+| Mac job queued then cancelled | `runner_id` 0 after a long wait, labels `self-hosted, macOS, ARM64` | Runner was wiped. Leave `MAC_RUNNER_ONLINE` unset, or re-add the runner. |
 | `tank.local` unresolved | Device cannot reach Tank | Use LAN IP (e.g. `http://192.168.1.x:8000`) |
 | PCC badge hidden | Apple Cloud route exists but badge gated | [`PCC_INTEGRATION.md`](PCC_INTEGRATION.md), `PCCFeatureFlags.swift` |
 | Memory / Home tabs placeholder | `ComingSoonView` | [`CURRENT_STATE.md`](CURRENT_STATE.md) § Not working yet |
