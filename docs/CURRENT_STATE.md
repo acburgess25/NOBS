@@ -2,7 +2,7 @@
 
 For full codebase reference see [`CODEBASE_REFERENCE.md`](CODEBASE_REFERENCE.md).
 
-**Last updated:** August 19, 2026 (LM Studio added as a selectable local model server behind `app/inference.py`)
+**Last updated:** November 25, 2026 (calendar event locations stay on the device; they are no longer sent to Tank)
 **Purpose:** Tool-neutral handoff for any contributor entering without prior chat history.
 
 This records implementation state, not product direction. [`PRODUCT_DECISIONS.md`](PRODUCT_DECISIONS.md) remains the approved product source of truth. Verify the branch, tests, and live services before treating deployment facts as current.
@@ -23,7 +23,7 @@ This records implementation state, not product direction. [`PRODUCT_DECISIONS.md
 - Siri and Shortcuts expose four App Intents: Prepare my day, Explain schedule, Ask NOBS, Show privacy receipt — with App Group cache fallback when the app is not running.
 - `nobs://` deep links route to Today, Chat (with optional prompt), Privacy, and Tank pairing.
 - Local EventKit calendar permission flow and same-day event display.
-- EventKit calendar and reminders sync to Tank (`/sync/calendar`, `/sync/reminders`) using the same Keychain-backed device-token auth as chat.
+- EventKit calendar and reminders sync to Tank (`/sync/calendar`, `/sync/reminders`) using the same Keychain-backed device-token auth as chat. Calendar sync and Tank briefings send titles, times, and context only. Event locations stay on the device for the Today list and are not stored or forwarded to the model.
 - Configurable Tank address, KeychainAccess-backed device token storage, and
   shared app-root model ownership so onboarding, sign-in, and privacy flows
   stay in sync.

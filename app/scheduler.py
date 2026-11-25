@@ -263,16 +263,16 @@ async def trigger_autonomous_idea(
 def _briefing_request_from_store(store: AgentStore, today: Any) -> BriefingRequest:
     """Rebuild the same request shape the /briefing route validates.
 
-    Synced rows carry the end time, location, and due date, so the scheduled
-    briefing sees exactly what a requested one does — without end times the
-    heuristics could not detect overlaps at all.
+    Synced rows carry the end time and due date, so the scheduled briefing sees
+    exactly what a requested one does — without end times the heuristics could
+    not detect overlaps at all. Event locations are not copied in; they stay
+    on the device.
     """
     calendar = [
         BriefingCalendarItem(
             title=row["title"],
             start=row["start"],
             end=row.get("end"),
-            location=row.get("location"),
             context=row["context"],
         )
         for row in store.list_calendar_events()

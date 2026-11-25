@@ -761,13 +761,14 @@ final class AppModel: ObservableObject {
                     title: $0.title,
                     start: formatter.string(from: $0.start),
                     end: formatter.string(from: $0.end),
-                    location: $0.location,
                     context: $0.context.rawValue
                 )
             }
             try await tank.syncCalendar(events: payload)
             let receipt = PrivacyReceipt(
-                used: ["\(payload.count) calendar event\(payload.count == 1 ? "" : "s") from EventKit"],
+                used: [
+                    "\(payload.count) calendar event\(payload.count == 1 ? "" : "s"): titles, times, and context only"
+                ],
                 processed: "Tank on your private network",
                 shared: [],
                 changed: ["Synced Tank calendar cache"]

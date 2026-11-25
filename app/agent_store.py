@@ -34,6 +34,12 @@ class AgentStore:
             self._connection.row_factory = sqlite3.Row
             self._connection.executescript(agent_schema.SCHEMA_SQL)
             agent_schema.apply_migrations(self._connection)
+            # Older builds saved event locations. Clear them on open so a place
+            # name does not remain in the database after this process starts.
+            self._connection.execute(
+                "UPDATE calendar_events SET location = NULL WHERE location IS NOT NULL"
+            )
+            self._connection.commit()
         return self._connection
 
     def create_run(self, objective: str, context: str) -> str:
@@ -360,11 +366,13 @@ class AgentStore:
     def sync_calendar(self, events: list[dict[str, str]]) -> None:
         """Replace synced calendar rows.
 
-        `end` and `location` are stored, not discarded: without an end time the
-        briefing heuristics cannot detect overlapping or back-to-back events, so
-        dropping them silently disabled conflict detection for any briefing built
-        from synced data. They are held under `end_time` because `end` is a
-        reserved word in SQL.
+        End times are stored, not discarded: without an end time the briefing
+        heuristics cannot detect overlapping or back-to-back events. They are
+        held under `end_time` because `end` is a reserved word in SQL.
+
+        Event locations are not stored. The `location` column remains so older
+        databases still open, but a location on an incoming event is ignored
+        and the column is left null.
         """
         created_at = _now()
         with self._lock:
@@ -373,8 +381,8 @@ class AgentStore:
             for event in events:
                 connection.execute(
                     "INSERT INTO calendar_events "
-                    "(id, title, start, context, created_at, end_time, location) "
-                    "VALUES (?, ?, ?, ?, ?, ?, ?)",
+                    "(id, title, start, context, created_at, end_time) "
+                    "VALUES (?, ?, ?, ?, ?, ?)",
                     (
                         str(uuid4()),
                         event["title"],
@@ -382,7 +390,6 @@ class AgentStore:
                         event["context"],
                         created_at,
                         event.get("end"),
-                        event.get("location"),
                     ),
                 )
             connection.commit()
