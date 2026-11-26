@@ -26,6 +26,16 @@ def fixture(name: str) -> dict:
     return json.loads((FIXTURES / f"{name}.json").read_text(encoding="utf-8"))
 
 
+def assert_no_location_key(value) -> None:
+    if isinstance(value, dict):
+        assert "location" not in value
+        for child in value.values():
+            assert_no_location_key(child)
+    elif isinstance(value, list):
+        for child in value:
+            assert_no_location_key(child)
+
+
 @pytest.mark.parametrize(
     ("name", "model"),
     [
@@ -60,9 +70,8 @@ def test_calendar_contract_and_fixtures_exclude_location() -> None:
     schema = json.loads((CONTRACT / "openapi.json").read_text(encoding="utf-8"))
     assert "location" not in BriefingCalendarItem.model_json_schema()["properties"]
     assert "location" not in schema["components"]["schemas"]["BriefingCalendarItem"]["properties"]
-    for name, key in [("briefing_request", "calendar"), ("sync_calendar_request", "events")]:
-        for item in fixture(name)[key]:
-            assert "location" not in item
+    for path in FIXTURES.glob("*.json"):
+        assert_no_location_key(json.loads(path.read_text(encoding="utf-8")))
     for receipt in [fixture("privacy_receipt"), fixture("briefing_response")["privacy_receipt"]]:
         assert "location" not in json.dumps(receipt).lower()
 
