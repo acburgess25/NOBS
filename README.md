@@ -90,6 +90,12 @@ iPhone / iPad / Mac
 
 NOBS prefers on-device processing, uses Tank when the user has paired one, and exposes cloud routes only behind explicit policy and availability gates.
 
+The v1 briefing and sync wire models live in `app/contract/v1.py`, with shared
+examples in `contracts/v1/fixtures/`. `contracts/v1/openapi.json` snapshots the
+entire FastAPI schema using default settings (including routes outside v1).
+After setting up the backend, regenerate it with `python scripts/dev.py openapi`.
+Calendar locations remain on the iPhone and are not part of this wire contract.
+
 ## Run the backend
 
 Python 3.11 or newer is required.

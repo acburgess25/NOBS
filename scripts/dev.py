@@ -44,7 +44,9 @@ def ensure_environment() -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("command", choices=("setup", "test", "lint", "format", "run", "check"))
+    parser.add_argument(
+        "command", choices=("setup", "test", "lint", "format", "run", "check", "openapi")
+    )
     args = parser.parse_args()
 
     if args.command == "setup":
@@ -66,6 +68,8 @@ def main() -> None:
         run("-m", "ruff", "format", ".")
     if args.command == "run":
         run("-m", "uvicorn", "app.main:app", "--reload")
+    if args.command == "openapi":
+        run("-m", "scripts.export_openapi")
 
 
 if __name__ == "__main__":

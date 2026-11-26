@@ -1,0 +1,11 @@
+{
+  "date": "2026-07-04",
+  "calendar": [
+    {"title": "Design sync", "start": "10:00", "end": "11:00", "context": "business"},
+    {"title": "School pickup", "start": "15:30", "context": "shared"}
+  ],
+  "reminders": [
+    {"title": "Call plumber", "due": "14:00", "context": "personal"},
+    {"title": "Prepare notes", "context": "business"}
+  ]
+}

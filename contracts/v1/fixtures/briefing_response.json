@@ -1,0 +1,20 @@
+{
+  "date": "2026-07-04",
+  "topline": "A focused day with one key meeting.",
+  "priorities": ["Prepare for the design sync", "Call the plumber"],
+  "conflicts_or_risks": ["Leave time for school pickup."],
+  "recommended_plan": ["Prepare before 10:00.", "Call the plumber at 14:00."],
+  "one_useful_question": "Is the preparation ready?",
+  "suggested_next_actions": ["Review the meeting notes."],
+  "generated_at": "2026-07-04T08:00:00Z",
+  "route": "Tank",
+  "privacy_receipt": {
+    "used": [
+      "2 calendar items (title, start, end, context)",
+      "2 reminder items (title, due, context)"
+    ],
+    "processed": "Tank on your private network",
+    "shared": [],
+    "changed": []
+  }
+}
