@@ -1,6 +1,6 @@
 # CI troubleshooting
 
-**Last updated:** August 18, 2026
+**Last updated:** November 25, 2026
 
 Quick reference for red checks on NOBS pull requests and `main`.
 
@@ -10,85 +10,103 @@ Quick reference for red checks on NOBS pull requests and `main`.
 
 | Check | Workflow | Typical cause | Code fix? |
 |-------|----------|---------------|-----------|
-| **Any GitHub-hosted job, red in <5s** | Any | Hosted runners cannot be scheduled — billing/quota | **No** — see the section directly below |
-| **Tests and lint (self-hosted Mac)** | Backend CI | Test/lint failure — the gating check | Yes — run `python3 scripts/dev.py check` |
+| **Any GitHub-hosted job, red in <5s** | Any | Hosted runners cannot be scheduled — billing/quota hold | **No** — see below |
+| **Self-hosted job, cancelled after a long wait, no steps** | Backend CI or TestFlight | The house Mac runner is gone | **No** — re-add the runner, or leave the job skipped |
+| **Tests and lint** | Backend CI | Python 3.12 tests or lint on `ubuntu-latest`. This is the gating check. | Yes — `python3 scripts/dev.py check` |
+| **Build website** | Website check | Vite build failed. This workflow does not deploy. | Yes — `pnpm install --frozen-lockfile && pnpm build` in `website/` |
 | **cross-platform** | Backend CI | Manual dispatch only; never runs on a PR | No — advisory only |
-| **NOBS \| Default \| Build - iOS** | Xcode Cloud (App Store Connect) | Fails on every PR; redundant with the self-hosted Mac | No — treat as noise, see below |
-| **TestFlight** | `.github/workflows/testflight.yml` | Development cert missing on CI keychain; distribution profiles | **Home** — runner + Apple Developer portal. Manual options: refresh signing only, upload staged IPA (`~/nobs-build/NOBS.ipa`), or account cleanup. |
-| **NOBSTests** | Backend CI `ios-macos` job | Swift compile or routing fixture drift | Yes — `bash scripts/test-ios.sh` |
+| **NOBS \| Default \| Build - iOS** | Xcode Cloud (App Store Connect) | Fails on every PR; configured outside this repo | No — treat as noise, see below |
+| **TestFlight** | `.github/workflows/testflight.yml` | Skipped until `MAC_RUNNER_ONLINE` is `true`. After that: signing on the Mac. | **Home** — runner + Apple Developer portal |
+| **NOBSTests on Mac runner** | Backend CI `ios-macos` job | Skipped until `MAC_RUNNER_ONLINE` is `true`. After that: Swift compile or fixture drift. | Yes — `bash scripts/test-ios.sh` on the Mac |
 
 ---
 
-## Every hosted job fails in seconds (August 2026)
+## What runs on a pull request
 
-**Symptom.** Every job on a GitHub-hosted runner goes red 1–3 seconds after it
-starts, with no logs (the log endpoint 404s, because the job never ran). Jobs on
-the self-hosted runners are unaffected.
+- **Tests and lint** runs on GitHub-hosted `ubuntu-latest` with Python 3.12. It calls `scripts/dev.py setup` and then `scripts/dev.py check`. This is the check that should gate a pull request.
+- **Build website** runs on `ubuntu-latest` (Node 22, pnpm 10) and only builds. Deploy stays in `deploy-website.yml`, which was not changed and still publishes on `main`.
+- **NOBSTests** and **TestFlight** still target the self-hosted Mac, and they are skipped unless the repository variable `MAC_RUNNER_ONLINE` is exactly `true`. That includes pushes to `main` and manual dispatch, not only pull requests. A missing Mac runner does not fail the job; it leaves it queued with `runner_id` 0 and no steps, which is how pull requests got stuck after the Mac wipe.
+- **cross-platform** (Python 3.12 on Linux, macOS, and Windows, plus Python 3.11 on Linux) runs only when someone clicks Run workflow on Backend CI. Linux on Python 3.12 already runs on every pull request via Tests and lint.
 
-**This is not a bill you owe.** NOBS is a public repository, and GitHub Actions
-on standard hosted runners is free and unlimited for public repos. The same
-hosted matrix — ubuntu, macOS, and Windows — ran green and free on August 14,
-2026 (run 31831101028). Four days later the identical workflow could not get a
-runner. Nothing about the cost of the repo changed; the account's Actions
-access did.
+Actions → Backend CI → Run workflow has a `runner` input. The default is `ubuntu-latest`. `self-hosted-mac` runs the Python suite on the house Mac. Choose it only when that runner is Idle, or the run waits in the queue.
 
-**How to confirm it in one step.** Look at the runner fields on any failed job:
+---
+
+## Every hosted job fails in seconds (`runner_id` 0)
+
+**Symptom.** A job on a GitHub-hosted runner goes red 1–3 seconds after it starts, with no logs (the log endpoint 404s, because the job never ran).
+
+**This is not a bill you owe.** NOBS is a public repository, and GitHub Actions on standard hosted runners is free and unlimited for public repos. The Linux/macOS/Windows matrix ran green and free on August 14, 2026 (run [31831101028](https://github.com/acburgess25/NOBS/actions/runs/31831101028)). Four days later the identical workflow could not get a runner. Nothing about the cost of the repo changed; the account's Actions access did. That hold was still in effect on August 31, 2026, which is why a move to `ubuntu-latest` was reverted the same day it landed. The November 2026 change puts the gating check back on `ubuntu-latest` on purpose, so a pull request shows whether hosted runners work again.
+
+**How to confirm it in one step.** Open the job JSON (the API, or the run page) and look at:
 
 | | Never scheduled | Ran normally |
 |---|---|---|
-| `runner_id` | `0` | a real id (e.g. `22`, or `1000001420` for hosted) |
-| `runner_name` | empty | `macbook`, `GitHub Actions 1000001420` |
-| `steps` | absent | present |
+| `runner_id` | `0` | a real id (for example `1000001420` on a hosted runner) |
+| `runner_name` | empty | `GitHub Actions 1000001420` |
+| `steps` | absent, or empty | present, and they have logs |
 
-If hosted jobs show `runner_id: 0` while a self-hosted job **in the same
-workflow run** gets a runner, the problem is account-level Actions access, not
-the pull request. No code change fixes it and re-running will not help.
+A hosted job with `runner_id` 0 and no steps is an account-level Actions problem. No code change fixes it, and re-running will not help until the hold is lifted.
 
-**Fix.** Check [Actions billing and spending limits](https://github.com/settings/billing).
-On a public repo this is usually a spending cap or an account hold left over
-from other usage rather than a real charge for this repository — GitHub
-surfaces all of them with the same "payments have failed or your spending limit
-needs to be increased" wording.
+**Fix.** Check [Actions billing and spending limits](https://github.com/settings/billing). On a public repo this is usually a spending cap or an account hold left over from other usage rather than a real charge for this repository. GitHub surfaces all of them with the same "payments have failed or your spending limit needs to be increased" wording.
 
-**You are not blocked while it is broken.** Since August 2026 the workflow is
-arranged so this cannot stop work:
-
-- `Tests and lint (self-hosted Mac)` is the gating check. It runs on hardware
-  in the house, so it costs nothing and does not care about hosted-runner
-  availability.
-- `cross-platform` (the hosted Linux/macOS/Windows matrix) runs on **manual
-  dispatch only**. A job that cannot be scheduled still posts a red X, and a
-  red X nobody can act on is worse than no check, so it no longer runs
-  automatically. Trigger it from the Actions tab ("Run workflow") when hosted
-  runners are working, or before merging a change to path handling, process
-  APIs, or file encoding.
-
-The same checks run locally, and that is the real signal either way:
+While that is broken, the Python suite can still be run on your own machine. A red hosted check does not mean the tests failed:
 
 ```bash
-python3 scripts/dev.py check   # tests, lint, formatting
+python3 scripts/dev.py setup
+python3 scripts/dev.py check
 ```
 
-**Known gap, recorded honestly.** The gating check runs on macOS only, so the
-cross-platform contract in `docs/AI_WORKFLOW.md` is no longer enforced
-automatically. Before merging anything that touches path handling, process
-APIs, or file encoding, either dispatch the `cross-platform` job or run
-`python3 scripts/dev.py check` on the Tank (Linux). This is a deliberate trade:
-a check that always runs and is always free, over one that reports a failure no
-diff can fix.
+In `website/`:
 
-**One quirk when changing `auto-approve`-style workflows.** A
-`pull_request_target` workflow always runs the copy of the file on `main`, not
-the copy in the pull request. Deleting or editing one does not change the
-checks on the pull request making the change — it takes effect after merge.
+```bash
+pnpm install --frozen-lockfile
+pnpm build
+```
 
-**If a removed workflow was a required status check, remove it from branch
-protection too.** `main` is a protected branch. A required check that no
-workflow produces any more never reports, and a pull request waiting on a
-check that will never arrive can never merge — including the pull request that
-removed the workflow. Settings → Branches → `main` → Require status checks, and
-untick anything no workflow still produces (for example
-`docs-only-auto-approve`). Do this when merging the change that removes it.
+---
+
+## A self-hosted job sits, then is cancelled (`runner_id` 0)
+
+**Symptom.** The job stays yellow for a long time (often until the 24-hour queue timeout), then shows cancelled. `runner_id` is `0`, `runner_name` is empty, and there are no steps. This is a different failure from the two-second hosted hold above, even though `runner_id` is `0` in both cases. The clock tells them apart: two seconds means GitHub refused to schedule a hosted runner; many hours means nothing with the requested labels was online to pick the job up.
+
+That is what happened after the Mac wipe. Backend CI's tests and NOBSTests both asked for `[self-hosted, macOS, ARM64]`, and no runner has those labels anymore. Example: run [41569182582](https://github.com/acburgess25/NOBS/actions/runs/41569182582) was cancelled a day later with zero steps.
+
+Those jobs are now skipped unless you say the Mac is back. Skipping is a finished result. Queuing is not.
+
+---
+
+## Put the Mac runner back
+
+Do this on the Mac that should build the iPhone app. The Python gating check does not need it.
+
+1. Install Xcode so this path exists: `/Applications/Xcode-beta.app` (the workflows set `DEVELOPER_DIR` there). Install Python 3.11 or newer, ideally Homebrew `python3.12` or `python3.13`.
+2. From a checkout of this repo, create a registration token and start the runner:
+
+```bash
+export GITHUB_RUNNER_TOKEN="$(gh api repos/acburgess25/NOBS/actions/runners/registration-token -X POST -q .token)"
+bash scripts/setup-github-runner-mac.sh
+```
+
+The script registers a runner named `macbook` with labels `self-hosted`, `macOS`, `ARM64`, and `testflight`. Token creation needs permission to administer the repository.
+
+3. In GitHub: Settings → Actions → Runners. The runner should show **Idle** with those labels.
+4. Settings → Secrets and variables → Actions → Variables. Add a repository variable named `MAC_RUNNER_ONLINE` with the value `true` (lowercase, no quotes).
+5. NOBSTests then runs again on pull requests and on pushes to `main`. TestFlight dispatch uses the Mac again. Both stay skipped if the variable is missing or set to anything other than `true`.
+
+To take the Mac offline without deleting it, delete that variable or set it to `false`. Jobs skip instead of queueing.
+
+A one-off Python run on the Mac, without turning NOBSTests back on for every pull request: Actions → Backend CI → Run workflow → `runner` = `self-hosted-mac`. That still queues if the runner is offline, so check that it is Idle first.
+
+---
+
+## Known gap
+
+The check that gates a pull request is Linux only (Python 3.12). macOS and Windows, and the Python 3.11 floor, run when you dispatch Backend CI. iOS tests do not run until the Mac runner is back and `MAC_RUNNER_ONLINE` is `true`. Before merging a change to path handling, process APIs, or file encoding, either dispatch `cross-platform` or run `python3 scripts/dev.py check` on the Tank as well as on the Mac.
+
+**One quirk when changing `pull_request_target` workflows.** That event always runs the copy of the file on `main`, not the copy in the pull request. Deleting or editing one does not change the checks on the pull request making the change. It takes effect after merge. This repo does not currently ship a `pull_request_target` workflow; the note is here because an older docs-only auto-approve workflow did.
+
+**If a removed check name is still required, a pull request can wait forever.** `main` may require a status check by its exact name. The gating job used to be named `Tests and lint (self-hosted Mac)`. It is now `Tests and lint`, and it runs on Ubuntu. A required check that no workflow reports stays pending, and a pull request waiting on it cannot merge — including this one, if the old name is still required. Settings → Branches → `main` → Require status checks, and point the requirement at `Tests and lint` (and `Build website`, if you want the site build to gate too). Remove names no workflow still produces, such as `docs-only-auto-approve`. This change does not edit that setting.
 
 ---
 
@@ -184,7 +202,7 @@ Using distribution certificate 474FC3VL6X # embedded in the profiles
 
 **As of August 14, 2026 it fails on every pull request, including documentation-only ones**, and it is deliberately excluded from required checks. It is configured in App Store Connect rather than in this repository (there is no `ci_scripts/`), so its logs are not reachable from the CLI or `gh`.
 
-**It is also redundant.** Everything it would do already runs on the self-hosted Mac: `NOBSTests on Mac runner` (Backend CI `ios-macos`) compiles and tests on every pull request and *is* a required check, and [`testflight.yml`](../.github/workflows/testflight.yml) does the full archive → sign → export → upload locally through App Store Connect API keys. Retiring the Xcode Cloud workflow in App Store Connect removes a permanently red check without losing coverage. Until someone does that, treat it as noise — **do not debug a pull request because of it**.
+**It is also redundant with the Mac jobs, once those jobs are turned back on.** `NOBSTests on Mac runner` (Backend CI `ios-macos`) compiles and tests on the house Mac, and [`testflight.yml`](../.github/workflows/testflight.yml) does the archive, sign, export, and upload through App Store Connect API keys. Both are skipped until the repository variable `MAC_RUNNER_ONLINE` is `true`, because that runner was wiped. Retiring the Xcode Cloud workflow in App Store Connect removes a permanently red check. Until someone does that, treat it as noise — **do not debug a pull request because of it**.
 
 **When it fails:**
 
@@ -246,15 +264,29 @@ Once Xcode 27 ships as an RC or release, the fallback section above stops matter
 
 ---
 
-## Backend CI (real code failures)
+## Backend CI and the website (real code failures)
+
+On any machine with Python 3.11 or newer:
 
 ```bash
 python3 scripts/dev.py setup
 python3 scripts/dev.py check
+```
+
+The pull-request check uses Python 3.12 on Ubuntu. iOS tests need the Mac and Xcode:
+
+```bash
 bash scripts/test-ios.sh
 ```
 
-Fix any failing tests or lint before pushing.
+Website, from `website/`:
+
+```bash
+pnpm install --frozen-lockfile
+pnpm build
+```
+
+Fix any failing tests, lint, or the site build before pushing. A hosted job that is red in a couple of seconds with no log is the hold described above, not one of these commands.
 
 ---
 

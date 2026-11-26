@@ -59,8 +59,11 @@ account-level Actions hold, **not** a charge for this repository — public repo
 Actions is free. See
 [`../CI_TROUBLESHOOTING.md`](../CI_TROUBLESHOOTING.md#every-hosted-job-fails-in-seconds-august-2026).
 
-Backend CI is arranged so this cannot block you: the gating check runs on the
-self-hosted Mac, and the hosted cross-platform matrix is `continue-on-error`.
+The pull-request gate is `Tests and lint` on `ubuntu-latest` (Python 3.12).
+That is free for this public repository. If that job fails in a couple of
+seconds with `runner_id` 0, the account hold is back and the tests may still
+be fine — run `python3 scripts/dev.py check` locally. The macOS/Windows matrix
+stays on manual dispatch. The house Mac is not required for the Python check.
 
 ## Rule for anything new
 
