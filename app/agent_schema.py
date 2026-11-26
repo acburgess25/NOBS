@@ -147,6 +147,8 @@ SCHEMA_SQL = """
 # without one to a populated table.
 ADDED_COLUMNS: tuple[tuple[str, str, str], ...] = (
     ("calendar_events", "end_time", "TEXT"),
+    # Retained so databases from builds that stored locations still open.
+    # AgentStore clears the column and does not write it.
     ("calendar_events", "location", "TEXT"),
     ("reminders", "due_at", "TEXT"),
 )

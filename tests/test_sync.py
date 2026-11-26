@@ -57,20 +57,20 @@ def test_sync_reminders_persists_latest_payload() -> None:
     assert {item["context"] for item in reminders} == {"personal", "business"}
 
 
-def test_sync_calendar_keeps_end_and_location() -> None:
-    """These were accepted by the API and then dropped on write.
+def test_sync_calendar_keeps_end_and_drops_location() -> None:
+    """End times stay, because overlap detection needs them.
 
-    The briefing heuristics need end times to detect overlapping and
-    back-to-back events, so discarding them silently disabled conflict
-    detection for every briefing built from synced data.
+    Event locations do not. A payload that still includes one must be accepted
+    and then discarded, so a place name never lands in Tank's database.
     """
     test_client = client()
 
-    test_client.post("/sync/calendar", json=CALENDAR_PAYLOAD, headers=auth())
+    response = test_client.post("/sync/calendar", json=CALENDAR_PAYLOAD, headers=auth())
 
+    assert response.status_code == 200
     events = {e["title"]: e for e in test_client.app.state.agent_store.list_calendar_events()}
     assert events["Design sync"]["end"] == "2026-07-05T11:00:00Z"
-    assert events["Design sync"]["location"] == "Room 2"
+    assert events["Design sync"]["location"] is None
     # Absent optional fields stay absent rather than becoming empty strings.
     assert events["School pickup"]["end"] is None
     assert events["School pickup"]["location"] is None
@@ -131,6 +131,25 @@ def test_columns_are_added_to_an_existing_database(tmp_path) -> None:
     # And the migrated table accepts writes that use the new columns.
     store.sync_calendar([{"title": "New", "start": "10:00", "end": "11:00", "context": "business"}])
     assert store.list_calendar_events()[0]["end"] == "11:00"
+
+
+def test_opening_the_store_forgets_previously_saved_event_locations(tmp_path) -> None:
+    """Locations saved by an older Tank build are cleared the next time the store opens."""
+    database = tmp_path / "tank.db"
+    AgentStore(database).sync_calendar(
+        [{"title": "Seed", "start": "09:00", "end": "10:00", "context": "personal"}]
+    )
+    planted = sqlite3.connect(database)
+    planted.execute("UPDATE calendar_events SET location = ?", ("Room 2",))
+    planted.commit()
+    planted.close()
+
+    reopened = AgentStore(database)
+    event = reopened.list_calendar_events()[0]
+
+    assert event["title"] == "Seed"
+    assert event["end"] == "10:00"
+    assert event["location"] is None
 
 
 def test_migration_is_idempotent(tmp_path) -> None:

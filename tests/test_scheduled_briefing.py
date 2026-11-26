@@ -182,7 +182,8 @@ def test_scheduled_briefing_sends_end_times_to_the_model() -> None:
     _run_scheduled(store, httpx.MockTransport(capture), timezone="UTC")
 
     assert seen["calendar"][0]["end"] == "11:00"
-    assert seen["calendar"][0]["location"] == "Room 2"
+    assert "location" not in seen["calendar"][0]
+    assert "Room 2" not in json.dumps(seen)
     assert seen["reminders"][0]["due"] == "14:00"
 
 

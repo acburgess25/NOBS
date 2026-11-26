@@ -60,10 +60,16 @@ class BriefingContext(str, Enum):
 
 
 class BriefingCalendarItem(BaseModel):
+    """Calendar facts Tank is allowed to see.
+
+    Event locations stay on the device. The field is intentionally absent, so a
+    client that still sends one is ignored rather than required, stored, or
+    handed to the model. Pydantic's default is to drop unknown fields.
+    """
+
     title: str = Field(min_length=1, max_length=500)
     start: str = Field(min_length=1, max_length=50)
     end: str | None = Field(default=None, max_length=50)
-    location: str | None = Field(default=None, max_length=300)
     context: BriefingContext
 
 
@@ -148,8 +154,8 @@ async def generate_briefing(
         route="Tank",
         privacy_receipt=PrivacyReceipt(
             used=[
-                f"{len(request.calendar)} calendar items",
-                f"{len(request.reminders)} reminder items",
+                f"{len(request.calendar)} calendar items (title, start, end, context)",
+                f"{len(request.reminders)} reminder items (title, due, context)",
             ],
             processed="Tank on your private network",
             shared=[],

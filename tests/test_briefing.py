@@ -51,6 +51,7 @@ def test_briefing_returns_sections_and_persists_latest() -> None:
         assert supplied["calendar"][0]["start"] == "10:00"
         assert supplied["calendar"][0]["end"] == "11:00"
         assert supplied["calendar"][0]["context"] == "business"
+        assert "location" not in supplied["calendar"][0]
         return httpx.Response(
             200,
             json={
@@ -89,7 +90,11 @@ def test_briefing_returns_sections_and_persists_latest() -> None:
     assert len(result["priorities"]) >= 3
     assert "No major schedule risks detected right now." in result["conflicts_or_risks"]
     assert result["route"] == "Tank"
-    assert result["privacy_receipt"]["used"] == ["1 calendar items", "1 reminder items"]
+    assert result["privacy_receipt"]["used"] == [
+        "1 calendar items (title, start, end, context)",
+        "1 reminder items (title, due, context)",
+    ]
+    assert "location" not in " ".join(result["privacy_receipt"]["used"]).lower()
     assert test_client.get("/briefing/latest", headers=auth()).json() == result
 
 
@@ -152,6 +157,58 @@ def test_briefing_rejects_malformed_model_output() -> None:
     response = client(transport).post("/briefing", json=REQUEST, headers=auth())
 
     assert response.status_code == 502
+
+
+def test_briefing_drops_event_location_before_the_model_and_receipt() -> None:
+    """A client may still send a location. Tank must not require it, keep it, or tell the model."""
+    request = {
+        "date": "2026-07-04",
+        "calendar": [
+            {
+                "title": "Design sync",
+                "start": "10:00",
+                "end": "11:00",
+                "location": "Room 2",
+                "context": "business",
+            }
+        ],
+        "reminders": [],
+    }
+    seen: dict = {}
+
+    def ollama_response(http_request: httpx.Request) -> httpx.Response:
+        seen.update(json.loads(http_request.content))
+        return httpx.Response(
+            200,
+            json={
+                "message": {
+                    "content": json.dumps(
+                        {
+                            "topline": "One meeting.",
+                            "priorities": ["Business · Design sync (10:00)"],
+                            "conflicts_or_risks": [],
+                            "recommended_plan": ["Prep before 10:00."],
+                            "one_useful_question": None,
+                            "suggested_next_actions": ["Review the agenda."],
+                        }
+                    )
+                }
+            },
+        )
+
+    response = client(httpx.MockTransport(ollama_response)).post(
+        "/briefing", json=request, headers=auth()
+    )
+
+    assert response.status_code == 200
+    supplied = json.loads(seen["messages"][1]["content"])
+    assert "location" not in supplied["calendar"][0]
+    assert "Room 2" not in json.dumps(supplied)
+    receipt = response.json()["privacy_receipt"]
+    assert (
+        "location" not in " ".join(receipt["used"] + receipt["shared"] + receipt["changed"]).lower()
+    )
+    assert "Room 2" not in json.dumps(receipt)
 
 
 def test_briefing_rejects_unknown_context() -> None:

@@ -65,7 +65,6 @@ actor TankClient {
                         title: $0.title,
                         start: time.string(from: $0.start),
                         end: time.string(from: $0.end),
-                        location: $0.location,
                         context: $0.context.rawValue
                     )
                 },
@@ -211,10 +210,11 @@ struct TankBriefingRequest: Codable {
 }
 
 struct TankBriefingCalendarItem: Codable {
+    /// Titles, times, and context only. Event locations stay on the device and
+    /// are not part of the Tank request.
     let title: String
     let start: String
     let end: String?
-    let location: String?
     let context: String
 }
 
