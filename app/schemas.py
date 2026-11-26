@@ -2,8 +2,8 @@
 
 These are the wire contract. The iPhone app, the macOS supervisor, and the
 dashboard all decode exactly what is declared here, so a change to a field
-name or type is a breaking protocol change -- not a local refactor. Keeping them in one file makes that contract readable
-on its own, instead of interleaved with the routes that happen to use it.
+name or type is a breaking protocol change -- not a local refactor. Briefing
+and sync types live in app.contract.v1.
 """
 
 from __future__ import annotations
@@ -13,7 +13,9 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-from app.briefing import BriefingCalendarItem, BriefingReminderItem, PrivacyReceipt
+from app.contract.v1 import PrivacyReceipt
+from app.contract.v1 import SyncCalendarRequest as SyncCalendarRequest
+from app.contract.v1 import SyncRemindersRequest as SyncRemindersRequest
 
 
 class ChatMessage(BaseModel):
@@ -88,14 +90,6 @@ class OvernightTaskView(BaseModel):
     created_at: str
     started_at: str | None
     completed_at: str | None
-
-
-class SyncCalendarRequest(BaseModel):
-    events: list[BriefingCalendarItem]
-
-
-class SyncRemindersRequest(BaseModel):
-    reminders: list[BriefingReminderItem]
 
 
 class AppleAuthRequest(BaseModel):
