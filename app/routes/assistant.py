@@ -16,12 +16,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from app.briefing import (
     BriefingError,
     BriefingModelUnavailable,
-    BriefingRequest,
-    BriefingResponse,
     OllamaResponse,
-    PrivacyReceipt,
     generate_briefing,
 )
+from app.contract.v1 import BriefingRequest, BriefingResponse, PrivacyReceipt
 from app.dependencies import SettingsDep, StoreDep, TransportDep, require_device_token
 from app.inference import chat as run_chat
 from app.schemas import ChatRequest, ChatResponse

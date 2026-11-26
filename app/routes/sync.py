@@ -9,8 +9,8 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends
 
+from app.contract.v1 import SyncCalendarRequest, SyncRemindersRequest
 from app.dependencies import StoreDep, require_device_token
-from app.schemas import SyncCalendarRequest, SyncRemindersRequest
 
 router = APIRouter()
 

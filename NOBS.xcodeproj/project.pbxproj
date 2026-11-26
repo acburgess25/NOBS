@@ -76,6 +76,7 @@
 		J10000000000000000000005 /* LocalAssistant.swift in Sources */ = {isa = PBXBuildFile; fileRef = J20000000000000000000005 /* LocalAssistant.swift */; };
 		J10000000000000000000006 /* PCCQuotaStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = J20000000000000000000006 /* PCCQuotaStatusView.swift */; };
 		K10000000000000000000001 /* ModelRouterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = K20000000000000000000001 /* ModelRouterTests.swift */; };
+		K10000000000000000000002 /* TankContractFixtureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = K20000000000000000000003 /* TankContractFixtureTests.swift */; };
 
 /* Begin PBXContainerItemProxy section */
 		F80000000000000000000001 /* PBXContainerItemProxy */ = {
@@ -178,6 +179,7 @@
 		J20000000000000000000006 /* PCCQuotaStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PCCQuotaStatusView.swift; sourceTree = "<group>"; };
 		K20000000000000000000001 /* ModelRouterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelRouterTests.swift; sourceTree = "<group>"; };
 		K20000000000000000000002 /* NOBSTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = NOBSTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		K20000000000000000000003 /* TankContractFixtureTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TankContractFixtureTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -357,6 +359,7 @@
 			isa = PBXGroup;
 			children = (
 				K20000000000000000000001 /* ModelRouterTests.swift */,
+				K20000000000000000000003 /* TankContractFixtureTests.swift */,
 			);
 			path = NOBSTests;
 			sourceTree = "<group>";
@@ -600,6 +603,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				K10000000000000000000001 /* ModelRouterTests.swift in Sources */,
+				K10000000000000000000002 /* TankContractFixtureTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

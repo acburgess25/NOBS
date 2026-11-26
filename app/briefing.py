@@ -13,13 +13,21 @@ one.
 from __future__ import annotations
 
 import json
-from datetime import UTC, date, datetime
-from enum import Enum
+from datetime import UTC, datetime
 
 import httpx
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from app.config import Settings
+from app.contract.v1 import (
+    BriefingCalendarItem,
+    BriefingContext,
+    BriefingRequest,
+    BriefingResponse,
+    BriefingSections,
+    PrivacyReceipt,
+)
+from app.contract.v1 import BriefingReminderItem as BriefingReminderItem
 from app.inference import chat as run_chat
 
 _BRIEFING_SYSTEM_PROMPT = (
@@ -44,61 +52,6 @@ class BriefingModelUnavailable(BriefingError):
     Separate from `BriefingError` only because callers distinguish "come back
     later" from "the model answered badly" -- 503 versus 502.
     """
-
-
-class PrivacyReceipt(BaseModel):
-    used: list[str]
-    processed: str
-    shared: list[str]
-    changed: list[str]
-
-
-class BriefingContext(str, Enum):
-    personal = "personal"
-    business = "business"
-    shared = "shared"
-
-
-class BriefingCalendarItem(BaseModel):
-    """Calendar facts Tank is allowed to see.
-
-    Event locations stay on the device. The field is intentionally absent, so a
-    client that still sends one is ignored rather than required, stored, or
-    handed to the model. Pydantic's default is to drop unknown fields.
-    """
-
-    title: str = Field(min_length=1, max_length=500)
-    start: str = Field(min_length=1, max_length=50)
-    end: str | None = Field(default=None, max_length=50)
-    context: BriefingContext
-
-
-class BriefingReminderItem(BaseModel):
-    title: str = Field(min_length=1, max_length=500)
-    due: str | None = Field(default=None, max_length=50)
-    context: BriefingContext
-
-
-class BriefingRequest(BaseModel):
-    date: date
-    calendar: list[BriefingCalendarItem] = Field(max_length=100)
-    reminders: list[BriefingReminderItem] = Field(max_length=100)
-
-
-class BriefingSections(BaseModel):
-    topline: str = Field(min_length=1, max_length=600)
-    priorities: list[str] = Field(default_factory=list, max_length=5)
-    conflicts_or_risks: list[str] = Field(default_factory=list, max_length=8)
-    recommended_plan: list[str] = Field(default_factory=list, max_length=10)
-    one_useful_question: str | None = Field(default=None, max_length=300)
-    suggested_next_actions: list[str] = Field(default_factory=list, max_length=6)
-
-
-class BriefingResponse(BriefingSections):
-    date: date
-    generated_at: datetime
-    route: str
-    privacy_receipt: PrivacyReceipt
 
 
 class OllamaMessage(BaseModel):
